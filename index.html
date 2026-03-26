@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FlotaApp">
+<title>FlotaApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0f0f11;
+  --surface:  #18181c;
+  --surface2: #1f1f24;
+  --border:   #2a2a30;
+  --border2:  #38383f;
+  --text:     #f0eff4;
+  --muted:    #7c7b85;
+  --accent:   #7c6af7;
+  --accent2:  #a897ff;
+  --green:    #3dd68c;
+  --red:      #f46060;
+  --amber:    #f5a623;
+  --mono:     'DM Mono', monospace;
+  --sans:     'DM Sans', sans-serif;
+  --r:        12px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+/* ── LAYOUT ── */
+#app { display: flex; flex-direction: column; height: 100dvh; }
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 12px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+#topbar .logo { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--accent2); letter-spacing: .02em; }
+#topbar .clock { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+
+#main { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+
+#navbar {
+  display: flex; border-top: 1px solid var(--border);
+  background: var(--bg);
+  padding-bottom: max(8px, var(--safe-bottom));
+  flex-shrink: 0;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 10px 4px 6px;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-family: var(--sans); font-size: 10px; font-weight: 500;
+  letter-spacing: .03em; text-transform: uppercase; transition: color .15s;
+}
+.nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.nav-btn.active { color: var(--accent2); }
+
+/* ── SCREENS ── */
+.screen { display: none; padding: 20px; animation: fadeIn .18s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── TYPOGRAPHY ── */
+.screen-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.screen-sub   { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 16px; margin-bottom: 12px;
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card-title { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+/* ── FORM ── */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 11px 13px;
+  color: var(--text); font-family: var(--sans); font-size: 15px;
+  outline: none; transition: border-color .15s;
+  -webkit-appearance: none; appearance: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 72px; }
+.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237c7b85' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn {
+  width: 100%; padding: 13px; border-radius: 8px; border: none; cursor: pointer;
+  font-family: var(--sans); font-size: 15px; font-weight: 600;
+  transition: opacity .15s, transform .1s;
+}
+.btn:active { transform: scale(.98); opacity: .85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+.btn-sm { width: auto; padding: 7px 14px; font-size: 13px; border-radius: 6px; font-weight: 500; }
+
+/* ── DISPONIBILIDAD ── */
+.avail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 16px; }
+.avail-item {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 12px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.avail-item.libre { border-color: #2a4a38; background: #0e1f17; }
+.avail-item.libre:hover { border-color: var(--green); }
+.avail-item.ocupado { border-color: #3d2020; background: #1a0e0e; opacity: .6; cursor: default; }
+.avail-item.taller { border-color: #3d3020; background: #1a1608; opacity: .6; cursor: default; }
+.avail-mat { font-family: var(--mono); font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.avail-status { font-size: 11px; font-weight: 500; }
+.libre .avail-status  { color: var(--green); }
+.ocupado .avail-status { color: var(--red); }
+.taller .avail-status  { color: var(--amber); }
+
+/* ── CAT TABS ── */
+.cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.cat-tab {
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--muted);
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
+  font-family: var(--mono);
+}
+.cat-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── STATS ── */
+.stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 12px; text-align: center; }
+.stat-num { font-family: var(--mono); font-size: 26px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.stat-green .stat-num { color: var(--green); }
+.stat-red .stat-num   { color: var(--red); }
+.stat-amber .stat-num { color: var(--amber); }
+
+/* ── EVENTOS LIST ── */
+.evento-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px;
+  display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start;
+  cursor: pointer; transition: border-color .15s;
+}
+.evento-card:hover { border-color: var(--border2); }
+.ev-mat { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--accent2); }
+.ev-cat { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ev-dates { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.ev-lugar { font-size: 13px; margin-top: 4px; color: var(--text); }
+.badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+}
+.badge-activo    { background: #0e2a1c; color: var(--green); border: 1px solid #1a4a30; }
+.badge-pendiente { background: #2a2210; color: var(--amber); border: 1px solid #4a3a18; }
+.badge-cerrado   { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+.badge-cancelado { background: #2a1010; color: var(--red); border: 1px solid #4a2020; }
+
+/* ── MODAL ── */
+#modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
+  z-index: 100; align-items: flex-end; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#modal-overlay.open { display: flex; }
+#modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px max(24px, var(--safe-bottom));
+  width: 100%; max-width: 520px;
+  max-height: 90dvh; overflow-y: auto;
+  animation: slideUp .22s ease;
+}
+@keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+.modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 20px; }
+.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 18px; }
+.modal-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.modal-row:last-child { border-bottom: none; }
+.modal-key { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.modal-val { font-size: 14px; font-weight: 500; text-align: right; max-width: 60%; }
+.modal-val.mono { font-family: var(--mono); color: var(--accent2); }
+
+/* ── EMPTY STATE ── */
+.empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty svg { width: 40px; height: 40px; stroke: var(--border2); margin-bottom: 12px; }
+.empty p { font-size: 14px; }
+
+/* ── SEPARADOR ── */
+.section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 10px; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: calc(80px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px;
+  padding: 10px 20px; font-size: 13px; font-weight: 500;
+  opacity: 0; transition: all .25s; pointer-events: none; white-space: nowrap; z-index: 200;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-color: var(--green); color: var(--green); }
+#toast.error { border-color: var(--red); color: var(--red); }
+
+/* ── FILTRO EVENTOS ── */
+.filter-row { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+.filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 500;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all .15s;
+}
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── SEARCH ── */
+.search-wrap { position: relative; margin-bottom: 16px; }
+.search-wrap input { padding-left: 38px; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+@media (min-width: 600px) {
+  #app { max-width: 480px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  body { background: #080809; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <span class="logo">FLOTA//APP</span>
+    <span class="clock" id="clock">--:--</span>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+
+    <!-- SCREEN: DISPONIBILIDAD -->
+    <div class="screen active" id="screen-disp">
+      <div class="screen-title">Disponibilidad</div>
+      <div class="screen-sub">Comprueba qué coches están libres</div>
+
+      <div class="card">
+        <div class="field-row">
+          <div class="field">
+            <label>Fecha inicio</label>
+            <input type="date" id="disp-fecha">
+          </div>
+          <div class="field">
+            <label>Hora</label>
+            <input type="time" id="disp-hora" value="10:00">
+          </div>
+        </div>
+        <div class="field">
+          <label>Días de alquiler</label>
+          <input type="number" id="disp-dias" min="1" max="60" value="1" placeholder="Nº de días">
+        </div>
+        <button class="btn btn-primary" onclick="buscarDisponibilidad()">Buscar disponibilidad</button>
+      </div>
+
+      <div id="disp-resultado" style="display:none">
+        <div class="cat-tabs" id="cat-tabs"></div>
+        <div class="avail-grid" id="avail-grid"></div>
+      </div>
+    </div>
+
+    <!-- SCREEN: NUEVO EVENTO -->
+    <div class="screen" id="screen-nuevo">
+      <div class="screen-title">Nuevo evento</div>
+      <div class="screen-sub">Registra una reserva durante la llamada</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Fecha inicio</label>
+          <input type="date" id="nev-fecha">
+        </div>
+        <div class="field">
+          <label>Hora entrega</label>
+          <input type="time" id="nev-hora" value="10:00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Días de alquiler</label>
+        <input type="number" id="nev-dias" min="1" max="60" value="1">
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="nev-cat">
+          <option value="">— Selecciona categoría —</option>
+          <option>1</option><option>2</option><option>3</option>
+          <option>A</option><option>AXL</option><option>MB7</option><option>MB9</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Matrícula asignada <span style="color:var(--muted);font-weight:400">(opcional, asignar tras llamada)</span></label>
+        <select id="nev-mat">
+          <option value="">— Sin asignar aún —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Lugar de entrega</label>
+        <input type="text" id="nev-lugar" placeholder="Ej. Hotel Sol - Av. del Mar 12">
+      </div>
+      <div class="field">
+        <label>Info del lugar</label>
+        <input type="text" id="nev-info" placeholder="Ej. Habitación 204, recepción...">
+      </div>
+      <div class="field">
+        <label>Extras</label>
+        <input type="text" id="nev-extras" placeholder="GPS, silla bebé, conductor adicional...">
+      </div>
+      <button class="btn btn-primary" onclick="crearEvento()" style="margin-top:4px">Guardar evento</button>
+    </div>
+
+    <!-- SCREEN: AGENDA -->
+    <div class="screen" id="screen-agenda">
+      <div class="screen-title">Agenda</div>
+      <div class="screen-sub">Todos los eventos registrados</div>
+
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+        <input type="text" placeholder="Buscar matrícula, lugar..." id="agenda-search" oninput="renderAgenda()">
+      </div>
+
+      <div class="filter-row" id="agenda-filters">
+        <div class="filter-chip active" data-f="todos" onclick="setFilter(this)">Todos</div>
+        <div class="filter-chip" data-f="Activo" onclick="setFilter(this)">Activos</div>
+        <div class="filter-chip" data-f="Pendiente" onclick="setFilter(this)">Pendientes</div>
+        <div class="filter-chip" data-f="Cerrado" onclick="setFilter(this)">Cerrados</div>
+      </div>
+
+      <div id="agenda-list"></div>
+    </div>
+
+    <!-- SCREEN: FLOTA -->
+    <div class="screen" id="screen-flota">
+      <div class="screen-title">Flota</div>
+      <div class="screen-sub">Estado actual de los 52 vehículos</div>
+
+      <div class="stats-grid">
+        <div class="stat-box stat-green">
+          <div class="stat-num" id="stat-libre">—</div>
+          <div class="stat-label">Libres</div>
+        </div>
+        <div class="stat-box stat-red">
+          <div class="stat-num" id="stat-alq">—</div>
+          <div class="stat-label">En ruta</div>
+        </div>
+        <div class="stat-box stat-amber">
+          <div class="stat-num" id="stat-taller">—</div>
+          <div class="stat-label">Taller</div>
+        </div>
+      </div>
+
+      <div class="cat-tabs" id="flota-cat-tabs"></div>
+      <div id="flota-list"></div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- NAVBAR -->
+  <nav id="navbar">
+    <button class="nav-btn active" onclick="goTo('disp',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="1.5" fill="currentColor" stroke="none"/></svg>
+      Disponible
+    </button>
+    <button class="nav-btn" onclick="goTo('nuevo',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Nuevo
+    </button>
+    <button class="nav-btn" onclick="goTo('agenda',this)">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+      Agenda
+    </button>
+    <button class="nav-btn" onclick="goTo('flota',this)">
+      <svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><line x1="6" y1="13" x2="6" y2="13"/><line x1="18" y1="13" x2="18" y2="13"/></svg>
+      Flota
+    </button>
+  </nav>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <div class="modal-handle"></div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const VEHICULOS_BASE = [
+  ["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],
+  ["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],
+  ["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],
+  ["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],
+  ["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],
+  ["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],
+  ["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],
+  ["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],
+  ["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],
+  ["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],
+  ["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],
+  ["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],
+  ["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"],
+];
+const CATS = ["1","2","3","A","AXL","MB7","MB9"];
+
+// ── STATE (persiste en localStorage) ──────────────────────────────────────
+function loadState() {
+  try {
+    const raw = localStorage.getItem('flotaapp_v1');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  // init
+  return {
+    vehiculos: VEHICULOS_BASE.map(([mat,cat]) => ({ mat, cat, estado: 'Disponible' })),
+    eventos: []
+  };
+}
+function saveState() { localStorage.setItem('flotaapp_v1', JSON.stringify(STATE)); }
+let STATE = loadState();
+
+// ── CLOCK ─────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+}
+updateClock(); setInterval(updateClock, 10000);
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function goTo(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('main').scrollTop = 0;
+  if (id === 'agenda') renderAgenda();
+  if (id === 'flota')  renderFlota();
+  if (id === 'nuevo')  initNuevoEvento();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function toMin(dateObj) { return dateObj.getTime(); }
+
+function eventoRange(ev) {
+  const ini = new Date(ev.fechaIni);
+  const fin = new Date(ini.getTime() + ev.dias * 24 * 60 * 60 * 1000);
+  const buf = new Date(fin.getTime() + 30 * 60 * 1000); // +30min
+  return { ini, fin, buf };
+}
+
+function isBusy(mat, searchIni, searchFin) {
+  // Un coche está ocupado si algún evento activo/pendiente se solapa
+  return STATE.eventos.some(ev => {
+    if (ev.matricula !== mat) return false;
+    if (ev.estado === 'Cerrado' || ev.estado === 'Cancelado') return false;
+    const { ini, buf } = eventoRange(ev);
+    return ini < searchFin && buf > searchIni;
+  });
+}
+
+function getVehicleEstado(mat) {
+  const v = STATE.vehiculos.find(x => x.mat === mat);
+  return v ? v.estado : 'Disponible';
+}
+
+function fmtDate(dt) {
+  return dt.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' });
+}
+function fmtDateTime(dt) {
+  return dt.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
+    ' ' + dt.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── DISPONIBILIDAD ────────────────────────────────────────────────────────
+let dispResultado = {};
+let activeCat = 'todos';
+
+function buscarDisponibilidad() {
+  const fecha = document.getElementById('disp-fecha').value;
+  const hora  = document.getElementById('disp-hora').value;
+  const dias  = parseInt(document.getElementById('disp-dias').value) || 1;
+
+  if (!fecha) { showToast('Selecciona una fecha', 'error'); return; }
+
+  const searchIni = new Date(fecha + 'T' + hora);
+  const searchFin = new Date(searchIni.getTime() + dias * 24 * 60 * 60 * 1000);
+
+  dispResultado = {};
+  CATS.forEach(cat => { dispResultado[cat] = []; });
+
+  STATE.vehiculos.forEach(v => {
+    const estado = v.estado;
+    let disp;
+    if (estado === 'Taller') {
+      disp = 'taller';
+    } else if (isBusy(v.mat, searchIni, searchFin)) {
+      disp = 'ocupado';
+    } else {
+      disp = 'libre';
+    }
+    dispResultado[v.cat].push({ mat: v.mat, disp });
+  });
+
+  activeCat = 'todos';
+  renderDispTabs();
+  renderDispGrid();
+  document.getElementById('disp-resultado').style.display = 'block';
+}
+
+function renderDispTabs() {
+  const tabs = document.getElementById('cat-tabs');
+  let libresTotal = Object.values(dispResultado).flat().filter(x => x.disp === 'libre').length;
+
+  tabs.innerHTML = `<div class="cat-tab ${activeCat==='todos'?'active':''}" onclick="setCatTab('todos',this)">Todos (${libresTotal} libres)</div>` +
+    CATS.map(cat => {
+      const libres = (dispResultado[cat]||[]).filter(x => x.disp === 'libre').length;
+      const total  = (dispResultado[cat]||[]).length;
+      return `<div class="cat-tab ${activeCat===cat?'active':''}" onclick="setCatTab('${cat}',this)">Cat. ${cat} · ${libres}/${total}</div>`;
+    }).join('');
+}
+
+function setCatTab(cat, el) {
+  activeCat = cat;
+  document.querySelectorAll('#cat-tabs .cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDispGrid();
+}
+
+function renderDispGrid() {
+  const grid = document.getElementById('avail-grid');
+  let items = activeCat === 'todos'
+    ? Object.values(dispResultado).flat()
+    : (dispResultado[activeCat] || []);
+
+  // libres primero
+  items = [...items].sort((a,b) => {
+    const order = { libre:0, ocupado:1, taller:2 };
+    return order[a.disp] - order[b.disp];
+  });
+
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>Sin vehículos en esta categoría</p></div>';
+    return;
+  }
+
+  grid.innerHTML = items.map(item => `
+    <div class="avail-item ${item.disp}" onclick="${item.disp==='libre' ? `seleccionarCoche('${item.mat}')` : ''}">
+      <div class="avail-mat">${item.mat}</div>
+      <div class="avail-status">${item.disp === 'libre' ? '● Libre' : item.disp === 'ocupado' ? '● Ocupado' : '● Taller'}</div>
+    </div>
+  `).join('');
+}
+
+function seleccionarCoche(mat) {
+  // Llevar al formulario con datos precargados
+  const fecha = document.getElementById('disp-fecha').value;
+  const hora  = document.getElementById('disp-hora').value;
+  const dias  = document.getElementById('disp-dias').value;
+  const cat   = STATE.vehiculos.find(v => v.mat === mat)?.cat || '';
+
+  document.getElementById('nev-fecha').value = fecha;
+  document.getElementById('nev-hora').value  = hora;
+  document.getElementById('nev-dias').value  = dias;
+  document.getElementById('nev-cat').value   = cat;
+  initNuevoEvento();
+  document.getElementById('nev-mat').value = mat;
+
+  goTo('nuevo', document.querySelectorAll('.nav-btn')[1]);
+  showToast('Coche ' + mat + ' seleccionado', 'success');
+}
+
+// ── NUEVO EVENTO ──────────────────────────────────────────────────────────
+function initNuevoEvento() {
+  const cat = document.getElementById('nev-cat').value;
+  const matSel = document.getElementById('nev-mat');
+  const current = matSel.value;
+  matSel.innerHTML = '<option value="">— Sin asignar aún —</option>';
+  STATE.vehiculos
+    .filter(v => !cat || v.cat === cat)
+    .forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.mat;
+      opt.textContent = v.mat + ' (Cat. ' + v.cat + ')';
+      if (v.mat === current) opt.selected = true;
+      matSel.appendChild(opt);
+    });
+}
+
+document.getElementById('nev-cat').addEventListener('change', initNuevoEvento);
+
+function crearEvento() {
+  const fecha  = document.getElementById('nev-fecha').value;
+  const hora   = document.getElementById('nev-hora').value;
+  const dias   = parseInt(document.getElementById('nev-dias').value);
+  const cat    = document.getElementById('nev-cat').value;
+  const mat    = document.getElementById('nev-mat').value;
+  const lugar  = document.getElementById('nev-lugar').value.trim();
+  const info   = document.getElementById('nev-info').value.trim();
+  const extras = document.getElementById('nev-extras').value.trim();
+
+  if (!fecha || !hora || !dias || !cat) {
+    showToast('Rellena fecha, hora, días y categoría', 'error'); return;
+  }
+
+  const ev = {
+    id: Date.now(),
+    fechaIni: fecha + 'T' + hora,
+    dias, cat,
+    matricula: mat || '',
+    lugar, info, extras,
+    estado: 'Pendiente',
+    createdAt: new Date().toISOString()
+  };
+
+  STATE.eventos.unshift(ev);
+  // Si hay matrícula asignada, marcarla en alquiler
+  if (mat) {
+    const v = STATE.vehiculos.find(x => x.mat === mat);
+    if (v) v.estado = 'En alquiler';
+  }
+  saveState();
+
+  // reset form
+  ['nev-fecha','nev-hora','nev-lugar','nev-info','nev-extras'].forEach(id => {
+    document.getElementById(id).value = id === 'nev-hora' ? '10:00' : '';
+  });
+  document.getElementById('nev-dias').value = '1';
+  document.getElementById('nev-cat').value = '';
+  document.getElementById('nev-mat').value = '';
+
+  showToast('Evento guardado ✓', 'success');
+  goTo('agenda', document.querySelectorAll('.nav-btn')[2]);
+}
+
+// ── AGENDA ────────────────────────────────────────────────────────────────
+let agendaFilter = 'todos';
+
+function setFilter(el) {
+  agendaFilter = el.dataset.f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderAgenda();
+}
+
+function renderAgenda() {
+  const q = (document.getElementById('agenda-search')?.value || '').toLowerCase();
+  let evs = [...STATE.eventos];
+
+  if (agendaFilter !== 'todos') evs = evs.filter(e => e.estado === agendaFilter);
+  if (q) evs = evs.filter(e =>
+    e.matricula.toLowerCase().includes(q) ||
+    e.lugar.toLowerCase().includes(q) ||
+    e.cat.toLowerCase().includes(q)
+  );
+
+  const list = document.getElementById('agenda-list');
+  if (!evs.length) {
+    list.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <p>Sin eventos</p></div>`;
+    return;
+  }
+
+  list.innerHTML = evs.map(ev => {
+    const { ini, buf } = eventoRange(ev);
+    return `<div class="evento-card" onclick="openEvento(${ev.id})">
+      <div>
+        <div class="ev-mat">${ev.matricula || '— Sin asignar —'}</div>
+        <div class="ev-cat">Categoría ${ev.cat}</div>
+        <div class="ev-dates">${fmtDateTime(ini)} → Disponible: ${fmtDateTime(buf)}</div>
+        ${ev.lugar ? `<div class="ev-lugar">${ev.lugar}</div>` : ''}
+      </div>
+      <div><span class="badge badge-${ev.estado.toLowerCase()}">${ev.estado}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function openEvento(id) {
+  const ev = STATE.eventos.find(e => e.id === id);
+  if (!ev) return;
+  const { ini, fin, buf } = eventoRange(ev);
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">Evento · ${ev.matricula || 'Sin asignar'}</div>
+    <div class="modal-row"><span class="modal-key">Matrícula</span><span class="modal-val mono">${ev.matricula || '—'}</span></div>
+    <div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${ev.cat}</span></div>
+    <div class="modal-row"><span class="modal-key">Inicio</span><span class="modal-val">${fmtDateTime(ini)}</span></div>
+    <div class="modal-row"><span class="modal-key">Días</span><span class="modal-val">${ev.dias} día${ev.dias>1?'s':''}</span></div>
+    <div class="modal-row"><span class="modal-key">Retorno</span><span class="modal-val">${fmtDateTime(fin)}</span></div>
+    <div class="modal-row"><span class="modal-key">Disponible desde</span><span class="modal-val" style="color:var(--green)">${fmtDateTime(buf)}</span></div>
+    ${ev.lugar ? `<div class="modal-row"><span class="modal-key">Lugar</span><span class="modal-val">${ev.lugar}</span></div>` : ''}
+    ${ev.info  ? `<div class="modal-row"><span class="modal-key">Info</span><span class="modal-val">${ev.info}</span></div>` : ''}
+    ${ev.extras? `<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val">${ev.extras}</span></div>` : ''}
+    <div class="modal-row"><span class="modal-key">Estado</span>
+      <select onchange="cambiarEstado(${id},this.value)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;font-size:13px;font-family:var(--sans)">
+        ${['Pendiente','Activo','Cerrado','Cancelado'].map(s =>
+          `<option ${ev.estado===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
+      <button class="btn btn-sm" style="background:#2a1010;color:var(--red);border:1px solid #4a2020;flex:1" onclick="eliminarEvento(${id})">Eliminar</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cambiarEstado(id, nuevoEstado) {
+  const ev = STATE.eventos.find(e => e.id === id);
+  if (!ev) return;
+  const prev = ev.estado;
+  ev.estado = nuevoEstado;
+
+  // actualizar estado del vehículo
+  if (ev.matricula) {
+    const v = STATE.vehiculos.find(x => x.mat === ev.matricula);
+    if (v) {
+      if (nuevoEstado === 'Cerrado' || nuevoEstado === 'Cancelado') v.estado = 'Disponible';
+      else if (nuevoEstado === 'Activo') v.estado = 'En alquiler';
+    }
+  }
+  saveState();
+  renderAgenda();
+  showToast('Estado actualizado', 'success');
+}
+
+function eliminarEvento(id) {
+  const ev = STATE.eventos.find(e => e.id === id);
+  if (ev?.matricula) {
+    const v = STATE.vehiculos.find(x => x.mat === ev.matricula);
+    if (v) v.estado = 'Disponible';
+  }
+  STATE.eventos = STATE.eventos.filter(e => e.id !== id);
+  saveState();
+  closeModal();
+  renderAgenda();
+  showToast('Evento eliminado', 'success');
+}
+
+// ── FLOTA ─────────────────────────────────────────────────────────────────
+let flotaCat = 'todos';
+
+function renderFlota() {
+  // stats
+  const libres  = STATE.vehiculos.filter(v => v.estado === 'Disponible').length;
+  const enRuta  = STATE.vehiculos.filter(v => v.estado === 'En alquiler').length;
+  const taller  = STATE.vehiculos.filter(v => v.estado === 'Taller').length;
+  document.getElementById('stat-libre').textContent  = libres;
+  document.getElementById('stat-alq').textContent    = enRuta;
+  document.getElementById('stat-taller').textContent = taller;
+
+  // tabs
+  const tabs = document.getElementById('flota-cat-tabs');
+  tabs.innerHTML = `<div class="cat-tab ${flotaCat==='todos'?'active':''}" onclick="setFlotaCat('todos',this)">Todos</div>` +
+    CATS.map(cat => `<div class="cat-tab ${flotaCat===cat?'active':''}" onclick="setFlotaCat('${cat}',this)">Cat. ${cat}</div>`).join('');
+
+  renderFlotaList();
+}
+
+function setFlotaCat(cat, el) {
+  flotaCat = cat;
+  document.querySelectorAll('#flota-cat-tabs .cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderFlotaList();
+}
+
+function renderFlotaList() {
+  const vehs = flotaCat === 'todos'
+    ? STATE.vehiculos
+    : STATE.vehiculos.filter(v => v.cat === flotaCat);
+
+  const list = document.getElementById('flota-list');
+  list.innerHTML = vehs.map(v => {
+    const color = v.estado === 'Disponible' ? 'var(--green)' : v.estado === 'En alquiler' ? 'var(--red)' : 'var(--amber)';
+    const dot   = v.estado === 'Disponible' ? '●' : v.estado === 'En alquiler' ? '●' : '●';
+    return `<div class="evento-card" onclick="openVehiculo('${v.mat}')">
+      <div>
+        <div class="ev-mat">${v.mat}</div>
+        <div class="ev-cat">Categoría ${v.cat}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="color:${color};font-size:12px;font-weight:500">${dot} ${v.estado}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openVehiculo(mat) {
+  const v = STATE.vehiculos.find(x => x.mat === mat);
+  if (!v) return;
+
+  const eventos = STATE.eventos.filter(e => e.mat === mat || e.matricula === mat)
+    .sort((a,b) => new Date(b.fechaIni) - new Date(a.fechaIni));
+
+  const evHTML = eventos.length
+    ? eventos.slice(0,5).map(ev => {
+        const { ini, buf } = eventoRange(ev);
+        return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px">${fmtDate(ini)} · ${ev.dias}d</span>
+            <span class="badge badge-${ev.estado.toLowerCase()}">${ev.estado}</span>
+          </div>
+          ${ev.lugar ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">${ev.lugar}</div>` : ''}
+        </div>`;
+      }).join('')
+    : '<p style="font-size:13px;color:var(--muted);padding:12px 0">Sin eventos registrados</p>';
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-title">${mat}</div>
+    <div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${v.cat}</span></div>
+    <div class="modal-row"><span class="modal-key">Estado</span>
+      <select onchange="cambiarEstadoVehiculo('${mat}',this.value)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;font-size:13px;font-family:var(--sans)">
+        ${['Disponible','En alquiler','Taller'].map(s =>
+          `<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="section-label" style="margin-top:16px">Últimos eventos</div>
+    ${evHTML}
+    <div style="margin-top:16px">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cambiarEstadoVehiculo(mat, estado) {
+  const v = STATE.vehiculos.find(x => x.mat === mat);
+  if (v) { v.estado = estado; saveState(); renderFlota(); showToast('Estado actualizado', 'success'); }
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 2500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+// Set today as default date
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('disp-fecha').value = today;
+document.getElementById('nev-fecha').value  = today;
+initNuevoEvento();
+</script>
+</body>
+</html>
