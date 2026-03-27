@@ -307,21 +307,62 @@ const CATS=["1","2","3","A","AXL","MB7","MB9"];
 const TARIFAS=[{cat:"1",nombre:"Fiat Panda or similar",precios:[50,95,135,170,205,235,265]},{cat:"2",nombre:"Seat Ibiza or similar",precios:[60,110,155,200,240,275,310]},{cat:"3",nombre:"Citroën C4 or similar",precios:[75,135,190,240,285,325,365]},{cat:"A/AXL",nombre:"Automáticos / AXL",precios:[80,140,195,245,295,340,380]},{cat:"MB7/MB9",nombre:"Minibus 7/9 plazas",precios:[130,250,360,460,560,655,745]}];
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────
-firebase.initializeApp({databaseURL:"https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app"});
-const db=firebase.database();
 const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponible"}));
 let STATE={vehiculos:VEHICULOS_INIT,eventos:[],theme:localStorage.getItem('flotaapp_theme')||'light'};
+let firebaseReady=false;
+let db=null;
 
-function saveState(){db.ref('estado').set({vehiculos:STATE.vehiculos,eventos:STATE.eventos});localStorage.setItem('flotaapp_theme',STATE.theme);}
+function saveState(){
+  localStorage.setItem('flotaapp_theme',STATE.theme);
+  // Guardar copia local siempre
+  try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+  // Guardar en Firebase si está disponible
+  if(db&&firebaseReady){
+    try{db.ref('estado').set({vehiculos:STATE.vehiculos,eventos:STATE.eventos});}catch(e){}
+  }
+}
 
-db.ref('estado').on('value',snap=>{
-  const data=snap.val();
-  if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];}
-  else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[]});}
+function refreshUI(){
   const activa=document.querySelector('.screen.active')?.id;
   if(activa==='screen-agenda')renderAgenda();
   if(activa==='screen-flota') renderFlota();
-});
+}
+
+// Intentar cargar backup local inmediatamente
+try{
+  const backup=localStorage.getItem('flotaapp_backup');
+  if(backup){const d=JSON.parse(backup);STATE.vehiculos=d.vehiculos||VEHICULOS_INIT;STATE.eventos=d.eventos||[];}
+}catch(e){}
+
+// Conectar Firebase con timeout
+try{
+  firebase.initializeApp({databaseURL:"https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app"});
+  db=firebase.database();
+
+  // Timeout: si Firebase no responde en 6 segundos, continuar con datos locales
+  const fbTimeout=setTimeout(()=>{
+    if(!firebaseReady){
+      console.warn('Firebase timeout — usando datos locales');
+      showToast('Sin conexión — datos locales','info');
+    }
+  },6000);
+
+  db.ref('estado').on('value',snap=>{
+    clearTimeout(fbTimeout);
+    firebaseReady=true;
+    const data=snap.val();
+    if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];}
+    else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[]});}
+    // Actualizar backup local
+    try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+    refreshUI();
+  },err=>{
+    console.warn('Firebase error:',err);
+    showToast('Error de conexión — datos locales','info');
+  });
+}catch(e){
+  console.warn('Firebase no disponible:',e);
+}
 
 // ── THEME ─────────────────────────────────────────────────────────────────
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('theme-btn').textContent=t==='dark'?'☀️':'🌙';}
@@ -417,6 +458,7 @@ function seleccionarSinCoche(){
   document.getElementById('form-nuevo').style.display='block';
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
+function seleccionarCoche(mat){
   matSeleccionada=mat;
   const cat=STATE.vehiculos.find(v=>v.mat===mat)?.cat||'';
   document.getElementById('nev-mat-sel').value=mat;
