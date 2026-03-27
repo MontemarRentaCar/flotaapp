@@ -539,12 +539,13 @@ function renderAgenda(){
   const pasado=new Date(now);pasado.setDate(pasado.getDate()+2);
 
   let evs=[...STATE.eventos].filter(e=>e.estado!=='Cerrado'&&e.estado!=='Cancelado');
-  evs.sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
 
   if(agendaTab==='entregas'){
     evs=evs.filter(e=>{const i=new Date(e.fechaIni);i.setHours(0,0,0,0);return i>=now;});
+    evs.sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
   }else{
     evs=evs.filter(e=>{const{buf}=eventoRange(e);const b=new Date(buf);b.setHours(0,0,0,0);return b>=now;});
+    evs.sort((a,b)=>eventoRange(a).buf-eventoRange(b).buf);
   }
 
   const list=document.getElementById('agenda-list');
