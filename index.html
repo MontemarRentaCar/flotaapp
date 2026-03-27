@@ -1,366 +1,394 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="FlotaApp">
 <title>FlotaApp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:       #0f0f11;
-  --surface:  #18181c;
-  --surface2: #1f1f24;
-  --border:   #2a2a30;
-  --border2:  #38383f;
-  --text:     #f0eff4;
-  --muted:    #7c7b85;
-  --accent:   #7c6af7;
-  --accent2:  #a897ff;
-  --green:    #3dd68c;
-  --red:      #f46060;
-  --amber:    #f5a623;
-  --mono:     'DM Mono', monospace;
-  --sans:     'DM Sans', sans-serif;
-  --r:        12px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --bg:        #f2f0eb;
+  --surface:   #ffffff;
+  --surface2:  #ebe9e3;
+  --border:    #dedad0;
+  --border2:   #c8c4b8;
+  --text:      #17150f;
+  --muted:     #857f72;
+  --accent:    #1f4fd6;
+  --accent-bg: #eaf0ff;
+  --accent-lt: #c8d8f8;
+  --green:     #176b40;
+  --green-bg:  #e4f4ec;
+  --green-lt:  #b8e4cc;
+  --red:       #b83232;
+  --red-bg:    #fceaea;
+  --red-lt:    #f0c4c4;
+  --amber:     #a85a00;
+  --amber-bg:  #fff0d8;
+  --amber-lt:  #fdd9a0;
+  --shadow:    rgba(0,0,0,.06);
+  --shadow-md: rgba(0,0,0,.10);
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; -webkit-font-smoothing: antialiased; overflow: hidden; }
+/* ── DARK THEME ── */
+[data-theme="dark"] {
+  --bg:        #0f0f11;
+  --surface:   #18181c;
+  --surface2:  #222228;
+  --border:    #2e2e36;
+  --border2:   #3e3e48;
+  --text:      #f0eff4;
+  --muted:     #7c7b88;
+  --accent:    #7c8ff5;
+  --accent-bg: #1a1f3a;
+  --accent-lt: #2a3260;
+  --green:     #3dd68c;
+  --green-bg:  #0d2018;
+  --green-lt:  #1a4030;
+  --red:       #f07070;
+  --red-bg:    #220e0e;
+  --red-lt:    #4a1818;
+  --amber:     #f5a623;
+  --amber-bg:  #1e1400;
+  --amber-lt:  #3a2800;
+  --shadow:    rgba(0,0,0,.3);
+  --shadow-md: rgba(0,0,0,.5);
+}
+[data-theme="dark"] .theme-btn { background: #2a2a32; }
+[data-theme="dark"] html, [data-theme="dark"] body { background: var(--bg); }
 
-/* ── LAYOUT ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; background: var(--bg); color: var(--text);
+  font-family: 'Nunito', sans-serif; font-size: 15px;
+  -webkit-font-smoothing: antialiased; overflow: hidden;
+  transition: background .25s, color .25s;
+}
+
 #app { display: flex; flex-direction: column; height: 100dvh; }
+
+/* ── TOPBAR ── */
 #topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px 12px;
-  padding-top: max(14px, env(safe-area-inset-top));
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  padding: 0 16px; height: 54px;
+  padding-top: env(safe-area-inset-top);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; transition: background .25s, border-color .25s;
+}
+.logo-wrap { display: flex; align-items: center; gap: 7px; }
+.logo-dot  { width: 9px; height: 9px; background: var(--accent); border-radius: 50%; }
+.logo-text { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+.logo-text span { color: var(--accent); }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+#clock { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); background: var(--surface2); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); transition: background .25s; }
+.theme-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface2); cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 17px; transition: background .2s, transform .1s;
   flex-shrink: 0;
 }
-#topbar .logo { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--accent2); letter-spacing: .02em; }
-#topbar .clock { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.theme-btn:active { transform: scale(.9); }
 
-#main { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+#main { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; background: var(--bg); transition: background .25s; }
 
+/* ── NAVBAR ── */
 #navbar {
   display: flex; border-top: 1px solid var(--border);
-  background: var(--bg);
-  padding-bottom: max(8px, var(--safe-bottom));
-  flex-shrink: 0;
+  background: var(--surface); padding-bottom: max(10px, env(safe-area-inset-bottom));
+  flex-shrink: 0; transition: background .25s, border-color .25s;
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 4px; padding: 10px 4px 6px;
+  gap: 3px; padding: 10px 4px 4px;
   background: none; border: none; cursor: pointer;
-  color: var(--muted); font-family: var(--sans); font-size: 10px; font-weight: 500;
-  letter-spacing: .03em; text-transform: uppercase; transition: color .15s;
+  color: var(--muted); font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .03em; text-transform: uppercase; transition: color .15s; position: relative;
 }
-.nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.nav-btn.active { color: var(--accent2); }
+.nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active svg { transform: translateY(-1px); }
+.nav-btn.active::after { content:''; position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:20px; height:3px; background:var(--accent); border-radius:3px 3px 0 0; }
 
 /* ── SCREENS ── */
-.screen { display: none; padding: 20px; animation: fadeIn .18s ease; }
+.screen { display: none; padding: 20px; animation: fadeIn .15s ease; }
 .screen.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
 
-/* ── TYPOGRAPHY ── */
-.screen-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-.screen-sub   { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+/* ── PAGE HEADER ── */
+.page-header { margin-bottom: 22px; }
+.page-title { font-size: 24px; font-weight: 800; letter-spacing: -.02em; color: var(--text); }
+.page-sub   { font-size: 13px; color: var(--muted); margin-top: 3px; font-weight: 500; }
 
 /* ── CARDS ── */
-.card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 16px; margin-bottom: 12px;
-}
-.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.card-title { font-size: 13px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; transition: background .25s, border-color .25s; }
 
 /* ── FORM ── */
 .field { margin-bottom: 14px; }
-.field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
 .field input, .field select, .field textarea {
-  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 11px 13px;
-  color: var(--text); font-family: var(--sans); font-size: 15px;
-  outline: none; transition: border-color .15s;
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 11px 14px;
+  color: var(--text); font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 500;
+  outline: none; transition: border-color .15s, background .15s, box-shadow .15s;
   -webkit-appearance: none; appearance: none;
 }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
-.field textarea { resize: vertical; min-height: 72px; }
-.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237c7b85' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; }
-
+.field input:focus, .field select:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-bg); }
+.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23857f72' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:38px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-.btn {
-  width: 100%; padding: 13px; border-radius: 8px; border: none; cursor: pointer;
-  font-family: var(--sans); font-size: 15px; font-weight: 600;
-  transition: opacity .15s, transform .1s;
-}
-.btn:active { transform: scale(.98); opacity: .85; }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
-.btn-sm { width: auto; padding: 7px 14px; font-size: 13px; border-radius: 6px; font-weight: 500; }
+.btn { width:100%; padding:13px; border-radius:10px; border:none; cursor:pointer; font-family:'Nunito',sans-serif; font-size:15px; font-weight:700; transition:opacity .15s,transform .1s,box-shadow .15s; }
+.btn:active { transform:scale(.97); }
+.btn-primary  { background:var(--accent); color:#fff; box-shadow:0 4px 14px var(--shadow-md); }
+.btn-secondary{ background:var(--surface2); color:var(--text); border:1.5px solid var(--border); }
+.btn-sm       { width:auto; padding:8px 16px; font-size:13px; border-radius:8px; font-weight:700; }
+.btn-danger   { background:var(--red-bg); color:var(--red); border:1.5px solid var(--red-lt); }
+.btn-complete { background:var(--green); color:#fff; box-shadow:0 4px 14px var(--shadow); }
 
-/* ── DISPONIBILIDAD ── */
-.avail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 16px; }
-.avail-item {
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 12px; cursor: pointer; transition: border-color .15s, background .15s;
-}
-.avail-item.libre { border-color: #2a4a38; background: #0e1f17; }
-.avail-item.libre:hover { border-color: var(--green); }
-.avail-item.ocupado { border-color: #3d2020; background: #1a0e0e; opacity: .6; cursor: default; }
-.avail-item.taller { border-color: #3d3020; background: #1a1608; opacity: .6; cursor: default; }
-.avail-mat { font-family: var(--mono); font-size: 13px; font-weight: 500; margin-bottom: 4px; }
-.avail-status { font-size: 11px; font-weight: 500; }
-.libre .avail-status  { color: var(--green); }
-.ocupado .avail-status { color: var(--red); }
-.taller .avail-status  { color: var(--amber); }
+/* ── DISPONIBILIDAD SUMMARY ── */
+.disp-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
+.disp-sum-box { background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:14px 8px; text-align:center; position:relative; overflow:hidden; }
+.disp-sum-box::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.sum-libre  ::before  { background:var(--green); }
+.sum-ocupado::before  { background:var(--red); }
+.sum-taller ::before  { background:var(--amber); }
+.disp-sum-num { font-size:28px; font-weight:800; line-height:1; margin-bottom:3px; }
+.disp-sum-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+.sum-libre   .disp-sum-num { color:var(--green); }
+.sum-ocupado .disp-sum-num { color:var(--red); }
+.sum-taller  .disp-sum-num { color:var(--amber); }
 
-/* ── CAT TABS ── */
-.cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-.cat-tab {
-  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border2);
-  background: var(--surface2); color: var(--muted);
-  font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
-  font-family: var(--mono);
-}
-.cat-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* ── AVAIL GRID ── */
+.avail-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin-top:16px; }
+.avail-item { border-radius:10px; padding:13px 12px; cursor:pointer; border:1.5px solid transparent; transition:transform .12s,box-shadow .12s; }
+.avail-item.libre   { background:var(--green-bg); border-color:var(--green-lt); }
+.avail-item.libre:hover { transform:translateY(-2px); box-shadow:0 6px 16px var(--shadow); }
+.avail-item.ocupado { background:var(--red-bg);   border-color:var(--red-lt);   opacity:.65; cursor:default; }
+.avail-item.taller  { background:var(--amber-bg); border-color:var(--amber-lt); opacity:.65; cursor:default; }
+.avail-mat { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; margin-bottom:4px; }
+.avail-status { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.libre   .avail-mat,.libre   .avail-status { color:var(--green); }
+.ocupado .avail-mat,.ocupado .avail-status { color:var(--red); }
+.taller  .avail-mat,.taller  .avail-status { color:var(--amber); }
+
+/* ── CAT PILLS ── */
+.cat-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+.cat-tab { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-size:12px; font-weight:700; cursor:pointer; transition:all .15s; font-family:'DM Mono',monospace; }
+.cat-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 2px 8px var(--shadow-md); }
 
 /* ── STATS ── */
-.stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
-.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 12px; text-align: center; }
-.stat-num { font-family: var(--mono); font-size: 26px; font-weight: 500; line-height: 1; margin-bottom: 4px; }
-.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-.stat-green .stat-num { color: var(--green); }
-.stat-red .stat-num   { color: var(--red); }
-.stat-amber .stat-num { color: var(--amber); }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
+.stat-box { background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:16px 10px; text-align:center; position:relative; overflow:hidden; transition:background .25s,border-color .25s; }
+.stat-box::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.stat-green::before { background:var(--green); }
+.stat-red::before   { background:var(--red); }
+.stat-amber::before { background:var(--amber); }
+.stat-num   { font-size:30px; font-weight:800; line-height:1; margin-bottom:4px; }
+.stat-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; font-weight:700; }
+.stat-green .stat-num { color:var(--green); }
+.stat-red   .stat-num { color:var(--red); }
+.stat-amber .stat-num { color:var(--amber); }
 
-/* ── EVENTOS LIST ── */
-.evento-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px;
-  display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start;
-  cursor: pointer; transition: border-color .15s;
-}
-.evento-card:hover { border-color: var(--border2); }
-.ev-mat { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--accent2); }
-.ev-cat { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.ev-dates { font-size: 12px; color: var(--muted); margin-top: 6px; }
-.ev-lugar { font-size: 13px; margin-top: 4px; color: var(--text); }
-.badge {
-  font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
-  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
-}
-.badge-activo    { background: #0e2a1c; color: var(--green); border: 1px solid #1a4a30; }
-.badge-pendiente { background: #2a2210; color: var(--amber); border: 1px solid #4a3a18; }
-.badge-cerrado   { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
-.badge-cancelado { background: #2a1010; color: var(--red); border: 1px solid #4a2020; }
+/* ── EVENTO CARD ── */
+.evento-card { background:var(--surface); border:1.5px solid var(--border); border-radius:14px; margin-bottom:10px; cursor:pointer; overflow:hidden; transition:border-color .15s,transform .12s,box-shadow .12s,background .25s; }
+.evento-card:hover { transform:translateY(-1px); box-shadow:0 4px 14px var(--shadow); border-color:var(--border2); }
+.ev-stripe { height:4px; width:100%; }
+.ev-stripe.pendiente { background:var(--amber); }
+.ev-stripe.activo    { background:var(--accent); }
+.ev-stripe.cerrado   { background:var(--green); }
+.ev-stripe.cancelado { background:var(--red); }
+.ev-body { padding:14px 16px; display:grid; grid-template-columns:1fr auto; gap:10px; align-items:start; }
+.ev-mat  { font-family:'DM Mono',monospace; font-size:15px; font-weight:500; color:var(--accent); }
+.ev-unassigned { font-size:14px; font-style:italic; color:var(--amber); font-weight:600; }
+.ev-cat  { font-size:11px; color:var(--muted); margin-top:3px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.ev-dates { font-size:12px; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:4px; font-weight:600; }
+.ev-dates svg { width:12px; height:12px; stroke:var(--muted); fill:none; stroke-width:2; stroke-linecap:round; flex-shrink:0; }
+.ev-lugar { font-size:13px; margin-top:5px; color:var(--text); font-weight:600; }
+.ev-done-label { font-size:11px; color:var(--green); font-weight:700; margin-top:5px; text-transform:uppercase; letter-spacing:.04em; }
+
+/* ── BADGES ── */
+.badge { font-size:10px; font-weight:800; padding:4px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+.badge-activo    { background:var(--accent-bg); color:var(--accent); border:1.5px solid var(--accent-lt); }
+.badge-pendiente { background:var(--amber-bg);  color:var(--amber);  border:1.5px solid var(--amber-lt); }
+.badge-cerrado   { background:var(--green-bg);  color:var(--green);  border:1.5px solid var(--green-lt); }
+.badge-cancelado { background:var(--red-bg);    color:var(--red);    border:1.5px solid var(--red-lt); }
+
+/* ── AGENDA TABS ── */
+.agenda-tabs { display:flex; gap:8px; margin-bottom:20px; }
+.agenda-tab { flex:1; padding:11px 8px; text-align:center; font-size:13px; font-weight:800; cursor:pointer; transition:all .18s; color:var(--muted); border:1.5px solid var(--border); border-radius:12px; background:var(--surface); font-family:'Nunito',sans-serif; }
+.agenda-tab.active { background:var(--text); color:var(--surface); border-color:var(--text); }
+
+/* ── SECTION LABEL ── */
+.section-label { font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:18px 0 10px; }
+
+/* ── DIVIDER ── */
+.divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
 
 /* ── MODAL ── */
-#modal-overlay {
-  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75);
-  z-index: 100; align-items: flex-end; justify-content: center;
-  backdrop-filter: blur(4px);
-}
-#modal-overlay.open { display: flex; }
-#modal {
-  background: var(--surface); border: 1px solid var(--border2);
-  border-radius: 20px 20px 0 0;
-  padding: 24px 20px max(24px, var(--safe-bottom));
-  width: 100%; max-width: 520px;
-  max-height: 90dvh; overflow-y: auto;
-  animation: slideUp .22s ease;
-}
-@keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
-.modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 20px; }
-.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 18px; }
-.modal-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
-.modal-row:last-child { border-bottom: none; }
-.modal-key { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-.modal-val { font-size: 14px; font-weight: 500; text-align: right; max-width: 60%; }
-.modal-val.mono { font-family: var(--mono); color: var(--accent2); }
+#modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100; align-items:flex-end; justify-content:center; backdrop-filter:blur(4px); }
+#modal-overlay.open { display:flex; }
+#modal { background:var(--surface); border:1.5px solid var(--border); border-radius:20px 20px 0 0; padding:20px 20px max(24px,env(safe-area-inset-bottom)); width:100%; max-width:520px; max-height:92dvh; overflow-y:auto; animation:slideUp .22s cubic-bezier(.22,1,.36,1); transition:background .25s; }
+@keyframes slideUp { from{transform:translateY(40px);opacity:0;} to{transform:none;opacity:1;} }
+.modal-handle { width:40px; height:4px; background:var(--border2); border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-size:20px; font-weight:800; margin-bottom:16px; letter-spacing:-.01em; }
+.modal-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); gap:12px; }
+.modal-row:last-of-type { border-bottom:none; }
+.modal-key { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:700; flex-shrink:0; }
+.modal-val { font-size:14px; font-weight:600; text-align:right; }
+.modal-val.mono { font-family:'DM Mono',monospace; color:var(--accent); font-size:15px; }
+.completar-banner { background:var(--green-bg); border:1.5px solid var(--green-lt); border-radius:10px; padding:14px 16px; text-align:center; color:var(--green); font-weight:800; font-size:14px; margin-bottom:10px; }
 
-/* ── EMPTY STATE ── */
-.empty { text-align: center; padding: 48px 20px; color: var(--muted); }
-.empty svg { width: 40px; height: 40px; stroke: var(--border2); margin-bottom: 12px; }
-.empty p { font-size: 14px; }
-
-/* ── SEPARADOR ── */
-.section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 10px; }
+/* ── EMPTY ── */
+.empty { text-align:center; padding:52px 20px; color:var(--muted); }
+.empty-icon { width:52px; height:52px; background:var(--surface2); border-radius:14px; display:flex; align-items:center; justify-content:center; margin:0 auto 14px; }
+.empty-icon svg { width:24px; height:24px; stroke:var(--border2); fill:none; stroke-width:1.5; }
+.empty p { font-size:14px; font-weight:600; }
 
 /* ── TOAST ── */
-#toast {
-  position: fixed; bottom: calc(80px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px;
-  padding: 10px 20px; font-size: 13px; font-weight: 500;
-  opacity: 0; transition: all .25s; pointer-events: none; white-space: nowrap; z-index: 200;
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-#toast.success { border-color: var(--green); color: var(--green); }
-#toast.error { border-color: var(--red); color: var(--red); }
+#toast { position:fixed; bottom:calc(80px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%) translateY(8px); border-radius:20px; padding:10px 20px; font-size:13px; font-weight:700; opacity:0; transition:all .22s cubic-bezier(.22,1,.36,1); pointer-events:none; white-space:nowrap; z-index:200; }
+#toast.show    { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.success { background:var(--green); color:#fff; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+#toast.error   { background:var(--red);   color:#fff; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+#toast.info    { background:var(--text);  color:var(--surface); box-shadow:0 4px 16px rgba(0,0,0,.2); }
 
-/* ── FILTRO EVENTOS ── */
-.filter-row { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
-.filter-row::-webkit-scrollbar { display: none; }
-.filter-chip {
-  padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border2);
-  background: var(--surface2); color: var(--muted); font-size: 12px; font-weight: 500;
-  cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all .15s;
-}
-.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-/* ── SEARCH ── */
-.search-wrap { position: relative; margin-bottom: 16px; }
-.search-wrap input { padding-left: 38px; }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; }
-
-@media (min-width: 600px) {
-  #app { max-width: 480px; margin: 0 auto; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-  body { background: #080809; }
+@media (min-width:600px) {
+  #app { max-width:480px; margin:0 auto; box-shadow:0 0 60px rgba(0,0,0,.12); }
+  body { background:#d8d6d0; display:flex; align-items:stretch; justify-content:center; }
+  [data-theme="dark"] body { background:#060608; }
 }
 </style>
 </head>
 <body>
 <div id="app">
-
-  <!-- TOPBAR -->
   <div id="topbar">
-    <span class="logo">FLOTA//APP</span>
-    <span class="clock" id="clock">--:--</span>
+    <div class="logo-wrap">
+      <div class="logo-dot"></div>
+      <span class="logo-text">Flota<span>App</span></span>
+    </div>
+    <div class="topbar-right">
+      <span id="clock">--:--</span>
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Cambiar tema">🌙</button>
+    </div>
   </div>
 
-  <!-- MAIN CONTENT -->
   <div id="main">
 
-    <!-- SCREEN: DISPONIBILIDAD -->
+    <!-- DISPONIBILIDAD -->
     <div class="screen active" id="screen-disp">
-      <div class="screen-title">Disponibilidad</div>
-      <div class="screen-sub">Comprueba qué coches están libres</div>
-
+      <div class="page-header">
+        <div class="page-title">Disponibilidad</div>
+        <div class="page-sub">Comprueba qué coches están libres</div>
+      </div>
       <div class="card">
         <div class="field-row">
-          <div class="field">
-            <label>Fecha inicio</label>
-            <input type="date" id="disp-fecha">
-          </div>
-          <div class="field">
-            <label>Hora</label>
-            <input type="time" id="disp-hora" value="10:00">
-          </div>
+          <div class="field"><label>Fecha</label><input type="date" id="disp-fecha"></div>
+          <div class="field"><label>Hora</label><input type="time" id="disp-hora" value="10:00"></div>
         </div>
-        <div class="field">
-          <label>Días de alquiler</label>
-          <input type="number" id="disp-dias" min="1" max="60" value="1" placeholder="Nº de días">
-        </div>
+        <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" value="1"></div>
         <button class="btn btn-primary" onclick="buscarDisponibilidad()">Buscar disponibilidad</button>
       </div>
-
       <div id="disp-resultado" style="display:none">
+        <div class="disp-summary">
+          <div class="disp-sum-box sum-libre">  <div class="disp-sum-num" id="sum-libre">0</div><div class="disp-sum-lbl">Libres</div></div>
+          <div class="disp-sum-box sum-ocupado"><div class="disp-sum-num" id="sum-ocup">0</div> <div class="disp-sum-lbl">Ocupados</div></div>
+          <div class="disp-sum-box sum-taller"> <div class="disp-sum-num" id="sum-tall">0</div> <div class="disp-sum-lbl">Taller</div></div>
+        </div>
         <div class="cat-tabs" id="cat-tabs"></div>
         <div class="avail-grid" id="avail-grid"></div>
       </div>
     </div>
 
-    <!-- SCREEN: NUEVO EVENTO -->
+    <!-- NUEVO EVENTO -->
     <div class="screen" id="screen-nuevo">
-      <div class="screen-title">Nuevo evento</div>
-      <div class="screen-sub">Registra una reserva durante la llamada</div>
-
+      <div class="page-header">
+        <div class="page-title">Nuevo evento</div>
+        <div class="page-sub">Registra una reserva durante la llamada</div>
+      </div>
       <div class="field-row">
-        <div class="field">
-          <label>Fecha inicio</label>
-          <input type="date" id="nev-fecha">
-        </div>
-        <div class="field">
-          <label>Hora entrega</label>
-          <input type="time" id="nev-hora" value="10:00">
-        </div>
+        <div class="field"><label>Fecha</label><input type="date" id="nev-fecha"></div>
+        <div class="field"><label>Hora entrega</label><input type="time" id="nev-hora" value="10:00"></div>
       </div>
-      <div class="field">
-        <label>Días de alquiler</label>
-        <input type="number" id="nev-dias" min="1" max="60" value="1">
-      </div>
+      <div class="field"><label>Días</label><input type="number" id="nev-dias" min="1" max="60" value="1"></div>
       <div class="field">
         <label>Categoría</label>
-        <select id="nev-cat">
-          <option value="">— Selecciona categoría —</option>
+        <select id="nev-cat" onchange="initMatriculas()">
+          <option value="">— Selecciona —</option>
           <option>1</option><option>2</option><option>3</option>
           <option>A</option><option>AXL</option><option>MB7</option><option>MB9</option>
         </select>
       </div>
       <div class="field">
-        <label>Matrícula asignada <span style="color:var(--muted);font-weight:400">(opcional, asignar tras llamada)</span></label>
-        <select id="nev-mat">
-          <option value="">— Sin asignar aún —</option>
-        </select>
+        <label>Matrícula <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+        <select id="nev-mat"><option value="">— Sin asignar aún —</option></select>
       </div>
-      <div class="field">
-        <label>Lugar de entrega</label>
-        <input type="text" id="nev-lugar" placeholder="Ej. Hotel Sol - Av. del Mar 12">
-      </div>
-      <div class="field">
-        <label>Info del lugar</label>
-        <input type="text" id="nev-info" placeholder="Ej. Habitación 204, recepción...">
-      </div>
-      <div class="field">
-        <label>Extras</label>
-        <input type="text" id="nev-extras" placeholder="GPS, silla bebé, conductor adicional...">
-      </div>
-      <button class="btn btn-primary" onclick="crearEvento()" style="margin-top:4px">Guardar evento</button>
+      <div class="field"><label>Lugar de entrega</label><input type="text" id="nev-lugar" placeholder="Hotel, aeropuerto, dirección..."></div>
+      <div class="field"><label>Info</label><input type="text" id="nev-info" placeholder="Hab. 204, tel. 612 345 678..."></div>
+      <div class="field"><label>Extras</label><input type="text" id="nev-extras" placeholder="GPS, silla bebé..."></div>
+      <button class="btn btn-primary" onclick="crearEvento()">Guardar evento</button>
     </div>
 
-    <!-- SCREEN: AGENDA -->
+    <!-- AGENDA -->
     <div class="screen" id="screen-agenda">
-      <div class="screen-title">Agenda</div>
-      <div class="screen-sub">Todos los eventos registrados</div>
-
-      <div class="search-wrap">
-        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
-        <input type="text" placeholder="Buscar matrícula, lugar..." id="agenda-search" oninput="renderAgenda()">
+      <div class="page-header">
+        <div class="page-title">Agenda</div>
+        <div class="page-sub" id="agenda-sub">Coches por entregar</div>
       </div>
-
-      <div class="filter-row" id="agenda-filters">
-        <div class="filter-chip active" data-f="todos" onclick="setFilter(this)">Todos</div>
-        <div class="filter-chip" data-f="Activo" onclick="setFilter(this)">Activos</div>
-        <div class="filter-chip" data-f="Pendiente" onclick="setFilter(this)">Pendientes</div>
-        <div class="filter-chip" data-f="Cerrado" onclick="setFilter(this)">Cerrados</div>
+      <div class="agenda-tabs">
+        <button class="agenda-tab active" id="tab-entregas"  onclick="setAgendaTab('entregas')">🚗 Entregas</button>
+        <button class="agenda-tab"        id="tab-recogidas" onclick="setAgendaTab('recogidas')">🔁 Recogidas</button>
       </div>
-
       <div id="agenda-list"></div>
     </div>
 
-    <!-- SCREEN: FLOTA -->
+    <!-- FLOTA -->
     <div class="screen" id="screen-flota">
-      <div class="screen-title">Flota</div>
-      <div class="screen-sub">Estado actual de los 52 vehículos</div>
-
-      <div class="stats-grid">
-        <div class="stat-box stat-green">
-          <div class="stat-num" id="stat-libre">—</div>
-          <div class="stat-label">Libres</div>
-        </div>
-        <div class="stat-box stat-red">
-          <div class="stat-num" id="stat-alq">—</div>
-          <div class="stat-label">En ruta</div>
-        </div>
-        <div class="stat-box stat-amber">
-          <div class="stat-num" id="stat-taller">—</div>
-          <div class="stat-label">Taller</div>
-        </div>
+      <div class="page-header">
+        <div class="page-title">Flota</div>
+        <div class="page-sub">52 vehículos · estado en tiempo real</div>
       </div>
-
+      <div class="stats-grid">
+        <div class="stat-box stat-green"><div class="stat-num" id="stat-libre">—</div><div class="stat-label">Libres</div></div>
+        <div class="stat-box stat-red">  <div class="stat-num" id="stat-alq">—</div>  <div class="stat-label">En ruta</div></div>
+        <div class="stat-box stat-amber"><div class="stat-num" id="stat-taller">—</div><div class="stat-label">Taller</div></div>
+      </div>
       <div class="cat-tabs" id="flota-cat-tabs"></div>
       <div id="flota-list"></div>
     </div>
 
-  </div><!-- /main -->
+    <!-- TARIFAS -->
+    <div class="screen" id="screen-tarifas">
+      <div class="page-header">
+        <div class="page-title">Tarifas</div>
+        <div class="page-sub">Precios por categoría y días</div>
+      </div>
 
-  <!-- NAVBAR -->
+      <!-- Tabla de tarifas -->
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);">
+        <table id="tarifa-table" style="width:100%;border-collapse:collapse;min-width:340px;">
+          <thead>
+            <tr>
+              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap;">Categoría</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">1d</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">2d</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">3d</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">4d</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">5d</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">6d</th>
+              <th style="padding:12px 10px;text-align:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1.5px solid var(--border);">7d</th>
+            </tr>
+          </thead>
+          <tbody id="tarifa-tbody"></tbody>
+        </table>
+      </div>
+
+      <p style="font-size:12px;color:var(--muted);margin-top:12px;font-weight:500;text-align:center;">Precios en € · IVA incluido</p>
+    </div>
+
+  </div>
+
   <nav id="navbar">
     <button class="nav-btn active" onclick="goTo('disp',this)">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="1.5" fill="currentColor" stroke="none"/></svg>
@@ -375,490 +403,302 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       Agenda
     </button>
     <button class="nav-btn" onclick="goTo('flota',this)">
-      <svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><line x1="6" y1="13" x2="6" y2="13"/><line x1="18" y1="13" x2="18" y2="13"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><circle cx="6" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
       Flota
+    </button>
+    <button class="nav-btn" onclick="goTo('tarifas',this)">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Tarifas
     </button>
   </nav>
 </div>
 
-<!-- MODAL -->
 <div id="modal-overlay" onclick="closeModal(event)">
-  <div id="modal">
-    <div class="modal-handle"></div>
-    <div id="modal-content"></div>
-  </div>
+  <div id="modal"><div class="modal-handle"></div><div id="modal-content"></div></div>
 </div>
-
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ── DATA ──────────────────────────────────────────────────────────────────
-const VEHICULOS_BASE = [
-  ["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],
-  ["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],
-  ["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],
-  ["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],
-  ["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],
-  ["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],
-  ["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],
-  ["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],
-  ["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],
-  ["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],
-  ["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],
-  ["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],
-  ["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"],
-];
-const CATS = ["1","2","3","A","AXL","MB7","MB9"];
+const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
+const CATS=["1","2","3","A","AXL","MB7","MB9"];
 
-// ── STATE (persiste en localStorage) ──────────────────────────────────────
-function loadState() {
-  try {
-    const raw = localStorage.getItem('flotaapp_v1');
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  // init
-  return {
-    vehiculos: VEHICULOS_BASE.map(([mat,cat]) => ({ mat, cat, estado: 'Disponible' })),
-    eventos: []
-  };
+function loadState(){try{const r=localStorage.getItem('flotaapp_v4');if(r)return JSON.parse(r);}catch(e){}return{vehiculos:VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:'Disponible'})),eventos:[],theme:'light'};}
+function saveState(){localStorage.setItem('flotaapp_v4',JSON.stringify(STATE));}
+let STATE=loadState();
+
+// ── THEME ─────────────────────────────────────────────────────────────────
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('theme-btn').textContent=t==='dark'?'☀️':'🌙';
+  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content=t==='dark'?'black-translucent':'default';
 }
-function saveState() { localStorage.setItem('flotaapp_v1', JSON.stringify(STATE)); }
-let STATE = loadState();
+function toggleTheme(){
+  STATE.theme=STATE.theme==='dark'?'light':'dark';
+  applyTheme(STATE.theme); saveState();
+}
+applyTheme(STATE.theme||'light');
 
 // ── CLOCK ─────────────────────────────────────────────────────────────────
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
-}
-updateClock(); setInterval(updateClock, 10000);
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
+updateClock(); setInterval(updateClock,10000);
 
-// ── NAVIGATION ────────────────────────────────────────────────────────────
-function goTo(id, btn) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
+// ── NAV ───────────────────────────────────────────────────────────────────
+function goTo(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
   btn.classList.add('active');
-  document.getElementById('main').scrollTop = 0;
-  if (id === 'agenda') renderAgenda();
-  if (id === 'flota')  renderFlota();
-  if (id === 'nuevo')  initNuevoEvento();
+  document.getElementById('main').scrollTop=0;
+  if(id==='agenda')renderAgenda();
+  if(id==='flota') renderFlota();
+  if(id==='nuevo') initMatriculas();
+  if(id==='tarifas') renderTarifas();
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
-function toMin(dateObj) { return dateObj.getTime(); }
-
-function eventoRange(ev) {
-  const ini = new Date(ev.fechaIni);
-  const fin = new Date(ini.getTime() + ev.dias * 24 * 60 * 60 * 1000);
-  const buf = new Date(fin.getTime() + 30 * 60 * 1000); // +30min
-  return { ini, fin, buf };
-}
-
-function isBusy(mat, searchIni, searchFin) {
-  // Un coche está ocupado si algún evento activo/pendiente se solapa
-  return STATE.eventos.some(ev => {
-    if (ev.matricula !== mat) return false;
-    if (ev.estado === 'Cerrado' || ev.estado === 'Cancelado') return false;
-    const { ini, buf } = eventoRange(ev);
-    return ini < searchFin && buf > searchIni;
-  });
-}
-
-function getVehicleEstado(mat) {
-  const v = STATE.vehiculos.find(x => x.mat === mat);
-  return v ? v.estado : 'Disponible';
-}
-
-function fmtDate(dt) {
-  return dt.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' });
-}
-function fmtDateTime(dt) {
-  return dt.toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
-    ' ' + dt.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
-}
+function eventoRange(ev){const ini=new Date(ev.fechaIni);const fin=new Date(ini.getTime()+ev.dias*86400000);const buf=new Date(fin.getTime()+1800000);return{ini,fin,buf};}
+function isBusy(mat,sI,sF){return STATE.eventos.some(ev=>{if(ev.matricula!==mat)return false;if(ev.estado==='Cerrado'||ev.estado==='Cancelado')return false;const{ini,buf}=eventoRange(ev);return ini<sF&&buf>sI;});}
+function fmtDate(dt){return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function fmtDT(dt){return fmtDate(dt)+' '+dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
 
 // ── DISPONIBILIDAD ────────────────────────────────────────────────────────
-let dispResultado = {};
-let activeCat = 'todos';
-
-function buscarDisponibilidad() {
-  const fecha = document.getElementById('disp-fecha').value;
-  const hora  = document.getElementById('disp-hora').value;
-  const dias  = parseInt(document.getElementById('disp-dias').value) || 1;
-
-  if (!fecha) { showToast('Selecciona una fecha', 'error'); return; }
-
-  const searchIni = new Date(fecha + 'T' + hora);
-  const searchFin = new Date(searchIni.getTime() + dias * 24 * 60 * 60 * 1000);
-
-  dispResultado = {};
-  CATS.forEach(cat => { dispResultado[cat] = []; });
-
-  STATE.vehiculos.forEach(v => {
-    const estado = v.estado;
-    let disp;
-    if (estado === 'Taller') {
-      disp = 'taller';
-    } else if (isBusy(v.mat, searchIni, searchFin)) {
-      disp = 'ocupado';
-    } else {
-      disp = 'libre';
-    }
-    dispResultado[v.cat].push({ mat: v.mat, disp });
-  });
-
-  activeCat = 'todos';
-  renderDispTabs();
-  renderDispGrid();
-  document.getElementById('disp-resultado').style.display = 'block';
+let dispRes={};let activeCat='todos';
+function buscarDisponibilidad(){
+  const fecha=document.getElementById('disp-fecha').value;
+  const hora=document.getElementById('disp-hora').value;
+  const dias=parseInt(document.getElementById('disp-dias').value)||1;
+  if(!fecha){showToast('Selecciona una fecha','error');return;}
+  const sI=new Date(fecha+'T'+hora);const sF=new Date(sI.getTime()+dias*86400000);
+  dispRes={};CATS.forEach(c=>dispRes[c]=[]);
+  STATE.vehiculos.forEach(v=>{const d=v.estado==='Taller'?'taller':isBusy(v.mat,sI,sF)?'ocupado':'libre';dispRes[v.cat].push({mat:v.mat,disp:d});});
+  const all=Object.values(dispRes).flat();
+  document.getElementById('sum-libre').textContent=all.filter(x=>x.disp==='libre').length;
+  document.getElementById('sum-ocup').textContent=all.filter(x=>x.disp==='ocupado').length;
+  document.getElementById('sum-tall').textContent=all.filter(x=>x.disp==='taller').length;
+  activeCat='todos';renderDispTabs();renderDispGrid();
+  document.getElementById('disp-resultado').style.display='block';
 }
-
-function renderDispTabs() {
-  const tabs = document.getElementById('cat-tabs');
-  let libresTotal = Object.values(dispResultado).flat().filter(x => x.disp === 'libre').length;
-
-  tabs.innerHTML = `<div class="cat-tab ${activeCat==='todos'?'active':''}" onclick="setCatTab('todos',this)">Todos (${libresTotal} libres)</div>` +
-    CATS.map(cat => {
-      const libres = (dispResultado[cat]||[]).filter(x => x.disp === 'libre').length;
-      const total  = (dispResultado[cat]||[]).length;
-      return `<div class="cat-tab ${activeCat===cat?'active':''}" onclick="setCatTab('${cat}',this)">Cat. ${cat} · ${libres}/${total}</div>`;
-    }).join('');
+function renderDispTabs(){
+  const total=Object.values(dispRes).flat().filter(x=>x.disp==='libre').length;
+  document.getElementById('cat-tabs').innerHTML=`<div class="cat-tab active" onclick="setCatTab('todos',this)">Todos · ${total} libres</div>`+CATS.map(c=>{const l=(dispRes[c]||[]).filter(x=>x.disp==='libre').length;const t=(dispRes[c]||[]).length;return`<div class="cat-tab" onclick="setCatTab('${c}',this)">Cat.${c} ${l}/${t}</div>`;}).join('');
 }
-
-function setCatTab(cat, el) {
-  activeCat = cat;
-  document.querySelectorAll('#cat-tabs .cat-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  renderDispGrid();
+function setCatTab(cat,el){activeCat=cat;document.querySelectorAll('#cat-tabs .cat-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderDispGrid();}
+function renderDispGrid(){
+  let items=activeCat==='todos'?Object.values(dispRes).flat():(dispRes[activeCat]||[]);
+  items=[...items].sort((a,b)=>({libre:0,ocupado:1,taller:2}[a.disp]-{libre:0,ocupado:1,taller:2}[b.disp]));
+  document.getElementById('avail-grid').innerHTML=items.length?items.map(i=>`<div class="avail-item ${i.disp}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}"><div class="avail-mat">${i.mat}</div><div class="avail-status">${i.disp==='libre'?'● Libre':i.disp==='ocupado'?'✕ Ocupado':'⚠ Taller'}</div></div>`).join(''):'<div class="empty" style="grid-column:1/-1"><p>Sin vehículos</p></div>';
 }
-
-function renderDispGrid() {
-  const grid = document.getElementById('avail-grid');
-  let items = activeCat === 'todos'
-    ? Object.values(dispResultado).flat()
-    : (dispResultado[activeCat] || []);
-
-  // libres primero
-  items = [...items].sort((a,b) => {
-    const order = { libre:0, ocupado:1, taller:2 };
-    return order[a.disp] - order[b.disp];
-  });
-
-  if (!items.length) {
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p>Sin vehículos en esta categoría</p></div>';
-    return;
-  }
-
-  grid.innerHTML = items.map(item => `
-    <div class="avail-item ${item.disp}" onclick="${item.disp==='libre' ? `seleccionarCoche('${item.mat}')` : ''}">
-      <div class="avail-mat">${item.mat}</div>
-      <div class="avail-status">${item.disp === 'libre' ? '● Libre' : item.disp === 'ocupado' ? '● Ocupado' : '● Taller'}</div>
-    </div>
-  `).join('');
-}
-
-function seleccionarCoche(mat) {
-  // Llevar al formulario con datos precargados
-  const fecha = document.getElementById('disp-fecha').value;
-  const hora  = document.getElementById('disp-hora').value;
-  const dias  = document.getElementById('disp-dias').value;
-  const cat   = STATE.vehiculos.find(v => v.mat === mat)?.cat || '';
-
-  document.getElementById('nev-fecha').value = fecha;
-  document.getElementById('nev-hora').value  = hora;
-  document.getElementById('nev-dias').value  = dias;
-  document.getElementById('nev-cat').value   = cat;
-  initNuevoEvento();
-  document.getElementById('nev-mat').value = mat;
-
-  goTo('nuevo', document.querySelectorAll('.nav-btn')[1]);
-  showToast('Coche ' + mat + ' seleccionado', 'success');
+function seleccionarCoche(mat){
+  const fecha=document.getElementById('disp-fecha').value;const hora=document.getElementById('disp-hora').value;const dias=document.getElementById('disp-dias').value;const cat=STATE.vehiculos.find(v=>v.mat===mat)?.cat||'';
+  document.getElementById('nev-fecha').value=fecha;document.getElementById('nev-hora').value=hora;document.getElementById('nev-dias').value=dias;document.getElementById('nev-cat').value=cat;
+  initMatriculas();document.getElementById('nev-mat').value=mat;
+  goTo('nuevo',document.querySelectorAll('.nav-btn')[1]);showToast(mat+' seleccionado','success');
 }
 
 // ── NUEVO EVENTO ──────────────────────────────────────────────────────────
-function initNuevoEvento() {
-  const cat = document.getElementById('nev-cat').value;
-  const matSel = document.getElementById('nev-mat');
-  const current = matSel.value;
-  matSel.innerHTML = '<option value="">— Sin asignar aún —</option>';
-  STATE.vehiculos
-    .filter(v => !cat || v.cat === cat)
-    .forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.mat;
-      opt.textContent = v.mat + ' (Cat. ' + v.cat + ')';
-      if (v.mat === current) opt.selected = true;
-      matSel.appendChild(opt);
-    });
+function initMatriculas(){
+  const cat=document.getElementById('nev-cat').value;const sel=document.getElementById('nev-mat');const cur=sel.value;
+  sel.innerHTML='<option value="">— Sin asignar aún —</option>';
+  STATE.vehiculos.filter(v=>!cat||v.cat===cat).forEach(v=>{const o=document.createElement('option');o.value=v.mat;o.textContent=v.mat+' (Cat.'+v.cat+')';if(v.mat===cur)o.selected=true;sel.appendChild(o);});
 }
-
-document.getElementById('nev-cat').addEventListener('change', initNuevoEvento);
-
-function crearEvento() {
-  const fecha  = document.getElementById('nev-fecha').value;
-  const hora   = document.getElementById('nev-hora').value;
-  const dias   = parseInt(document.getElementById('nev-dias').value);
-  const cat    = document.getElementById('nev-cat').value;
-  const mat    = document.getElementById('nev-mat').value;
-  const lugar  = document.getElementById('nev-lugar').value.trim();
-  const info   = document.getElementById('nev-info').value.trim();
-  const extras = document.getElementById('nev-extras').value.trim();
-
-  if (!fecha || !hora || !dias || !cat) {
-    showToast('Rellena fecha, hora, días y categoría', 'error'); return;
-  }
-
-  const ev = {
-    id: Date.now(),
-    fechaIni: fecha + 'T' + hora,
-    dias, cat,
-    matricula: mat || '',
-    lugar, info, extras,
-    estado: 'Pendiente',
-    createdAt: new Date().toISOString()
-  };
-
+function crearEvento(){
+  const fecha=document.getElementById('nev-fecha').value;const hora=document.getElementById('nev-hora').value;const dias=parseInt(document.getElementById('nev-dias').value);const cat=document.getElementById('nev-cat').value;const mat=document.getElementById('nev-mat').value;const lugar=document.getElementById('nev-lugar').value.trim();const info=document.getElementById('nev-info').value.trim();const extras=document.getElementById('nev-extras').value.trim();
+  if(!fecha||!hora||!dias||!cat){showToast('Rellena fecha, hora, días y categoría','error');return;}
+  const ev={id:Date.now(),fechaIni:fecha+'T'+hora,dias,cat,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
   STATE.eventos.unshift(ev);
-  // Si hay matrícula asignada, marcarla en alquiler
-  if (mat) {
-    const v = STATE.vehiculos.find(x => x.mat === mat);
-    if (v) v.estado = 'En alquiler';
-  }
+  if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
   saveState();
-
-  // reset form
-  ['nev-fecha','nev-hora','nev-lugar','nev-info','nev-extras'].forEach(id => {
-    document.getElementById(id).value = id === 'nev-hora' ? '10:00' : '';
-  });
-  document.getElementById('nev-dias').value = '1';
-  document.getElementById('nev-cat').value = '';
-  document.getElementById('nev-mat').value = '';
-
-  showToast('Evento guardado ✓', 'success');
-  goTo('agenda', document.querySelectorAll('.nav-btn')[2]);
+  ['nev-fecha','nev-lugar','nev-info','nev-extras'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nev-hora').value='10:00';document.getElementById('nev-dias').value='1';document.getElementById('nev-cat').value='';document.getElementById('nev-mat').value='';
+  showToast('Evento guardado ✓','success');goTo('agenda',document.querySelectorAll('.nav-btn')[2]);
 }
 
 // ── AGENDA ────────────────────────────────────────────────────────────────
-let agendaFilter = 'todos';
-
-function setFilter(el) {
-  agendaFilter = el.dataset.f;
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+let agendaTab='entregas';
+function setAgendaTab(tab){
+  agendaTab=tab;
+  document.getElementById('tab-entregas').classList.toggle('active',tab==='entregas');
+  document.getElementById('tab-recogidas').classList.toggle('active',tab==='recogidas');
+  document.getElementById('agenda-sub').textContent=tab==='entregas'?'Coches por entregar al cliente':'Coches por recoger';
   renderAgenda();
 }
-
-function renderAgenda() {
-  const q = (document.getElementById('agenda-search')?.value || '').toLowerCase();
-  let evs = [...STATE.eventos];
-
-  if (agendaFilter !== 'todos') evs = evs.filter(e => e.estado === agendaFilter);
-  if (q) evs = evs.filter(e =>
-    e.matricula.toLowerCase().includes(q) ||
-    e.lugar.toLowerCase().includes(q) ||
-    e.cat.toLowerCase().includes(q)
-  );
-
-  const list = document.getElementById('agenda-list');
-  if (!evs.length) {
-    list.innerHTML = `<div class="empty">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <p>Sin eventos</p></div>`;
-    return;
-  }
-
-  list.innerHTML = evs.map(ev => {
-    const { ini, buf } = eventoRange(ev);
-    return `<div class="evento-card" onclick="openEvento(${ev.id})">
-      <div>
-        <div class="ev-mat">${ev.matricula || '— Sin asignar —'}</div>
-        <div class="ev-cat">Categoría ${ev.cat}</div>
-        <div class="ev-dates">${fmtDateTime(ini)} → Disponible: ${fmtDateTime(buf)}</div>
-        ${ev.lugar ? `<div class="ev-lugar">${ev.lugar}</div>` : ''}
+function renderAgenda(){
+  const now=new Date();now.setHours(0,0,0,0);
+  let evs=[...STATE.eventos].sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
+  if(agendaTab==='entregas'){evs=evs.filter(e=>{const i=new Date(e.fechaIni);i.setHours(0,0,0,0);return i>=now;});}
+  else{evs=evs.filter(e=>{const{buf}=eventoRange(e);const b=new Date(buf);b.setHours(0,0,0,0);return b<=now&&e.estado!=='Cancelado';});}
+  const list=document.getElementById('agenda-list');
+  if(!evs.length){list.innerHTML=`<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>Sin eventos</p></div>`;return;}
+  list.innerHTML=evs.map(ev=>{
+    const{ini,buf}=eventoRange(ev);
+    const fechaLabel=agendaTab==='recogidas'?`Disponible desde ${fmtDT(buf)}`:`Entrega ${fmtDT(ini)}`;
+    const completado=ev.estado==='Cerrado';
+    const sc=ev.estado.toLowerCase();
+    return`<div class="evento-card" onclick="openEvento(${ev.id})">
+      <div class="ev-stripe ${sc}"></div>
+      <div class="ev-body">
+        <div>
+          ${ev.matricula?`<div class="ev-mat">${ev.matricula}</div>`:`<div class="ev-unassigned">Sin asignar</div>`}
+          <div class="ev-cat">Categoría ${ev.cat} · ${ev.dias} día${ev.dias>1?'s':''}</div>
+          <div class="ev-dates"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>${fechaLabel}</div>
+          ${ev.lugar?`<div class="ev-lugar">${ev.lugar}${ev.info?' · '+ev.info:''}</div>`:''}
+          ${completado&&ev.parking?`<div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:4px">📍 ${ev.parking}</div>`:''}
+          ${completado?`<div class="ev-done-label">✓ Completado</div>`:''}
+        </div>
+        <span class="badge badge-${sc}">${ev.estado}</span>
       </div>
-      <div><span class="badge badge-${ev.estado.toLowerCase()}">${ev.estado}</span></div>
     </div>`;
   }).join('');
 }
-
-function openEvento(id) {
-  const ev = STATE.eventos.find(e => e.id === id);
-  if (!ev) return;
-  const { ini, fin, buf } = eventoRange(ev);
-
-  document.getElementById('modal-content').innerHTML = `
-    <div class="modal-title">Evento · ${ev.matricula || 'Sin asignar'}</div>
-    <div class="modal-row"><span class="modal-key">Matrícula</span><span class="modal-val mono">${ev.matricula || '—'}</span></div>
+function openEvento(id){
+  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const{ini,fin,buf}=eventoRange(ev);const completado=ev.estado==='Cerrado';
+  const matHTML=!ev.matricula
+    ?`<div class="modal-row"><span class="modal-key">Matrícula</span><select onchange="asignarMatricula(${id},this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif;max-width:180px"><option value="">— Asignar —</option>${STATE.vehiculos.filter(v=>v.cat===ev.cat).map(v=>`<option value="${v.mat}">${v.mat}</option>`).join('')}</select></div>`
+    :`<div class="modal-row"><span class="modal-key">Matrícula</span><span class="modal-val mono">${ev.matricula}</span></div>`;
+  const completarHTML=completado
+    ?`<div class="completar-banner">✓ Evento completado</div>
+      <div class="modal-row"><span class="modal-key">📍 Aparcado en</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span>
+          <button onclick="editarParkingEvento(${id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button>
+        </span>
+      </div>`
+    :`<button class="btn btn-complete" onclick="completarEvento(${id})" style="margin-bottom:10px">✓ Marcar como completado</button>`;
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">${agendaTab==='recogidas'?'🔁 Recogida':'🚗 Entrega'}</div>
+    ${matHTML}
     <div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${ev.cat}</span></div>
-    <div class="modal-row"><span class="modal-key">Inicio</span><span class="modal-val">${fmtDateTime(ini)}</span></div>
+    <div class="modal-row"><span class="modal-key">Inicio</span><span class="modal-val">${fmtDT(ini)}</span></div>
     <div class="modal-row"><span class="modal-key">Días</span><span class="modal-val">${ev.dias} día${ev.dias>1?'s':''}</span></div>
-    <div class="modal-row"><span class="modal-key">Retorno</span><span class="modal-val">${fmtDateTime(fin)}</span></div>
-    <div class="modal-row"><span class="modal-key">Disponible desde</span><span class="modal-val" style="color:var(--green)">${fmtDateTime(buf)}</span></div>
-    ${ev.lugar ? `<div class="modal-row"><span class="modal-key">Lugar</span><span class="modal-val">${ev.lugar}</span></div>` : ''}
-    ${ev.info  ? `<div class="modal-row"><span class="modal-key">Info</span><span class="modal-val">${ev.info}</span></div>` : ''}
-    ${ev.extras? `<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val">${ev.extras}</span></div>` : ''}
-    <div class="modal-row"><span class="modal-key">Estado</span>
-      <select onchange="cambiarEstado(${id},this.value)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;font-size:13px;font-family:var(--sans)">
-        ${['Pendiente','Activo','Cerrado','Cancelado'].map(s =>
-          `<option ${ev.estado===s?'selected':''}>${s}</option>`).join('')}
-      </select>
-    </div>
-    <div style="margin-top:16px;display:flex;gap:8px">
+    <div class="modal-row"><span class="modal-key">Devolución</span><span class="modal-val">${fmtDT(fin)}</span></div>
+    <div class="modal-row"><span class="modal-key">Disponible desde</span><span class="modal-val" style="color:var(--green);font-weight:700">${fmtDT(buf)}</span></div>
+    ${ev.lugar?`<div class="modal-row"><span class="modal-key">Lugar</span><span class="modal-val">${ev.lugar}</span></div>`:''}
+    ${ev.info ?`<div class="modal-row"><span class="modal-key">Info</span><span class="modal-val">${ev.info}</span></div>`:''}
+    ${ev.extras?`<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val">${ev.extras}</span></div>`:''}
+    <hr class="divider">
+    ${completarHTML}
+    <div style="display:flex;gap:8px">
       <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
-      <button class="btn btn-sm" style="background:#2a1010;color:var(--red);border:1px solid #4a2020;flex:1" onclick="eliminarEvento(${id})">Eliminar</button>
-    </div>
-  `;
+      <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);font-weight:700;" onclick="editarEvento(${id})">✏️ Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="eliminarEvento(${id})" style="flex:1">Eliminar</button>
+    </div>`;
   document.getElementById('modal-overlay').classList.add('open');
 }
-
-function cambiarEstado(id, nuevoEstado) {
-  const ev = STATE.eventos.find(e => e.id === id);
-  if (!ev) return;
-  const prev = ev.estado;
-  ev.estado = nuevoEstado;
-
-  // actualizar estado del vehículo
-  if (ev.matricula) {
-    const v = STATE.vehiculos.find(x => x.mat === ev.matricula);
-    if (v) {
-      if (nuevoEstado === 'Cerrado' || nuevoEstado === 'Cancelado') v.estado = 'Disponible';
-      else if (nuevoEstado === 'Activo') v.estado = 'En alquiler';
-    }
-  }
-  saveState();
-  renderAgenda();
-  showToast('Estado actualizado', 'success');
-}
-
-function eliminarEvento(id) {
-  const ev = STATE.eventos.find(e => e.id === id);
-  if (ev?.matricula) {
-    const v = STATE.vehiculos.find(x => x.mat === ev.matricula);
-    if (v) v.estado = 'Disponible';
-  }
-  STATE.eventos = STATE.eventos.filter(e => e.id !== id);
-  saveState();
-  closeModal();
-  renderAgenda();
-  showToast('Evento eliminado', 'success');
-}
+function completarEvento(id){const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;ev.estado='Cerrado';if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}saveState();closeModal();renderAgenda();showToast('Evento completado ✓','success');}
+function asignarMatricula(id,mat){if(!mat)return;const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;ev.matricula=mat;const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';saveState();showToast(mat+' asignado ✓','success');openEvento(id);}
+function eliminarEvento(id){const ev=STATE.eventos.find(e=>e.id===id);if(ev?.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}STATE.eventos=STATE.eventos.filter(e=>e.id!==id);saveState();closeModal();renderAgenda();showToast('Evento eliminado','success');}
 
 // ── FLOTA ─────────────────────────────────────────────────────────────────
-let flotaCat = 'todos';
-
-function renderFlota() {
-  // stats
-  const libres  = STATE.vehiculos.filter(v => v.estado === 'Disponible').length;
-  const enRuta  = STATE.vehiculos.filter(v => v.estado === 'En alquiler').length;
-  const taller  = STATE.vehiculos.filter(v => v.estado === 'Taller').length;
-  document.getElementById('stat-libre').textContent  = libres;
-  document.getElementById('stat-alq').textContent    = enRuta;
-  document.getElementById('stat-taller').textContent = taller;
-
-  // tabs
-  const tabs = document.getElementById('flota-cat-tabs');
-  tabs.innerHTML = `<div class="cat-tab ${flotaCat==='todos'?'active':''}" onclick="setFlotaCat('todos',this)">Todos</div>` +
-    CATS.map(cat => `<div class="cat-tab ${flotaCat===cat?'active':''}" onclick="setFlotaCat('${cat}',this)">Cat. ${cat}</div>`).join('');
-
+let flotaCat='todos';
+function renderFlota(){
+  document.getElementById('stat-libre').textContent=STATE.vehiculos.filter(v=>v.estado==='Disponible').length;
+  document.getElementById('stat-alq').textContent=STATE.vehiculos.filter(v=>v.estado==='En alquiler').length;
+  document.getElementById('stat-taller').textContent=STATE.vehiculos.filter(v=>v.estado==='Taller').length;
+  const tabs=document.getElementById('flota-cat-tabs');
+  tabs.innerHTML=`<div class="cat-tab ${flotaCat==='todos'?'active':''}" onclick="setFlotaCat('todos',this)">Todos</div>`+CATS.map(c=>`<div class="cat-tab ${flotaCat===c?'active':''}" onclick="setFlotaCat('${c}',this)">Cat. ${c}</div>`).join('');
   renderFlotaList();
 }
-
-function setFlotaCat(cat, el) {
-  flotaCat = cat;
-  document.querySelectorAll('#flota-cat-tabs .cat-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  renderFlotaList();
+function setFlotaCat(cat,el){flotaCat=cat;document.querySelectorAll('#flota-cat-tabs .cat-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderFlotaList();}
+function renderFlotaList(){
+  const vehs=flotaCat==='todos'?STATE.vehiculos:STATE.vehiculos.filter(v=>v.cat===flotaCat);
+  const cfg={'Disponible':{c:'var(--green)',bg:'var(--green-bg)',b:'var(--green-lt)',s:'● Libre'},'En alquiler':{c:'var(--red)',bg:'var(--red-bg)',b:'var(--red-lt)',s:'✕ En ruta'},'Taller':{c:'var(--amber)',bg:'var(--amber-bg)',b:'var(--amber-lt)',s:'⚠ Taller'}};
+  document.getElementById('flota-list').innerHTML=vehs.map(v=>{const k=cfg[v.estado]||cfg['Disponible'];return`<div class="evento-card" onclick="openVehiculo('${v.mat}')" style="border-color:${k.b}"><div class="ev-stripe" style="background:${k.c}"></div><div class="ev-body"><div><div class="ev-mat">${v.mat}</div><div class="ev-cat">Categoría ${v.cat}</div></div><span style="font-size:11px;font-weight:800;color:${k.c};background:${k.bg};padding:4px 10px;border-radius:20px;border:1.5px solid ${k.b}">${k.s}</span></div></div>`;}).join('');
 }
+function openVehiculo(mat){
+  const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
+  const evs=STATE.eventos.filter(e=>e.matricula===mat).sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
+  const evHTML=evs.length?evs.slice(0,5).map(ev=>{const{ini}=eventoRange(ev);return`<div style="padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600">${fmtDate(ini)} · ${ev.dias}d${ev.lugar?' · '+ev.lugar:''}</span><span class="badge badge-${ev.estado.toLowerCase()}">${ev.estado}</span></div>`;}).join(''):'<p style="font-size:13px;color:var(--muted);padding:12px 0;font-weight:500">Sin eventos registrados</p>';
+  document.getElementById('modal-content').innerHTML=`<div class="modal-title">${mat}</div><div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${v.cat}</span></div><div class="modal-row"><span class="modal-key">Estado</span><select onchange="cambiarEstadoVeh('${mat}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif">${['Disponible','En alquiler','Taller'].map(s=>`<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="section-label" style="margin-top:14px">Últimos eventos</div>${evHTML}<div style="margin-top:18px"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button></div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function cambiarEstadoVeh(mat,estado){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v){v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');}}
 
-function renderFlotaList() {
-  const vehs = flotaCat === 'todos'
-    ? STATE.vehiculos
-    : STATE.vehiculos.filter(v => v.cat === flotaCat);
+function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay'))document.getElementById('modal-overlay').classList.remove('open');}
+let _tt;
+function showToast(msg,type='info'){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(_tt);_tt=setTimeout(()=>t.className='',2500);}
 
-  const list = document.getElementById('flota-list');
-  list.innerHTML = vehs.map(v => {
-    const color = v.estado === 'Disponible' ? 'var(--green)' : v.estado === 'En alquiler' ? 'var(--red)' : 'var(--amber)';
-    const dot   = v.estado === 'Disponible' ? '●' : v.estado === 'En alquiler' ? '●' : '●';
-    return `<div class="evento-card" onclick="openVehiculo('${v.mat}')">
-      <div>
-        <div class="ev-mat">${v.mat}</div>
-        <div class="ev-cat">Categoría ${v.cat}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:${color};font-size:12px;font-weight:500">${dot} ${v.estado}</span>
-      </div>
-    </div>`;
+// ── TARIFAS ───────────────────────────────────────────────────────────────
+const TARIFAS=[
+  {cat:'1',     nombre:'Fiat Panda or similar',  precios:[50,95,135,170,205,235,265]},
+  {cat:'2',     nombre:'Seat Ibiza or similar',   precios:[60,110,155,200,240,275,310]},
+  {cat:'3',     nombre:'Citroën C4 or similar',   precios:[75,135,190,240,285,325,365]},
+  {cat:'A/AXL', nombre:'Automáticos / AXL',       precios:[80,140,195,245,295,340,380]},
+  {cat:'MB7/MB9',nombre:'Minibus 7/9 plazas',    precios:[130,250,360,460,560,655,745]},
+];
+function renderTarifas(){
+  const tbody=document.getElementById('tarifa-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=TARIFAS.map((t,idx)=>{
+    const bg=idx%2===0?'background:var(--surface)':'background:var(--surface2)';
+    const cells=t.precios.map(p=>`<td style="padding:13px 10px;text-align:center;font-size:15px;font-weight:800;color:var(--accent);border-bottom:1px solid var(--border);">${p}€</td>`).join('');
+    return`<tr style="${bg}">
+      <td style="padding:13px 14px;border-bottom:1px solid var(--border);">
+        <div style="font-size:13px;font-weight:800;color:var(--text);">Cat. ${t.cat}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">${t.nombre}</div>
+      </td>${cells}</tr>`;
   }).join('');
 }
 
-function openVehiculo(mat) {
-  const v = STATE.vehiculos.find(x => x.mat === mat);
-  if (!v) return;
+// ── EDITAR EVENTO ─────────────────────────────────────────────────────────
+function editarEvento(id){
+  const ev=STATE.eventos.find(e=>e.id===id);
+  if(!ev)return;
+  const fechaPart=ev.fechaIni.split('T')[0];
+  const horaPart=ev.fechaIni.split('T')[1]?.slice(0,5)||'10:00';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">✏️ Editar evento</div>
+    <div class="field"><label>Fecha</label><input type="date" id="edit-fecha" value="${fechaPart}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
+    <div class="field"><label>Hora entrega</label><input type="time" id="edit-hora" value="${horaPart}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
+    <div class="field"><label>Días</label><input type="number" id="edit-dias" value="${ev.dias}" min="1" max="60" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion(${id})">Guardar cambios</button>
+    </div>`;
+}
+function guardarEdicion(id){
+  const ev=STATE.eventos.find(e=>e.id===id);
+  if(!ev)return;
+  const fecha=document.getElementById('edit-fecha').value;
+  const hora=document.getElementById('edit-hora').value;
+  const dias=parseInt(document.getElementById('edit-dias').value);
+  if(!fecha||!hora||!dias){showToast('Rellena todos los campos','error');return;}
+  ev.fechaIni=fecha+'T'+hora;
+  ev.dias=dias;
+  saveState();
+  showToast('Evento actualizado ✓','success');
+  openEvento(id);
+  renderAgenda();
+}
 
-  const eventos = STATE.eventos.filter(e => e.mat === mat || e.matricula === mat)
-    .sort((a,b) => new Date(b.fechaIni) - new Date(a.fechaIni));
-
-  const evHTML = eventos.length
-    ? eventos.slice(0,5).map(ev => {
-        const { ini, buf } = eventoRange(ev);
-        return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:13px">${fmtDate(ini)} · ${ev.dias}d</span>
-            <span class="badge badge-${ev.estado.toLowerCase()}">${ev.estado}</span>
-          </div>
-          ${ev.lugar ? `<div style="font-size:12px;color:var(--muted);margin-top:3px">${ev.lugar}</div>` : ''}
-        </div>`;
-      }).join('')
-    : '<p style="font-size:13px;color:var(--muted);padding:12px 0">Sin eventos registrados</p>';
-
-  document.getElementById('modal-content').innerHTML = `
-    <div class="modal-title">${mat}</div>
-    <div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${v.cat}</span></div>
-    <div class="modal-row"><span class="modal-key">Estado</span>
-      <select onchange="cambiarEstadoVehiculo('${mat}',this.value)" style="background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;font-size:13px;font-family:var(--sans)">
-        ${['Disponible','En alquiler','Taller'].map(s =>
-          `<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}
-      </select>
+function editarParkingEvento(id){
+  const ev=STATE.eventos.find(e=>e.id===id);
+  if(!ev)return;
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">📍 Ubicación del coche</div>
+    <div class="field" style="margin-bottom:8px"><label>¿Dónde está aparcado?</label>
+      <input type="text" id="parking-input" value="${ev.parking||''}" placeholder="Hotel Sol - aparcamiento, calle..." style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;">
     </div>
-    <div class="section-label" style="margin-top:16px">Últimos eventos</div>
-    ${evHTML}
-    <div style="margin-top:16px">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
-    </div>
-  `;
-  document.getElementById('modal-overlay').classList.add('open');
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarParkingEvento(${id})">Guardar</button>
+    </div>`;
+}
+function guardarParkingEvento(id){
+  const ev=STATE.eventos.find(e=>e.id===id);
+  if(!ev)return;
+  ev.parking=document.getElementById('parking-input').value.trim();
+  saveState();
+  showToast('Ubicación guardada ✓','success');
+  openEvento(id);
+  renderAgenda();
 }
 
-function cambiarEstadoVehiculo(mat, estado) {
-  const v = STATE.vehiculos.find(x => x.mat === mat);
-  if (v) { v.estado = estado; saveState(); renderFlota(); showToast('Estado actualizado', 'success'); }
-}
-
-// ── MODAL ─────────────────────────────────────────────────────────────────
-function closeModal(e) {
-  if (!e || e.target === document.getElementById('modal-overlay')) {
-    document.getElementById('modal-overlay').classList.remove('open');
-  }
-}
-
-// ── TOAST ─────────────────────────────────────────────────────────────────
-let toastTimer;
-function showToast(msg, type='') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.className = '', 2500);
-}
-
-// ── INIT ──────────────────────────────────────────────────────────────────
-// Set today as default date
-const today = new Date().toISOString().split('T')[0];
-document.getElementById('disp-fecha').value = today;
-document.getElementById('nev-fecha').value  = today;
-initNuevoEvento();
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('disp-fecha').value=today;
+document.getElementById('nev-fecha').value=today;
+initMatriculas();
+renderTarifas();
 </script>
 </body>
 </html>
