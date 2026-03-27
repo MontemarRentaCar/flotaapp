@@ -9,6 +9,8 @@
 <title>FlotaApp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 /* ── LIGHT THEME ── */
 [data-theme="light"] {
@@ -513,9 +515,46 @@ html, body {
 const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
 const CATS=["1","2","3","A","AXL","MB7","MB9"];
 
-function loadState(){try{const r=localStorage.getItem('flotaapp_v4');if(r)return JSON.parse(r);}catch(e){}return{vehiculos:VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:'Disponible'})),eventos:[],theme:'light'};}
-function saveState(){localStorage.setItem('flotaapp_v4',JSON.stringify(STATE));}
-let STATE=loadState();
+// ── FIREBASE ──────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  databaseURL: "https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const VEHICULOS_INIT = VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:'Disponible'}));
+
+let STATE = {
+  vehiculos: VEHICULOS_INIT,
+  eventos: [],
+  theme: localStorage.getItem('flotaapp_theme')||'light'
+};
+
+function saveState(){
+  db.ref('estado').set({
+    vehiculos: STATE.vehiculos,
+    eventos: STATE.eventos
+  });
+  localStorage.setItem('flotaapp_theme', STATE.theme);
+}
+
+// Escucha cambios en tiempo real
+db.ref('estado').on('value', snap => {
+  const data = snap.val();
+  if(data){
+    STATE.vehiculos = data.vehiculos || VEHICULOS_INIT;
+    STATE.eventos   = data.eventos   || [];
+  } else {
+    // Primera vez — inicializar con los vehículos
+    db.ref('estado').set({ vehiculos: VEHICULOS_INIT, eventos: [] });
+  }
+  // Refrescar la pantalla activa
+  const activa = document.querySelector('.screen.active')?.id;
+  if(activa==='screen-agenda') renderAgenda();
+  if(activa==='screen-flota')  renderFlota();
+  if(activa==='screen-dash')   renderDash();
+  if(activa==='screen-disp' && document.getElementById('disp-resultado').style.display!=='none') buscarDisponibilidad();
+});
 
 // ── THEME ─────────────────────────────────────────────────────────────────
 function applyTheme(t){
@@ -525,7 +564,8 @@ function applyTheme(t){
 }
 function toggleTheme(){
   STATE.theme=STATE.theme==='dark'?'light':'dark';
-  applyTheme(STATE.theme); saveState();
+  applyTheme(STATE.theme);
+  localStorage.setItem('flotaapp_theme', STATE.theme);
 }
 applyTheme(STATE.theme||'light');
 
