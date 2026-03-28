@@ -764,7 +764,14 @@ function goTo(id,btn){
 // ── HELPERS ───────────────────────────────────────────────────────────────
 function eventoRange(ev){
   const ini=new Date(ev.fechaIni);
-  const fin=ev.devolucionCustom?new Date(ev.devolucionCustom):new Date(ini.getTime()+ev.dias*86400000);
+  let fin;
+  if(ev.devolucionCustom){
+    fin=new Date(ev.devolucionCustom);
+  }else{
+    // Sumar días en el calendario para evitar problemas con cambio de hora (DST)
+    fin=new Date(ev.fechaIni);
+    fin.setDate(fin.getDate()+ev.dias);
+  }
   const buf=new Date(fin.getTime()+1800000);
   return{ini,fin,buf};
 }
