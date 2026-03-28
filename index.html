@@ -837,9 +837,14 @@ function renderDispGrid(){
   let items=activeCat==='todos'?Object.values(dispRes).flat():(dispRes[activeCat]||[]);
   items=[...items].sort((a,b)=>({libre:0,ocupado:1,taller:2}[a.disp]-{libre:0,ocupado:1,taller:2}[b.disp]));
   document.getElementById('avail-grid').innerHTML=items.length
-    ?items.map(i=>`<div class="avail-item ${i.disp} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
+    ?items.map(i=>{
+      const veh=STATE.vehiculos.find(v=>v.mat===i.mat);
+      const ubi=veh?.ubicacion?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${veh.ubicacion}</div>`:'';
+      return`<div class="avail-item ${i.disp} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
         `<div class="avail-mat">${i.mat}</div>`+
-        `<div class="avail-status">${i.disp==='libre'?'● Libre':i.disp==='ocupado'?'✕ Ocupado':'⚠ Taller'}</div></div>`).join('')
+        ubi+
+        `<div class="avail-status">${i.disp==='libre'?'● Libre':i.disp==='ocupado'?'✕ Ocupado':'⚠ Taller'}</div></div>`;
+    }).join('')
     :'<div class="empty" style="grid-column:1/-1"><p>Sin vehículos</p></div>';
 }
 
@@ -1223,14 +1228,37 @@ function setFlotaCat(cat,el){flotaCat=cat;document.querySelectorAll('#flota-cat-
 function renderFlotaList(){
   const vehs=flotaCat==='todos'?STATE.vehiculos:STATE.vehiculos.filter(v=>v.cat===flotaCat);
   const cfg={'Disponible':{c:'var(--green)',bg:'var(--green-bg)',b:'var(--green-lt)',s:'● Libre'},'En alquiler':{c:'var(--red)',bg:'var(--red-bg)',b:'var(--red-lt)',s:'✕ En ruta'},'Taller':{c:'var(--amber)',bg:'var(--amber-bg)',b:'var(--amber-lt)',s:'⚠ Taller'},'Alq. L/T':{c:'var(--purple)',bg:'var(--purple-bg)',b:'var(--purple-lt)',s:'◆ L/T'}};
-  document.getElementById('flota-list').innerHTML=vehs.map(v=>{const k=cfg[v.estado]||cfg['Disponible'];return`<div class="evento-card" onclick="openVehiculo('${v.mat}')" style="border-color:${k.b}"><div class="ev-stripe" style="background:${k.c}"></div><div class="ev-body"><div><div class="ev-mat">${v.mat}</div><div class="ev-cat">Categoría ${v.cat}</div></div><span style="font-size:11px;font-weight:800;color:${k.c};background:${k.bg};padding:4px 10px;border-radius:20px;border:1.5px solid ${k.b}">${k.s}</span></div></div>`;}).join('');
+  document.getElementById('flota-list').innerHTML=vehs.map(v=>{const k=cfg[v.estado]||cfg['Disponible'];return`<div class="evento-card" onclick="openVehiculo('${v.mat}')" style="border-color:${k.b}"><div class="ev-stripe" style="background:${k.c}"></div><div class="ev-body"><div><div class="ev-mat">${v.mat}</div><div class="ev-cat">Categoría ${v.cat}${v.ubicacion?` · <span style="color:var(--accent)">📍 ${v.ubicacion}</span>`:''}</div></div><span style="font-size:11px;font-weight:800;color:${k.c};background:${k.bg};padding:4px 10px;border-radius:20px;border:1.5px solid ${k.b}">${k.s}</span></div></div>`;}).join('');
 }
 function openVehiculo(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
   const evs=STATE.eventos.filter(e=>e.matricula===mat).sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
   const evHTML=evs.length?evs.slice(0,5).map(ev=>{const{ini}=eventoRange(ev);return`<div style="padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600">${fmtDate(ini)} · ${ev.dias}d${ev.lugar?' · '+ev.lugar:''}</span><span class="badge badge-${ev.estado.toLowerCase()}">${ev.estado}</span></div>`;}).join(''):'<p style="font-size:13px;color:var(--muted);padding:12px 0;font-weight:500">Sin eventos registrados</p>';
-  document.getElementById('modal-content').innerHTML=`<div class="modal-title">${mat}</div><div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${v.cat}</span></div><div class="modal-row"><span class="modal-key">Estado</span><select onchange="cambiarEstadoVeh('${mat}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif">${['Disponible','En alquiler','Taller','Alq. L/T'].map(s=>`<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="section-label" style="margin-top:14px">Últimos eventos</div>${evHTML}<div style="margin-top:18px"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button></div>`;
+  const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;font-family:\'Nunito\',sans-serif;outline:none;flex:1;';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">${mat}</div>
+    <div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${v.cat}</span></div>
+    <div class="modal-row"><span class="modal-key">Estado</span>
+      <select onchange="cambiarEstadoVeh('${mat}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif">
+        ${['Disponible','En alquiler','Taller','Alq. L/T'].map(s=>`<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-row">
+      <span class="modal-key">📍 Ubicación</span>
+      <span style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;">
+        <input type="text" id="veh-ubicacion" value="${v.ubicacion||''}" placeholder="H. Bajondillo..." style="${inputStyle}">
+        <button onclick="guardarUbicacionVeh('${mat}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap;">Guardar</button>
+      </span>
+    </div>
+    <div class="section-label" style="margin-top:14px">Últimos eventos</div>
+    ${evHTML}
+    <div style="margin-top:18px"><button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button></div>`;
   document.getElementById('modal-overlay').classList.add('open');
+}
+function guardarUbicacionVeh(mat){
+  const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
+  v.ubicacion=document.getElementById('veh-ubicacion').value.trim();
+  saveState();showToast('Ubicación guardada ✓','success');renderFlota();
 }
 function cambiarEstadoVeh(mat,estado){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v){v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');}}
 
