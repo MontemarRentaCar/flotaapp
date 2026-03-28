@@ -972,7 +972,6 @@ function renderAgenda(){
       if(agendaTab==='recogidas'){
         // RECOGIDAS: hora de devolución como título principal
         const horaDev=fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-        const horaDisp=buf.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
         return`<div class="evento-card" onclick="openEvento(${ev.id})">
           <div class="ev-stripe ${sc}"></div>
           <div class="ev-body">
@@ -980,7 +979,6 @@ function renderAgenda(){
               <div class="ev-hora-big">🔁 ${horaDev}</div>
               ${ev.matricula?`<div class="ev-mat">${ev.matricula}</div>`:`<div class="ev-unassigned">Sin asignar</div>`}
               <div class="ev-cat">Cat. ${ev.cat} · ${ev.dias} día${ev.dias>1?'s':''}</div>
-              <div class="ev-dates"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>Libre desde las ${horaDisp}</div>
               ${ev.lugar?`<div class="ev-lugar">${ev.lugar}${ev.info?' · '+ev.info:''}</div>`:''}
             </div>
             <span class="badge badge-${sc}">${ev.estado}</span>
