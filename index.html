@@ -520,7 +520,7 @@ function abrirWhatsApp(id){
   if(ev.lugar)partes.push(ev.lugar);
   if(ev.info) partes.push(ev.info);
   if(ev.extras)partes.push(ev.extras);
-  window.open(`https://wa.me/34629356568?text=${encodeURIComponent(partes.join(' - '))}`,'_blank');
+  window.open(`https://chat.whatsapp.com/LuaAeXjD3HzIyH1e1zLQms?text=${encodeURIComponent(partes.join(' - '))}`,'_blank');
 }
 
 // ── AGENDA ────────────────────────────────────────────────────────────────
@@ -633,18 +633,63 @@ function asignarMatricula(id,mat){if(!mat)return;const ev=STATE.eventos.find(e=>
 function eliminarEvento(id){const ev=STATE.eventos.find(e=>e.id===id);if(ev?.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}STATE.eventos=STATE.eventos.filter(e=>e.id!==id);saveState();closeModal();renderAgenda();showToast('Evento eliminado','success');}
 function editarEvento(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
-  const fp=ev.fechaIni.split('T')[0];const hp=ev.fechaIni.split('T')[1]?.slice(0,5)||'10:00';
+  const fp=ev.fechaIni.split('T')[0];
+  const hp=ev.fechaIni.split('T')[1]?.slice(0,5)||'10:00';
+  const matOpts=STATE.vehiculos
+    .filter(v=>v.cat===ev.cat)
+    .map(v=>`<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat}</option>`)
+    .join('');
+  const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:\'Nunito\',sans-serif;font-size:15px;outline:none;-webkit-appearance:none;appearance:none;';
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">✏️ Editar evento</div>
-    <div class="field"><label>Fecha</label><input type="date" id="edit-fecha" value="${fp}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
-    <div class="field"><label>Hora entrega</label><input type="time" id="edit-hora" value="${hp}" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
-    <div class="field"><label>Días</label><input type="number" id="edit-dias" value="${ev.dias}" min="1" max="60" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
+    <div class="field"><label>Fecha</label><input type="date" id="edit-fecha" value="${fp}" style="${inputStyle}"></div>
+    <div class="field"><label>Hora entrega</label><input type="time" id="edit-hora" value="${hp}" style="${inputStyle}"></div>
+    <div class="field"><label>Días</label><input type="number" id="edit-dias" value="${ev.dias}" min="1" max="60" style="${inputStyle}"></div>
+    <div class="field"><label>Matrícula</label>
+      <select id="edit-mat" style="${inputStyle}background-image:url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23857f72\' d=\'M6 8L1 3h10z\'/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;">
+        <option value="">— Sin asignar —</option>
+        ${matOpts}
+      </select>
+    </div>
+    <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel, aeropuerto..." style="${inputStyle}"></div>
+    <div class="field"><label>Info</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Hab. 204, tel..." style="${inputStyle}"></div>
+    <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${ev.extras||''}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
       <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion(${id})">Guardar cambios</button>
     </div>`;
 }
-function guardarEdicion(id){const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;const f=document.getElementById('edit-fecha').value;const h=document.getElementById('edit-hora').value;const d=parseInt(document.getElementById('edit-dias').value);if(!f||!h||!d){showToast('Rellena todos los campos','error');return;}ev.fechaIni=f+'T'+h;ev.dias=d;saveState();showToast('Actualizado ✓','success');openEvento(id);renderAgenda();}
+
+function guardarEdicion(id){
+  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const f=document.getElementById('edit-fecha').value;
+  const h=document.getElementById('edit-hora').value;
+  const d=parseInt(document.getElementById('edit-dias').value);
+  const mat=document.getElementById('edit-mat').value;
+  const lugar=document.getElementById('edit-lugar').value.trim();
+  const info=document.getElementById('edit-info').value.trim();
+  const extras=document.getElementById('edit-extras').value.trim();
+  if(!f||!h||!d){showToast('Rellena fecha, hora y días','error');return;}
+  // Actualizar estado del vehículo si cambia la matrícula
+  if(ev.matricula&&ev.matricula!==mat){
+    const vOld=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+    if(vOld)vOld.estado='Disponible';
+  }
+  if(mat&&mat!==ev.matricula){
+    const vNew=STATE.vehiculos.find(x=>x.mat===mat);
+    if(vNew)vNew.estado='En alquiler';
+  }
+  ev.fechaIni=f+'T'+h;
+  ev.dias=d;
+  ev.matricula=mat||'';
+  ev.lugar=lugar;
+  ev.info=info;
+  ev.extras=extras;
+  saveState();
+  showToast('Actualizado ✓','success');
+  openEvento(id);
+  renderAgenda();
+}
 function editarParkingEvento(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
   document.getElementById('modal-content').innerHTML=`
