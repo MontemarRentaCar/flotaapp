@@ -955,7 +955,7 @@ function renderAgenda(){
   if(agendaTab==='entregas'){
     todos=todosVivos.filter(e=>e.estado==='Pendiente');
   }else{
-    todos=todosVivos.filter(e=>e.estado==='Activo'||e.estado==='Pendiente');
+    todos=todosVivos.filter(e=>e.estado==='Activo');
   }
 
   let evs, evsPasados;
