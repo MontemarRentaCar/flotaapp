@@ -1125,9 +1125,7 @@ function openEvento(id){
     <select onchange="asignarMatricula(${id},this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif;max-width:200px">
       ${matOpts}
     </select></div>`;
-  const completarHTML=completado
-    ?`<div class="completar-banner">✓ Evento completado</div><div class="modal-row"><span class="modal-key">📍 Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento(${id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button></span></div>`
-    :`<button class="btn btn-complete" onclick="completarEvento(${id})" style="margin-bottom:10px">✓ Marcar como completado</button>`;
+  const completarHTML_dummy=null; // removed duplicate
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">${agendaTab==='recogidas'?'🔁 Recogida':'🚗 Entrega'}</div>
     ${matHTML}
