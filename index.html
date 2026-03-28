@@ -948,13 +948,23 @@ function renderAgenda(){
   if(agendaTab==='entregas'){
     evs=todos.filter(e=>{const i=new Date(e.fechaIni);i.setHours(0,0,0,0);return i>=now;});
     evs.sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
-    evsPasados=todos.filter(e=>{const i=new Date(e.fechaIni);i.setHours(0,0,0,0);return i<now;});
-    evsPasados.sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
+    evsPasados=[];  // no mostrar pasados en Entregas
   }else{
     evs=todos.filter(e=>{const{buf}=eventoRange(e);const b=new Date(buf);b.setHours(0,0,0,0);return b>=now;});
     evs.sort((a,b)=>eventoRange(a).buf-eventoRange(b).buf);
-    evsPasados=todos.filter(e=>{const{buf}=eventoRange(e);const b=new Date(buf);b.setHours(0,0,0,0);return b<now;});
+    // Pasados: buf ya pasó pero menos de 48h — los de más de 48h se auto-eliminan
+    const limite48h=new Date(Date.now()-48*3600000);
+    evsPasados=todos.filter(e=>{const{buf}=eventoRange(e);return buf<now&&buf>=limite48h;});
     evsPasados.sort((a,b)=>eventoRange(b).buf-eventoRange(a).buf);
+    // Auto-eliminar eventos con más de 48h desde la devolución
+    const paraEliminar=todos.filter(e=>{const{buf}=eventoRange(e);return buf<limite48h;});
+    if(paraEliminar.length){
+      paraEliminar.forEach(ev=>{
+        if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v&&v.estado==='En alquiler')v.estado='Disponible';}
+        STATE.eventos=STATE.eventos.filter(e=>e.id!==ev.id);
+      });
+      saveState();
+    }
   }
 
   const list=document.getElementById('agenda-list');
