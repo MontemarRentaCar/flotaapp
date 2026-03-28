@@ -747,8 +747,10 @@ function guardarProlongacion(id){
   const nuevaFin=new Date(fin.getTime()+diasExtra*86400000);
   ev.devolucionCustom=nuevaFin.toISOString().slice(0,16);
   ev.dias=ev.dias+diasExtra;
-  saveState();showToast(`+${diasExtra} día${diasExtra>1?'s':''} añadidos ✓','success');openEvento(id);renderAgenda();
+  saveState();showToast('+'+diasExtra+' día'+(diasExtra>1?'s':'')+' añadidos ✓','success');openEvento(id);renderAgenda();
 }
+
+function editarParkingEvento(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">📍 Ubicación</div>
