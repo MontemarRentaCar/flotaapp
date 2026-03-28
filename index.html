@@ -948,8 +948,15 @@ function renderAgenda(){
   const manana=new Date(now);manana.setDate(manana.getDate()+1);
   const pasado=new Date(now);pasado.setDate(pasado.getDate()+2);
 
-  // Eventos activos (no cerrados, no cancelados)
-  let todos=[...STATE.eventos].filter(e=>e.estado!=='Cerrado'&&e.estado!=='Cancelado');
+  // Activo = entregado al cliente (va a Recogidas), Pendiente = sin entregar (va a Entregas)
+  // Cerrado y Cancelado no aparecen en ninguno
+  let todosVivos=[...STATE.eventos].filter(e=>e.estado!=='Cerrado'&&e.estado!=='Cancelado');
+  let todos;
+  if(agendaTab==='entregas'){
+    todos=todosVivos.filter(e=>e.estado==='Pendiente');
+  }else{
+    todos=todosVivos.filter(e=>e.estado==='Activo'||e.estado==='Pendiente');
+  }
 
   let evs, evsPasados;
   if(agendaTab==='entregas'){
@@ -1076,9 +1083,24 @@ function togglePasados(){
 
 function openEvento(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
-  const{ini,fin,buf}=eventoRange(ev);const completado=ev.estado==='Cerrado';
+  const completado=ev.estado==='Cerrado'||ev.estado==='Activo';
+  const esEntrega=agendaTab==='entregas';
 
-  // Calcular coches disponibles para las fechas de este evento (excluyendo el propio evento)
+  // Lógica del botón completar según pestaña
+  let completarHTML;
+  if(ev.estado==='Cerrado'){
+    completarHTML=`<div class="completar-banner">✓ Recogida completada — coche disponible</div><div class="modal-row"><span class="modal-key">📍 Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento(${id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button></span></div>`;
+  }else if(ev.estado==='Activo'){
+    completarHTML=`<div class="completar-banner" style="background:var(--accent-bg);border-color:var(--accent-lt);color:var(--accent);">🚗 Entregado — pendiente de recogida</div>
+    <button class="btn btn-complete" onclick="completarRecogida(${id})" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
+  }else{
+    if(esEntrega){
+      completarHTML=`<button class="btn btn-complete" onclick="completarEntrega(${id})" style="margin-bottom:10px;background:var(--accent);">🚗 Confirmar entrega al cliente</button>`;
+    }else{
+      completarHTML=`<button class="btn btn-complete" onclick="completarRecogida(${id})" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
+    }
+  }
+  const{ini,fin,buf}=eventoRange(ev);
   const sI=new Date(ev.fechaIni);
   const sF=new Date(sI.getTime()+ev.dias*86400000);
   const cochesDisponibles=STATE.vehiculos.filter(v=>{
@@ -1134,12 +1156,20 @@ function openEvento(id){
   document.getElementById('modal-overlay').classList.add('open');
 }
 
-function completarEvento(id){
+function completarEntrega(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
-  ev.estado='Cerrado';
-  if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
-  saveState();closeModal();renderAgenda();showToast('Evento completado ✓','success');
+  ev.estado='Activo'; // entregado al cliente, sigue en alquiler
+  saveState();closeModal();renderAgenda();showToast('Entrega confirmada 🚗','success');
 }
+function completarRecogida(id){
+  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  ev.estado='Cerrado'; // devuelto, coche libre
+  if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
+  saveState();closeModal();renderAgenda();showToast('Recogida completada ✓','success');
+}
+// Mantener compatibilidad por si acaso
+function completarEvento(id){completarRecogida(id);}
+
 function asignarMatricula(id,mat){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
   // Liberar matrícula anterior si había
