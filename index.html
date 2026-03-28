@@ -821,13 +821,33 @@ function buscarDisponibilidad(){
   sincronizarEstadoVehiculos();
   const sI=new Date(fecha+'T'+hora);const sF=new Date(sI.getTime()+dias*86400000);
   dispRes={};CATS.forEach(c=>dispRes[c]=[]);
+  // Contar reservas sin matrícula que solapan estas fechas (ocupan stock de su categoría)
+  const reservasSinMat={};
+  CATS.forEach(c=>reservasSinMat[c]=0);
+  STATE.eventos.forEach(ev=>{
+    if(ev.matricula) return; // tiene matrícula, ya se cuenta en isBusy
+    if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return;
+    const{ini,buf}=eventoRange(ev);
+    if(ini<sF&&buf>sI) reservasSinMat[ev.cat]=(reservasSinMat[ev.cat]||0)+1;
+  });
   STATE.vehiculos.forEach(v=>{
     const d=v.estado==='Taller'?'taller':(v.estado==='Alq. L/T'||isBusy(v.mat,sI,sF))?'ocupado':'libre';
     dispRes[v.cat].push({mat:v.mat,disp:d});
   });
+  // Marcar coches libres como "ocupado por reserva sin mat" si hay reservas sin matrícula
+  CATS.forEach(cat=>{
+    let pendientes=reservasSinMat[cat]||0;
+    if(!pendientes) return;
+    // Marcar los últimos coches libres como ocupados (reservados sin mat asignada)
+    const libres=dispRes[cat].filter(x=>x.disp==='libre');
+    for(let i=libres.length-1;i>=0&&pendientes>0;i--,pendientes--){
+      libres[i].disp='reservado';
+      libres[i].reservadoSinMat=true;
+    }
+  });
   const all=Object.values(dispRes).flat();
   document.getElementById('sum-libre').textContent=all.filter(x=>x.disp==='libre').length;
-  document.getElementById('sum-ocup').textContent=all.filter(x=>x.disp==='ocupado').length;
+  document.getElementById('sum-ocup').textContent=all.filter(x=>x.disp==='ocupado'||x.disp==='reservado').length;
   document.getElementById('sum-tall').textContent=all.filter(x=>x.disp==='taller').length;
   document.getElementById('form-nuevo').style.display='none';
   matSeleccionada='';
@@ -836,23 +856,111 @@ function buscarDisponibilidad(){
 }
 
 function renderDispTabs(){
-  const total=Object.values(dispRes).flat().filter(x=>x.disp==='libre').length;
-  document.getElementById('cat-tabs').innerHTML=`<div class="cat-tab active" onclick="setCatTab('todos',this)">Todos · ${total} libres</div>`+CATS.map(c=>{const l=(dispRes[c]||[]).filter(x=>x.disp==='libre').length;const t=(dispRes[c]||[]).length;return`<div class="cat-tab" onclick="setCatTab('${c}',this)">Cat.${c} ${l}/${t}</div>`;}).join('');
+  document.getElementById('cat-tabs').innerHTML='';
 }
-function setCatTab(cat,el){activeCat=cat;document.querySelectorAll('#cat-tabs .cat-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderDispGrid();}
+function setCatTab(cat,el){}
+
+// Info visual por categoría
+const CAT_INFO={
+  '1':  {nombre:'Fiat Panda',      emoji:'🚗', grad:['#1e5fa8','#2472c8']},
+  '2':  {nombre:'Seat Ibiza',      emoji:'🚙', grad:['#0d7a4a','#16a866']},
+  '3':  {nombre:'Citroën C4',      emoji:'🚘', grad:['#7b2fa8','#a855d4']},
+  'A':  {nombre:'Automático',      emoji:'⚡', grad:['#b05e00','#e07800']},
+  'AXL':{nombre:'Automático XL',   emoji:'🔥', grad:['#c0392b','#e74c3c']},
+  'MB7':{nombre:'Minibus 7 plz',   emoji:'🚐', grad:['#1a3f6f','#2a5fa0']},
+  'MB9':{nombre:'Minibus 9 plz',   emoji:'🚌', grad:['#2c3e50','#4a6080']},
+};
+
 function renderDispGrid(){
-  let items=activeCat==='todos'?Object.values(dispRes).flat():(dispRes[activeCat]||[]);
-  items=[...items].sort((a,b)=>({libre:0,ocupado:1,taller:2}[a.disp]-{libre:0,ocupado:1,taller:2}[b.disp]));
-  document.getElementById('avail-grid').innerHTML=items.length
-    ?items.map(i=>{
+  const container=document.getElementById('avail-grid');
+  if(!Object.keys(dispRes).length){container.innerHTML='';return;}
+  let html='';
+  CATS.forEach(cat=>{
+    const items=dispRes[cat]||[];
+    if(!items.length) return;
+    const libres=items.filter(x=>x.disp==='libre').length;
+    const total=items.length;
+    const info=CAT_INFO[cat]||{nombre:'Cat. '+cat,emoji:'🚗',grad:['#1e5fa8','#2472c8']};
+    const [c1,c2]=info.grad;
+
+    // Stock indicator
+    let stockLabel, stockIcon;
+    if(libres===0){stockLabel='Sin disponibilidad';stockIcon='🔴';}
+    else if(libres===1){stockLabel='¡Último libre!';stockIcon='🟡';}
+    else if(libres<=3){stockLabel=`${libres} libres`;stockIcon='🟡';}
+    else{stockLabel=`${libres} libres`;stockIcon='🟢';}
+
+    const btnReservar=libres>0
+      ?`<button onclick="event.stopPropagation();seleccionarCategoria('${cat}')" style="background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;backdrop-filter:blur(4px);transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.32)'" onmouseout="this.style.background='rgba(255,255,255,.2)'">Reservar sin matrícula</button>`
+      :'';
+
+    const cochesHtml=items.sort((a,b)=>({libre:0,reservado:1,ocupado:2,taller:3}[a.disp]||2)-({libre:0,reservado:1,ocupado:2,taller:3}[b.disp]||2)).map(i=>{
       const veh=STATE.vehiculos.find(v=>v.mat===i.mat);
-      const ubi=veh?.ubicacion?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${veh.ubicacion}</div>`:'';
-      return`<div class="avail-item ${i.disp} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
-        `<div class="avail-mat">${i.mat}</div>`+
-        ubi+
-        `<div class="avail-status">${i.disp==='libre'?'● Libre':i.disp==='ocupado'?'✕ Ocupado':'⚠ Taller'}</div></div>`;
-    }).join('')
-    :'<div class="empty" style="grid-column:1/-1"><p>Sin vehículos</p></div>';
+      const ubi=veh?.ubicacion?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ${veh.ubicacion}</div>`:'';
+      const dispClass=i.disp==='reservado'?'ocupado':i.disp;
+      const dispLabel=i.disp==='libre'?'● Libre':i.disp==='reservado'?'◷ Reservado':i.disp==='ocupado'?'✕ Ocupado':'⚠ Taller';
+      return`<div class="avail-item ${dispClass} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
+        `<div class="avail-mat">${i.mat}</div>`+ubi+
+        `<div class="avail-status">${dispLabel}</div></div>`;
+    }).join('');
+
+    html+=`<div style="border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.15);">
+      <!-- Tarjeta principal — clicar abre/cierra -->
+      <div onclick="toggleCatGrid('${cat}')" style="background:linear-gradient(135deg,${c1},${c2});padding:18px 20px;cursor:pointer;user-select:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="font-size:36px;line-height:1;">${info.emoji}</div>
+            <div>
+              <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-.01em;">Cat. ${cat}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:1px;">${info.nombre} · ${total} vehículos</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1;">${libres}/${total}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.8);margin-top:2px;">${stockIcon} ${stockLabel}</div>
+          </div>
+        </div>
+        ${libres>0?`<div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+          ${btnReservar}
+          <span style="color:rgba(255,255,255,.7);font-size:13px;" id="arrow-${cat}">Ver matrículas ▼</span>
+        </div>`:`<div style="margin-top:10px;text-align:right;"><span style="color:rgba(255,255,255,.6);font-size:12px;">No disponible para estas fechas</span></div>`}
+      </div>
+      <!-- Grid desplegable -->
+      <div id="cat-grid-${cat}" style="display:none;background:var(--surface);border:1.5px solid var(--border);border-top:none;border-radius:0 0 16px 16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:14px;">${cochesHtml}</div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML=html||'<div class="empty"><p>Sin vehículos</p></div>';
+}
+
+function toggleCatGrid(cat){
+  // Cerrar todos los demás
+  CATS.forEach(c=>{
+    const el=document.getElementById('cat-grid-'+c);
+    const arrow=document.getElementById('arrow-'+c);
+    if(!el) return;
+    if(c===cat){
+      const open=el.style.display==='none';
+      el.style.display=open?'block':'none';
+      if(arrow)arrow.innerHTML=open?'Ocultar matrículas ▲':'Ver matrículas ▼';
+    }else{
+      el.style.display='none';
+      if(arrow)arrow.innerHTML='Ver matrículas ▼';
+    }
+  });
+}
+
+function seleccionarCategoria(cat){
+  matSeleccionada='';
+  document.getElementById('nev-mat-sel').value='';
+  document.getElementById('nev-cat-sel').value=cat;
+  document.getElementById('form-mat-label').innerHTML=`<span style="font-size:16px">📋</span> Cat. ${cat} — sin matrícula asignada`;
+  document.getElementById('nev-lugar').value='';
+  document.getElementById('nev-info').value='';
+  document.getElementById('nev-extras').value='';
+  document.getElementById('form-nuevo').style.display='block';
+  setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
 
 function seleccionarSinCoche(){
