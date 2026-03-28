@@ -948,14 +948,17 @@ function renderAgenda(){
   const manana=new Date(now);manana.setDate(manana.getDate()+1);
   const pasado=new Date(now);pasado.setDate(pasado.getDate()+2);
 
-  // Activo = entregado al cliente (va a Recogidas), Pendiente = sin entregar (va a Entregas)
-  // Cerrado y Cancelado no aparecen en ninguno
+  // Activo = confirmado entregado (Recogidas), Pendiente = sin entregar (Entregas)
+  // Excepción: Pendiente con fecha de inicio ya pasada → también va a Recogidas
   let todosVivos=[...STATE.eventos].filter(e=>e.estado!=='Cerrado'&&e.estado!=='Cancelado');
+  const ahoraMs=Date.now();
   let todos;
   if(agendaTab==='entregas'){
-    todos=todosVivos.filter(e=>e.estado==='Pendiente');
+    // Solo Pendientes cuya entrega aún no ha llegado
+    todos=todosVivos.filter(e=>e.estado==='Pendiente'&&new Date(e.fechaIni).getTime()>ahoraMs);
   }else{
-    todos=todosVivos.filter(e=>e.estado==='Activo');
+    // Activos + Pendientes cuya fecha de inicio ya pasó (ya debería estar en la calle)
+    todos=todosVivos.filter(e=>e.estado==='Activo'||(e.estado==='Pendiente'&&new Date(e.fechaIni).getTime()<=ahoraMs));
   }
 
   let evs, evsPasados;
