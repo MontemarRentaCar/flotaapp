@@ -353,6 +353,8 @@ try{
     const data=snap.val();
     if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];}
     else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[]});}
+    // Sincronizar estado de vehículos automáticamente basado en eventos
+    sincronizarEstadoVehiculos();
     // Actualizar backup local
     try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
     refreshUI();
@@ -392,18 +394,31 @@ function eventoRange(ev){
   const buf=new Date(fin.getTime()+1800000);
   return{ini,fin,buf};
 }
-function isBusy(mat,sI,sF){
-  // Comprobar por eventos registrados
-  const tieneEvento=STATE.eventos.some(ev=>{
-    if(ev.matricula!==mat)return false;
-    if(ev.estado==='Cerrado'||ev.estado==='Cancelado')return false;
-    const{ini,buf}=eventoRange(ev);
-    return ini<sF&&buf>sI;
+
+// Sincroniza el estado de los vehículos mirando los eventos activos
+// Un coche está "En alquiler" si tiene un evento activo/pendiente cuyo buf > ahora
+function sincronizarEstadoVehiculos(){
+  const ahora=new Date();
+  STATE.vehiculos.forEach(v=>{
+    if(v.estado==='Taller') return; // no tocar los que están en taller
+    const tieneEventoActivo=STATE.eventos.some(ev=>{
+      if(ev.matricula!==v.mat) return false;
+      if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
+      const{buf}=eventoRange(ev);
+      return buf>ahora; // el buffer de devolución aún no ha pasado
+    });
+    v.estado=tieneEventoActivo?'En alquiler':'Disponible';
   });
-  if(tieneEvento)return true;
-  // Si no hay evento pero el coche está marcado "En alquiler", también está ocupado
-  const v=STATE.vehiculos.find(x=>x.mat===mat);
-  return v&&v.estado==='En alquiler';
+}
+
+function isBusy(mat,sI,sF){
+  // Un coche está ocupado para un rango si tiene algún evento activo que se solapa
+  return STATE.eventos.some(ev=>{
+    if(ev.matricula!==mat) return false;
+    if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
+    const{ini,buf}=eventoRange(ev);
+    return ini<sF && buf>sI;
+  });
 }
 function fmtDate(dt){return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});}
 function fmtDT(dt){return fmtDate(dt)+' '+dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
@@ -421,6 +436,8 @@ function buscarDisponibilidad(){
   const hora=document.getElementById('disp-hora').value;
   const dias=parseInt(document.getElementById('disp-dias').value)||1;
   if(!fecha){showToast('Selecciona una fecha','error');return;}
+  // Sincronizar estado de vehículos antes de calcular
+  sincronizarEstadoVehiculos();
   const sI=new Date(fecha+'T'+hora);const sF=new Date(sI.getTime()+dias*86400000);
   dispRes={};CATS.forEach(c=>dispRes[c]=[]);
   STATE.vehiculos.forEach(v=>{
@@ -454,9 +471,11 @@ function renderDispGrid(){
 
 function seleccionarSinCoche(){
   matSeleccionada='';
+  // Guardamos la categoría activa del tab seleccionado (o 'SIN' si es todos)
+  const catActiva = activeCat !== 'todos' ? activeCat : '';
   document.getElementById('nev-mat-sel').value='';
-  document.getElementById('nev-cat-sel').value='';
-  document.getElementById('form-mat-label').innerHTML='<span style="font-size:16px">📋</span> Sin matrícula asignada — asignar tras la llamada';
+  document.getElementById('nev-cat-sel').value=catActiva;
+  document.getElementById('form-mat-label').innerHTML='<span style="font-size:16px">📋</span> Sin matrícula — se asignará después';
   document.getElementById('nev-lugar').value='';
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
@@ -487,8 +506,8 @@ function crearEvento(){
   const info=document.getElementById('nev-info').value.trim();
   const extras=document.getElementById('nev-extras').value.trim();
   if(!fecha||!hora||!dias){showToast('Rellena fecha, hora y días','error');return;}
-  if(!cat&&!mat){showToast('Busca disponibilidad primero','error');return;}
-  const ev={id:Date.now(),fechaIni:fecha+'T'+hora,dias,cat:cat||STATE.vehiculos.find(x=>x.mat===mat)?.cat||'',matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
+  const catFinal=cat||STATE.vehiculos.find(x=>x.mat===mat)?.cat||'SIN CAT';
+  const ev={id:Date.now(),fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
   STATE.eventos.unshift(ev);
   if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
   saveState();
@@ -600,9 +619,32 @@ function renderAgenda(){
 function openEvento(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
   const{ini,fin,buf}=eventoRange(ev);const completado=ev.estado==='Cerrado';
-  const matHTML=!ev.matricula
-    ?`<div class="modal-row"><span class="modal-key">Matrícula</span><select onchange="asignarMatricula(${id},this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif;max-width:180px"><option value="">— Asignar —</option>${STATE.vehiculos.filter(v=>v.cat===ev.cat).map(v=>`<option value="${v.mat}">${v.mat}</option>`).join('')}</select></div>`
-    :`<div class="modal-row"><span class="modal-key">Matrícula</span><span class="modal-val mono">${ev.matricula}</span></div>`;
+
+  // Calcular coches disponibles para las fechas de este evento (excluyendo el propio evento)
+  const sI=new Date(ev.fechaIni);
+  const sF=new Date(sI.getTime()+ev.dias*86400000);
+  const cochesDisponibles=STATE.vehiculos.filter(v=>{
+    if(v.cat!==ev.cat&&ev.cat!=='SIN CAT') return false; // misma categoría
+    if(v.estado==='Taller') return false;
+    if(v.mat===ev.matricula) return true; // el actual siempre disponible
+    // Verificar que no esté ocupado por otro evento en esas fechas
+    const ocupado=STATE.eventos.some(e2=>{
+      if(e2.id===ev.id) return false; // ignorar el propio evento
+      if(e2.matricula!==v.mat) return false;
+      if(e2.estado==='Cerrado'||e2.estado==='Cancelado') return false;
+      const{ini:i2,buf:b2}=eventoRange(e2);
+      return i2<sF&&b2>sI;
+    });
+    return !ocupado;
+  });
+
+  const matOpts=`<option value="">— Sin asignar —</option>`+
+    cochesDisponibles.map(v=>`<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} (Cat.${v.cat})</option>`).join('');
+
+  const matHTML=`<div class="modal-row"><span class="modal-key">Matrícula</span>
+    <select onchange="asignarMatricula(${id},this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif;max-width:200px">
+      ${matOpts}
+    </select></div>`;
   const completarHTML=completado
     ?`<div class="completar-banner">✓ Evento completado</div><div class="modal-row"><span class="modal-key">📍 Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento(${id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button></span></div>`
     :`<button class="btn btn-complete" onclick="completarEvento(${id})" style="margin-bottom:10px">✓ Marcar como completado</button>`;
@@ -640,7 +682,22 @@ function completarEvento(id){
   if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
   saveState();closeModal();renderAgenda();showToast('Evento completado ✓','success');
 }
-function asignarMatricula(id,mat){if(!mat)return;const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;ev.matricula=mat;const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';saveState();showToast(mat+' asignado ✓','success');openEvento(id);}
+function asignarMatricula(id,mat){
+  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  // Liberar matrícula anterior si había
+  if(ev.matricula&&ev.matricula!==mat){
+    const vOld=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+    if(vOld)vOld.estado='Disponible';
+  }
+  ev.matricula=mat||'';
+  if(mat){
+    const vNew=STATE.vehiculos.find(x=>x.mat===mat);
+    if(vNew)vNew.estado='En alquiler';
+  }
+  saveState();
+  showToast(mat?mat+' asignado ✓':'Matrícula eliminada','success');
+  openEvento(id);
+}
 function eliminarEvento(id){const ev=STATE.eventos.find(e=>e.id===id);if(ev?.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}STATE.eventos=STATE.eventos.filter(e=>e.id!==id);saveState();closeModal();renderAgenda();showToast('Evento eliminado','success');}
 function editarEvento(id){
   const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
