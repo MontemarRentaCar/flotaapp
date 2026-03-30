@@ -575,8 +575,13 @@ html,body {
       <div class="page-header-bar"><div class="page-title">Nueva reserva</div><div class="page-sub">Busca disponibilidad y registra el evento</div></div>
       <div class="card">
         <div class="field-row">
-          <div class="field"><label>Fecha</label><input type="date" id="disp-fecha" oninput="limpiarResultado()"></div>
-          <div class="field"><label>Hora entrega</label><input type="time" id="disp-hora" value="10:00" oninput="limpiarResultado()"></div>
+          <div class="field"><label>Fecha</label><input type="date" id="disp-fecha" oninput="actualizarSlots();limpiarResultado()"></div>
+          <div class="field">
+            <label>Hora entrega</label>
+            <select id="disp-hora" oninput="limpiarResultado()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:500;outline:none;width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%235a7a9a%22 d=%22M6 8L1 3h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;">
+              <option value="">— Elige fecha primero —</option>
+            </select>
+          </div>
         </div>
         <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" value="1" oninput="limpiarResultado()"></div>
         <button class="btn btn-primary" onclick="buscarDisponibilidad()">Buscar disponibilidad</button>
@@ -784,6 +789,9 @@ function refreshUI(){
   if(activa==='screen-flota') renderFlota();
   // Refrescar corcho si está abierto
   if(document.getElementById('corcho-overlay').style.display!=='none') renderCorcho();
+  // Refrescar slots de hora siempre que cambie el estado
+  const fechaEl=document.getElementById('disp-fecha');
+  if(fechaEl&&fechaEl.value) actualizarSlots();
 }
 
 // Intentar cargar backup local inmediatamente
@@ -1102,7 +1110,8 @@ function crearEvento(){
   STATE.eventos.unshift(ev);
   if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
   saveState();
-  // Reset
+  // Refrescar slots para reflejar la nueva reserva
+  actualizarSlots();
   document.getElementById('disp-resultado').style.display='none';
   matSeleccionada='';
   document.getElementById('form-nuevo').style.display='none';
@@ -1600,6 +1609,55 @@ function guardarUbicacionVeh(mat){
 }
 function cambiarEstadoVeh(mat,estado){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v){v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');}}
 
+// ── SLOTS DE HORA ─────────────────────────────────────────────────────────
+function getSlotsDelDia(fecha){
+  const d=new Date(fecha+'T12:00:00');
+  const dow=d.getDay(); // 0=domingo,6=sábado,1-5=lun-vie
+  const slots=[];
+  function addRange(hIni,mIni,hFin,mFin){
+    let h=hIni,m=mIni;
+    while(h<hFin||(h===hFin&&m<=mFin)){
+      slots.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+      m+=15; if(m>=60){m=0;h++;}
+    }
+  }
+  if(dow===0){addRange(8,0,12,0);}                          // Domingo
+  else if(dow===6){addRange(8,0,12,45);}                    // Sábado
+  else{addRange(8,0,12,45);addRange(16,0,17,45);}           // Lun-Vie
+  return slots;
+}
+
+function actualizarSlots(){
+  const fecha=document.getElementById('disp-fecha').value;
+  const sel=document.getElementById('disp-hora');
+  if(!fecha){sel.innerHTML='<option value="">— Elige fecha primero —</option>';return;}
+  const todosSlots=getSlotsDelDia(fecha);
+  // Contar reservas existentes por slot
+  const conteo={};
+  STATE.eventos.forEach(ev=>{
+    if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return;
+    const evFecha=ev.fechaIni.split('T')[0];
+    if(evFecha!==fecha) return;
+    const evHora=(ev.fechaIni.split('T')[1]||'').substring(0,5);
+    conteo[evHora]=(conteo[evHora]||0)+1;
+  });
+  const prevVal=sel.value;
+  sel.innerHTML='<option value="">— Selecciona hora —</option>';
+  let hayLibres=false;
+  todosSlots.forEach(slot=>{
+    const libres=2-(conteo[slot]||0);
+    if(libres>0){
+      const opt=document.createElement('option');
+      opt.value=slot;
+      opt.textContent=libres===1?`${slot}  ·  queda 1 plaza`:slot;
+      if(slot===prevVal)opt.selected=true;
+      sel.appendChild(opt);
+      hayLibres=true;
+    }
+  });
+  if(!hayLibres) sel.innerHTML='<option value="">Sin horas disponibles este día</option>';
+}
+
 // ── CORCHO ────────────────────────────────────────────────────────────────
 const POSTIT_COLORS_ENT=['#FFD700','#FF9F43','#FF6B6B','#FFA07A','#FFB347'];
 const POSTIT_COLORS_REC=['#48DBFB','#0ABDE3','#54A0FF','#5F27CD','#A29BFE'];
@@ -1875,6 +1933,7 @@ function initDesktop(){
 // ── INIT ──────────────────────────────────────────────────────────────────
 const today=new Date().toISOString().split('T')[0];
 document.getElementById('disp-fecha').value=today;
+actualizarSlots();
 renderTarifas();
 initDesktop();
 window.addEventListener('resize',()=>{if(isDesktop())initDesktop();});
