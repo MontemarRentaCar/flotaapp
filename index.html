@@ -577,10 +577,19 @@ html,body {
         <div class="field-row">
           <div class="field"><label>Fecha</label><input type="date" id="disp-fecha" oninput="actualizarSlots();limpiarResultado()"></div>
           <div class="field">
-            <label>Hora entrega</label>
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Hora entrega</span>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;">
+                <input type="checkbox" id="modo-aero" onchange="toggleModoAero()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
+                ✈️ Aeropuerto
+              </label>
+            </label>
+            <!-- Selector normal (slots) -->
             <select id="disp-hora" oninput="limpiarResultado()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:500;outline:none;width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%235a7a9a%22 d=%22M6 8L1 3h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;">
               <option value="">— Elige fecha primero —</option>
             </select>
+            <!-- Input libre aeropuerto (oculto por defecto) -->
+            <input type="time" id="disp-hora-aero" value="10:00" oninput="limpiarResultado()" style="display:none;background:var(--accent-bg);border:2px solid var(--accent);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;outline:none;width:100%;">
           </div>
         </div>
         <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" value="1" oninput="limpiarResultado()"></div>
@@ -627,8 +636,31 @@ html,body {
         <div class="stat-box stat-amber"><div class="stat-num" id="stat-taller">—</div><div class="stat-label">Taller</div></div>
         <div class="stat-box" style="border-top:3px solid var(--purple);"><div class="stat-num" id="stat-lt" style="color:var(--purple)">—</div><div class="stat-label">L/T</div></div>
       </div>
+
+      <!-- BOTÓN COCHES CON UBICACIÓN -->
+      <div id="panel-ubicaciones" style="display:none;background:var(--surface);border:1.5px solid var(--accent-lt);border-radius:14px;padding:16px;margin-bottom:16px;animation:fadeIn .2s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:15px;font-weight:800;color:var(--text);">📍 Coches aparcados</div>
+          <button onclick="toggleUbicaciones()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
+        </div>
+        <div id="lista-ubicaciones"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button onclick="toggleUbicaciones()" id="btn-ubicaciones"
+          style="flex:1;padding:11px;background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">
+          📍 Ver coches aparcados
+        </button>
+      </div>
+
       <div class="cat-tabs" id="flota-cat-tabs"></div>
       <div id="flota-list"></div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="screen" id="screen-historial">
+      <div class="page-header-bar"><div class="page-title">Historial</div><div class="page-sub">Reservas finalizadas</div></div>
+      <div id="historial-list"></div>
     </div>
 
     <!-- TARIFAS -->
@@ -704,6 +736,10 @@ html,body {
     <button class="nav-btn" onclick="goTo('tarifas',this)">
       <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       Tarifas
+    </button>
+    <button class="nav-btn" onclick="goTo('historial',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      Historial
     </button>
     <button class="nav-btn" onclick="abrirCorcho()">
       <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="16" y2="21"/><circle cx="5" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="5" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="10" r="1" fill="currentColor" stroke="none"/></svg>
@@ -851,6 +887,7 @@ function goTo(id,btn){
   if(id==='agenda') renderAgenda();
   if(id==='flota')  renderFlota();
   if(id==='tarifas')renderTarifas();
+  if(id==='historial')renderHistorial();
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
@@ -906,7 +943,7 @@ function limpiarResultado(){
 
 function buscarDisponibilidad(){
   const fecha=document.getElementById('disp-fecha').value;
-  const hora=document.getElementById('disp-hora').value;
+  const hora=getHoraSeleccionada();
   const dias=parseInt(document.getElementById('disp-dias').value)||1;
   if(!fecha){showToast('Selecciona una fecha','error');return;}
   // Sincronizar estado de vehículos antes de calcular
@@ -1097,7 +1134,7 @@ function seleccionarCoche(mat){
 
 function crearEvento(){
   const fecha=document.getElementById('disp-fecha').value;
-  const hora=document.getElementById('disp-hora').value;
+  const hora=getHoraSeleccionada();
   const dias=parseInt(document.getElementById('disp-dias').value);
   const mat=document.getElementById('nev-mat-sel').value;
   const cat=document.getElementById('nev-cat-sel').value;
@@ -1207,10 +1244,23 @@ function renderAgenda(){
   let todos;
   if(agendaTab==='entregas'){
     // Solo Pendientes cuya entrega aún no ha llegado
-    todos=todosVivos.filter(e=>e.estado==='Pendiente'&&new Date(e.fechaIni).getTime()>ahoraMs);
+    // Entregas: Pendientes de hoy (aunque la hora haya pasado) y días futuros
+    todos=todosVivos.filter(e=>{
+      if(e.estado!=='Pendiente') return false;
+      const d=new Date(e.fechaIni); d.setHours(0,0,0,0);
+      return d.getTime()>=now.getTime(); // todo el día de hoy y en adelante
+    });
   }else{
     // Activos + Pendientes cuya fecha de inicio ya pasó (ya debería estar en la calle)
-    todos=todosVivos.filter(e=>e.estado==='Activo'||(e.estado==='Pendiente'&&new Date(e.fechaIni).getTime()<=ahoraMs));
+    // Recogidas: Activos + Pendientes con fecha de inicio en día anterior o anterior
+    todos=todosVivos.filter(e=>{
+      if(e.estado==='Activo') return true;
+      if(e.estado==='Pendiente'){
+        const d=new Date(e.fechaIni); d.setHours(0,0,0,0);
+        return d.getTime()<now.getTime(); // solo días anteriores a hoy
+      }
+      return false;
+    });
   }
 
   let evs, evsPasados;
@@ -1607,7 +1657,67 @@ function guardarUbicacionVeh(mat){
   v.ubicacion=document.getElementById('veh-ubicacion').value.trim();
   saveState();showToast('Ubicación guardada ✓','success');renderFlota();
 }
+function toggleUbicaciones(){
+  const panel=document.getElementById('panel-ubicaciones');
+  const btn=document.getElementById('btn-ubicaciones');
+  const visible=panel.style.display!=='none';
+  if(visible){
+    panel.style.display='none';
+    btn.textContent='📍 Ver coches aparcados';
+    return;
+  }
+  // Construir lista de coches con ubicación
+  const conUbi=STATE.vehiculos.filter(v=>v.ubicacion&&v.ubicacion.trim()!=='');
+  const lista=document.getElementById('lista-ubicaciones');
+  if(!conUbi.length){
+    lista.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;font-weight:600;">Ningún coche tiene ubicación guardada</div>`;
+  }else{
+    // Agrupar por ubicación
+    const grupos={};
+    conUbi.forEach(v=>{
+      const ubi=v.ubicacion.trim();
+      if(!grupos[ubi])grupos[ubi]=[];
+      grupos[ubi].push(v);
+    });
+    lista.innerHTML=Object.entries(grupos).map(([ubi,vehs])=>`
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">📍 ${ubi}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${vehs.map(v=>{
+            const cfg={
+              'Disponible':{c:'var(--green)',bg:'var(--green-bg)',b:'var(--green-lt)'},
+              'En alquiler':{c:'var(--red)',bg:'var(--red-bg)',b:'var(--red-lt)'},
+              'Taller':{c:'var(--amber)',bg:'var(--amber-bg)',b:'var(--amber-lt)'},
+              'Alq. L/T':{c:'var(--purple)',bg:'var(--purple-bg)',b:'var(--purple-lt)'},
+            };
+            const k=cfg[v.estado]||cfg['Disponible'];
+            return`<div onclick="openVehiculo('${v.mat}')" style="background:${k.bg};border:1.5px solid ${k.b};border-radius:8px;padding:7px 12px;cursor:pointer;">
+              <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${k.c};">${v.mat}</div>
+              <div style="font-size:10px;font-weight:700;color:${k.c};opacity:.8;">${v.estado}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`).join('');
+  }
+  panel.style.display='block';
+  btn.textContent='📍 Ocultar coches aparcados';
+}
+
 function cambiarEstadoVeh(mat,estado){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v){v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');}}
+
+// ── MODO AEROPUERTO ───────────────────────────────────────────────────────
+function toggleModoAero(){
+  const aero=document.getElementById('modo-aero').checked;
+  document.getElementById('disp-hora').style.display=aero?'none':'block';
+  document.getElementById('disp-hora-aero').style.display=aero?'block':'none';
+}
+
+function getHoraSeleccionada(){
+  const aero=document.getElementById('modo-aero').checked;
+  return aero
+    ? document.getElementById('disp-hora-aero').value
+    : document.getElementById('disp-hora').value;
+}
 
 // ── SLOTS DE HORA ─────────────────────────────────────────────────────────
 function getSlotsDelDia(fecha){
@@ -1844,6 +1954,49 @@ function completarRecogidaCorcho(id, btn){
     setTimeout(()=>{postit.remove();renderCorcho();},400);
   }
   showToast('Recogida completada ✓','success');
+}
+
+// ── HISTORIAL ──────────────────────────────────────────────────────────────
+function renderHistorial(){
+  const list=document.getElementById('historial-list');if(!list)return;
+  const cerrados=[...STATE.eventos]
+    .filter(e=>e.estado==='Cerrado'||e.estado==='Cancelado')
+    .sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
+
+  if(!cerrados.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg></div><p>Sin reservas finalizadas</p></div>`;
+    return;
+  }
+
+  const grupos={};
+  cerrados.forEach(ev=>{
+    const d=new Date(ev.fechaIni);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const label=d.toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+    if(!grupos[key])grupos[key]={label,evs:[]};
+    grupos[key].evs.push(ev);
+  });
+
+  list.innerHTML=Object.entries(grupos).map(([key,{label,evs}])=>`
+    <div style="margin-bottom:24px;">
+      <div class="day-header">${label.charAt(0).toUpperCase()+label.slice(1)}<span class="day-count">${evs.length} reserva${evs.length>1?'s':''}</span></div>
+      ${evs.map(ev=>{
+        const{ini,fin}=eventoRange(ev);
+        const sc=ev.estado.toLowerCase();
+        return`<div class="evento-card" onclick="openEvento(${ev.id})" style="opacity:.85;">
+          <div class="ev-stripe ${sc}"></div>
+          <div class="ev-body">
+            <div>
+              <div class="ev-mat">${ev.matricula||'<span style="font-style:italic;font-size:13px;color:var(--muted);">Sin mat. · Cat.'+ev.cat+'</span>'}</div>
+              <div class="ev-cat">Cat. ${ev.cat} · ${ev.dias} día${ev.dias>1?'s':''}</div>
+              <div class="ev-dates"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>${fmtDate(ini)} → ${fmtDate(fin)}</div>
+              ${ev.lugar?`<div class="ev-lugar">📍 ${ev.lugar}</div>`:''}
+            </div>
+            <span class="badge badge-${sc}">${ev.estado}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
 }
 
 function calcularPrecio(){
