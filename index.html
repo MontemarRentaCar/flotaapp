@@ -572,41 +572,62 @@ html,body {
 
     <!-- NUEVA RESERVA (fusión disponibilidad + formulario) -->
     <div class="screen active" id="screen-nuevo">
-      <div class="page-header-bar"><div class="page-title">Nueva reserva</div><div class="page-sub">Busca disponibilidad y registra el evento</div></div>
+      <div class="page-header-bar"><div class="page-title">Nueva reserva</div><div class="page-sub">Selecciona fecha, días y categoría</div></div>
+
+      <!-- PASO 1: Fecha + Días -->
       <div class="card">
         <div class="field-row">
-          <div class="field"><label>Fecha</label><input type="date" id="disp-fecha" oninput="actualizarSlots();limpiarResultado()"></div>
-          <div class="field">
-            <label style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Hora entrega</span>
-              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;">
-                <input type="checkbox" id="modo-aero" onchange="toggleModoAero()" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
-                ✈️ Aeropuerto
-              </label>
-            </label>
-            <!-- Selector normal (slots) -->
-            <select id="disp-hora" oninput="limpiarResultado()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:500;outline:none;width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 12 12%22%3E%3Cpath fill=%22%235a7a9a%22 d=%22M6 8L1 3h10z%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;">
-              <option value="">— Elige fecha primero —</option>
-            </select>
-            <!-- Input libre aeropuerto (oculto por defecto) -->
-            <input type="time" id="disp-hora-aero" value="10:00" oninput="limpiarResultado()" style="display:none;background:var(--accent-bg);border:2px solid var(--accent);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;outline:none;width:100%;">
-          </div>
+          <div class="field"><label>Fecha</label><input type="date" id="disp-fecha" oninput="buscarDisponibilidadRapida()"></div>
+          <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" value="1" oninput="buscarDisponibilidadRapida()"></div>
         </div>
-        <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" value="1" oninput="limpiarResultado()"></div>
-        <button class="btn btn-primary" onclick="buscarDisponibilidad()">Buscar disponibilidad</button>
+        <!-- Modo aeropuerto -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);margin-top:4px;">
+          <input type="checkbox" id="modo-aero" onchange="toggleModoAero()" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+          ✈️ Modo aeropuerto — hora libre fuera de horario
+        </label>
+        <!-- Input hora aeropuerto (oculto por defecto) -->
+        <input type="time" id="disp-hora-aero" value="10:00" style="display:none;margin-top:10px;background:var(--accent-bg);border:2px solid var(--accent);border-radius:10px;padding:11px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;outline:none;width:100%;">
+        <button id="btn-buscar-aero" onclick="buscarDisponibilidad()" style="display:none;margin-top:10px;width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--blue-600),var(--blue-500));color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">✈️ Buscar disponibilidad</button>
+        <!-- Input oculto hora normal (para compatibilidad) -->
+        <select id="disp-hora" style="display:none;">
+          <option value="">—</option>
+        </select>
       </div>
+
+      <!-- PASO 2: Tarjetas de categoría con horas disponibles -->
+      <div id="disp-rapido" style="display:none;">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:12px;" id="disp-rapido-label">Selecciona categoría y hora:</div>
+        <div id="disp-rapido-cats"></div>
+      </div>
+
+      <!-- PASO 3: Formulario de reserva (aparece al elegir hora) -->
       <div id="disp-resultado" style="display:none">
-        <div class="disp-summary">
-          <div class="disp-sum-box sum-libre">  <div class="disp-sum-num" id="sum-libre">0</div><div class="disp-sum-lbl">Libres</div></div>
-          <div class="disp-sum-box sum-ocupado"><div class="disp-sum-num" id="sum-ocup">0</div><div class="disp-sum-lbl">Ocupados</div></div>
-          <div class="disp-sum-box sum-taller"> <div class="disp-sum-num" id="sum-tall">0</div><div class="disp-sum-lbl">Taller</div></div>
+        <!-- resumen selección -->
+        <div style="background:var(--accent-bg);border:1.5px solid var(--accent-lt);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--accent);" id="resumen-sel">Cat. 1 · 10:00 · 3 días</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="resumen-mat"></div>
+          </div>
+          <button onclick="limpiarResultado()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
         </div>
-        <p style="font-size:13px;color:var(--muted);font-weight:600;margin-bottom:10px">Pulsa un coche libre para crear la reserva →</p>
-        <div class="cat-tabs" id="cat-tabs"></div>
-        <div class="avail-grid" id="avail-grid"></div>
-        <button class="btn btn-secondary" style="margin-top:4px;margin-bottom:4px" onclick="seleccionarSinCoche()">Continuar sin asignar matrícula</button>
+        <!-- grid matrículas de la cat seleccionada -->
+        <div id="avail-grid" style="margin-bottom:10px;"></div>
+        <div class="cat-tabs" id="cat-tabs" style="display:none;"></div>
+        <div class="disp-summary" style="display:none;">
+          <div class="disp-sum-box sum-libre"><div class="disp-sum-num" id="sum-libre">0</div><div class="disp-sum-lbl">Libres</div></div>
+          <div class="disp-sum-box sum-ocupado"><div class="disp-sum-num" id="sum-ocup">0</div><div class="disp-sum-lbl">Ocupados</div></div>
+          <div class="disp-sum-box sum-taller"><div class="disp-sum-num" id="sum-tall">0</div><div class="disp-sum-lbl">Taller</div></div>
+        </div>
         <div id="form-nuevo" style="display:none">
-          <div id="form-mat-label" class="form-mat-sel"></div>
+          <div id="form-mat-label" class="form-mat-sel" style="justify-content:space-between;">
+            <span id="form-mat-label-text"></span>
+            <button onclick="abrirGridMatriculas()" id="btn-asignar-mat"
+              style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;">
+              🚗 Asignar matrícula
+            </button>
+          </div>
+          <!-- Grid matrículas (colapsado por defecto) -->
+          <div id="avail-grid-form" style="display:none;margin-bottom:12px;"></div>
           <div class="field"><label>Lugar de entrega</label><input type="text" id="nev-lugar" placeholder="Hotel, aeropuerto, dirección..."></div>
           <div class="field"><label>Info</label><input type="text" id="nev-info" placeholder="Hab. 204, tel. 612 345 678..."></div>
           <div class="field"><label>Extras</label><input type="text" id="nev-extras" placeholder="GPS, silla bebé..."></div>
@@ -938,7 +959,9 @@ let dispRes={};let activeCat='todos';let matSeleccionada='';
 
 function limpiarResultado(){
   document.getElementById('disp-resultado').style.display='none';
+  document.getElementById('form-nuevo').style.display='none';
   matSeleccionada='';
+  dispRes={};
 }
 
 function buscarDisponibilidad(){
@@ -1729,8 +1752,16 @@ function cambiarEstadoVeh(mat,estado){const v=STATE.vehiculos.find(x=>x.mat===ma
 // ── MODO AEROPUERTO ───────────────────────────────────────────────────────
 function toggleModoAero(){
   const aero=document.getElementById('modo-aero').checked;
-  document.getElementById('disp-hora').style.display=aero?'none':'block';
-  document.getElementById('disp-hora-aero').style.display=aero?'block':'none';
+  const horaAero=document.getElementById('disp-hora-aero');
+  const btnAero=document.getElementById('btn-buscar-aero');
+  horaAero.style.display=aero?'block':'none';
+  btnAero.style.display=aero?'block':'none';
+  if(aero){
+    document.getElementById('disp-rapido').style.display='none';
+    limpiarResultado();
+  } else {
+    buscarDisponibilidadRapida();
+  }
 }
 
 function getHoraSeleccionada(){
@@ -1740,7 +1771,204 @@ function getHoraSeleccionada(){
     : document.getElementById('disp-hora').value;
 }
 
-// ── SLOTS DE HORA ─────────────────────────────────────────────────────────
+// ── DISPONIBILIDAD RÁPIDA (nuevo flujo) ───────────────────────────────────
+function buscarDisponibilidadRapida(){
+  const fecha=document.getElementById('disp-fecha').value;
+  const dias=parseInt(document.getElementById('disp-dias').value)||1;
+  const rapidoDiv=document.getElementById('disp-rapido');
+  const catsDiv=document.getElementById('disp-rapido-cats');
+  limpiarResultado();
+
+  if(!fecha){rapidoDiv.style.display='none';return;}
+
+  // Actualizar slots ocultos para compatibilidad
+  actualizarSlots();
+
+  const sI=new Date(fecha+'T00:00:00');
+  const sF=new Date(sI); sF.setDate(sF.getDate()+dias);
+  sincronizarEstadoVehiculos();
+
+  // Obtener todos los slots del día
+  const todosSlots=getSlotsDelDia(fecha);
+
+  // Contar reservas por slot ese día
+  const conteoSlots={};
+  STATE.eventos.forEach(ev=>{
+    if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return;
+    const evFecha=ev.fechaIni.split('T')[0];
+    if(evFecha!==fecha) return;
+    const evHora=(ev.fechaIni.split('T')[1]||'').substring(0,5);
+    conteoSlots[evHora]=(conteoSlots[evHora]||0)+1;
+  });
+
+  // Por cada categoría, calcular coches libres considerando los días
+  let html='';
+  let hayCualquiera=false;
+
+  CATS.forEach(cat=>{
+    const info=CAT_INFO[cat]||{nombre:'Cat.'+cat,emoji:'🚗',grad:['#1e5fa8','#2472c8']};
+    const [c1,c2]=info.grad;
+
+    // Coches libres en esa categoría para esas fechas
+    const cochesLibres=STATE.vehiculos.filter(v=>{
+      if(v.cat!==cat) return false;
+      if(v.estado==='Taller'||v.estado==='Alq. L/T') return false;
+      const ocupado=STATE.eventos.some(e2=>{
+        if(e2.estado==='Cerrado'||e2.estado==='Cancelado') return false;
+        if(e2.matricula!==v.mat) return false;
+        const{ini,buf}=eventoRange(e2);
+        return ini<sF&&buf>sI;
+      });
+      return !ocupado;
+    }).length;
+
+    // Reservas sin matrícula de esa cat en esas fechas
+    const sinMat=STATE.eventos.filter(e=>{
+      if(e.matricula||e.cat!==cat) return false;
+      if(e.estado==='Cerrado'||e.estado==='Cancelado') return false;
+      const{ini,buf}=eventoRange(e);
+      return ini<sF&&buf>sI;
+    }).length;
+
+    const libresEfectivos=Math.max(0,cochesLibres-sinMat);
+    if(libresEfectivos===0) return; // no mostrar si no hay coches
+    hayCualquiera=true;
+
+    // Slots disponibles (libres de los 2 por slot)
+    const slotsLibres=todosSlots.filter(s=>(conteoSlots[s]||0)<2);
+
+    const slotsHtml=slotsLibres.length
+      ? slotsLibres.map(s=>{
+          const ocupados=conteoSlots[s]||0;
+          const ultimo=ocupados===1;
+          return`<button onclick="seleccionarHoraCat('${cat}','${s}')"
+            style="padding:6px 10px;border-radius:8px;border:1.5px solid ${ultimo?'var(--amber-lt)':'var(--accent-lt)'};
+            background:${ultimo?'var(--amber-bg)':'var(--accent-bg)'};
+            color:${ultimo?'var(--amber)':'var(--accent)'};
+            font-size:12px;font-weight:800;cursor:pointer;font-family:'DM Mono',monospace;
+            transition:transform .1s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''"
+            title="${ultimo?'Queda 1 plaza':'2 plazas libres'}">${s}${ultimo?'·1':''}
+          </button>`;
+        }).join('')
+      : `<span style="font-size:12px;color:rgba(255,255,255,.6);">Sin horas disponibles</span>`;
+
+    html+=`<div style="background:linear-gradient(135deg,${c1},${c2});border-radius:14px;padding:16px 18px;margin-bottom:10px;box-shadow:0 4px 12px var(--shadow-md);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:28px;">${info.emoji}</span>
+          <div>
+            <div style="font-size:16px;font-weight:900;color:#fff;">Cat. ${cat}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.75);">${info.nombre}</div>
+          </div>
+        </div>
+        <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:6px 12px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#fff;">${libresEfectivos}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.7);">libres</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${slotsHtml}</div>
+    </div>`;
+  });
+
+  if(!hayCualquiera){
+    html=`<div style="text-align:center;padding:30px;color:var(--muted);">
+      <div style="font-size:32px;margin-bottom:8px;">😔</div>
+      <div style="font-weight:700;">Sin disponibilidad para esta fecha</div>
+    </div>`;
+  }
+
+  document.getElementById('disp-rapido-label').textContent=
+    `${new Date(fecha+'T12:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})} · ${dias} día${dias>1?'s':''}`;
+  catsDiv.innerHTML=html;
+  rapidoDiv.style.display='block';
+}
+
+function seleccionarHoraCat(cat, hora){
+  const fecha=document.getElementById('disp-fecha').value;
+  const dias=parseInt(document.getElementById('disp-dias').value)||1;
+
+  // Guardar hora en select oculto para crearEvento
+  const sel=document.getElementById('disp-hora');
+  let opt=Array.from(sel.options).find(o=>o.value===hora);
+  if(!opt){opt=new Option(hora,hora);sel.add(opt);}
+  sel.value=hora;
+
+  // Ocultar tarjetas rápidas
+  document.getElementById('disp-rapido').style.display='none';
+  limpiarResultado();
+
+  // Rellenar formulario directamente con cat y hora — sin asignar matrícula aún
+  const info=CAT_INFO[cat]||{nombre:'Cat.'+cat,emoji:'🚗'};
+  document.getElementById('nev-cat-sel').value=cat;
+  document.getElementById('nev-mat-sel').value='';
+  document.getElementById('nev-lugar').value='';
+  document.getElementById('nev-info').value='';
+  document.getElementById('nev-extras').value='';
+
+  // Resumen visible
+  document.getElementById('resumen-sel').textContent=
+    `${info.emoji} Cat. ${cat} · ${hora} · ${dias} día${dias>1?'s':''}`;
+  document.getElementById('resumen-mat').textContent=
+    `Sin matrícula asignada — se asignará el día de la entrega`;
+
+  document.getElementById('disp-resultado').style.display='block';
+  document.getElementById('form-nuevo').style.display='block';
+  document.getElementById('form-mat-label-text').innerHTML=
+    `<span style="font-size:18px;">${info.emoji}</span> Cat. ${cat} · ${hora} — sin matrícula`;
+  document.getElementById('avail-grid-form').style.display='none';
+
+  setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+function abrirGridMatriculas(){
+  const cat=document.getElementById('nev-cat-sel').value;
+  const fecha=document.getElementById('disp-fecha').value;
+  const dias=parseInt(document.getElementById('disp-dias').value)||1;
+  const hora=getHoraSeleccionada();
+  const gridDiv=document.getElementById('avail-grid-form');
+
+  if(gridDiv.style.display!=='none'){gridDiv.style.display='none';return;}
+
+  const sI=new Date(fecha+'T'+hora);
+  const sF=new Date(sI); sF.setDate(sF.getDate()+dias);
+  sincronizarEstadoVehiculos();
+
+  const items=STATE.vehiculos
+    .filter(v=>v.cat===cat)
+    .map(v=>{
+      const d=v.estado==='Taller'?'taller':(v.estado==='Alq. L/T'||isBusy(v.mat,sI,sF))?'ocupado':'libre';
+      return{mat:v.mat,disp:d,veh:v};
+    })
+    .sort((a,b)=>({libre:0,ocupado:1,taller:2}[a.disp]||1)-({libre:0,ocupado:1,taller:2}[b.disp]||1));
+
+  gridDiv.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+    ${items.map(i=>{
+      const ubi=i.veh.ubicacion?`<div style="font-size:10px;color:var(--accent);font-weight:700;">📍 ${i.veh.ubicacion}</div>`:'';
+      const dispClass=i.disp==='libre'?'libre':'ocupado';
+      const dispLabel=i.disp==='libre'?'● Libre':'✕ No disp.';
+      const matSel=document.getElementById('nev-mat-sel').value;
+      return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}"
+        onclick="${i.disp==='libre'?`seleccionarCocheForm('${i.mat}','${cat}')`:''}" >
+        <div class="avail-mat">${i.mat}</div>${ubi}
+        <div class="avail-status">${dispLabel}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  gridDiv.style.display='block';
+}
+
+function seleccionarCocheForm(mat, cat){
+  document.getElementById('nev-mat-sel').value=mat;
+  document.getElementById('nev-cat-sel').value=cat;
+  const info=CAT_INFO[cat]||{emoji:'🚗'};
+  document.getElementById('form-mat-label-text').innerHTML=
+    `<span style="font-size:18px;">${info.emoji}</span> ${mat} (Cat. ${cat})`;
+  // Refrescar grid para mostrar selección
+  abrirGridMatriculas();
+  abrirGridMatriculas();
+}
+
+
 function getSlotsDelDia(fecha){
   const d=new Date(fecha+'T12:00:00');
   const dow=d.getDay(); // 0=domingo,6=sábado,1-5=lun-vie
