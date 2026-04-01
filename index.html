@@ -578,7 +578,7 @@ html,body {
       <div class="card">
         <div class="field-row">
           <div class="field"><label>Fecha</label><input type="date" id="disp-fecha" oninput="buscarDisponibilidadRapida()"></div>
-          <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" value="1" oninput="buscarDisponibilidadRapida()"></div>
+          <div class="field"><label>Días</label><input type="number" id="disp-dias" min="1" max="60" placeholder="Nº días" oninput="buscarDisponibilidadRapida()"></div>
         </div>
         <!-- Modo aeropuerto -->
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);margin-top:4px;">
@@ -1233,10 +1233,10 @@ function crearEvento(){
   const info=document.getElementById('nev-info').value.trim();
   const extras=document.getElementById('nev-extras').value.trim();
   if(!fecha||!hora||!dias){showToast('Rellena fecha, hora y días','error');return;}
+  const catFinal=cat||STATE.vehiculos.find(x=>x.mat===mat)?.cat||'SIN CAT';
   // ── VALIDACIÓN ANTI-CONFLICTO ──
   const conflicto=validarConflicto(mat,catFinal,fecha+'T'+hora,dias);
   if(conflicto){showToast('⚠️ Conflicto: '+conflicto,'error');return;}
-  const catFinal=cat||STATE.vehiculos.find(x=>x.mat===mat)?.cat||'SIN CAT';
   const ev={id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2),fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
   STATE.eventos.unshift(ev);
   if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
