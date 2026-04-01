@@ -1015,7 +1015,7 @@ function validarConflicto(mat, cat, fechaIni, dias, idExcluir=null){
   const conflicto=STATE.eventos.find(ev=>{
     if(ev.matricula!==mat) return false;
     if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
-    if(idExcluir&&ev.id===idExcluir) return false;
+    if(idExcluir&&String(ev.id)===String(idExcluir)) return false;
     const{ini,buf}=eventoRange(ev);
     return ini<sF&&buf>sI;
   });
@@ -1033,8 +1033,11 @@ function fmtDT(dt){return fmtDate(dt)+' '+dt.toLocaleTimeString('es-ES',{hour:'2
 let dispRes={};let activeCat='todos';let matSeleccionada='';
 
 function limpiarResultado(){
-  document.getElementById('disp-resultado').style.display='none';
-  document.getElementById('form-nuevo').style.display='none';
+  const r=document.getElementById('disp-resultado');
+  const f=document.getElementById('form-nuevo');
+  const rap=document.getElementById('disp-rapido');
+  if(r)r.style.display='none';
+  if(f)f.style.display='none';
   matSeleccionada='';
   dispRes={};
 }
@@ -1044,7 +1047,7 @@ function buscarDisponibilidad(){
   const hora=getHoraSeleccionada();
   const dias=parseInt(document.getElementById('disp-dias').value)||1;
   if(!fecha){showToast('Selecciona una fecha','error');return;}
-  const sI=new Date(fecha+'T'+hora);const sF=new Date(sI.getTime()+dias*86400000);
+  const sI=new Date(fecha+'T'+hora);const sF=new Date(fecha+'T'+hora);sF.setDate(sF.getDate()+dias);
   dispRes={};CATS.forEach(c=>dispRes[c]=[]);
   // reservasSinMat calculadas por libresEnCat() — centralizado en el motor
   STATE.vehiculos.forEach(v=>{
@@ -1237,7 +1240,7 @@ function crearEvento(){
   // ── VALIDACIÓN ANTI-CONFLICTO ──
   const conflicto=validarConflicto(mat,catFinal,fecha+'T'+hora,dias);
   if(conflicto){showToast('⚠️ Conflicto: '+conflicto,'error');return;}
-  const ev={id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2),fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
+  const ev={id:Date.now(),fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
   STATE.eventos.unshift(ev);
   if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
   saveState();
@@ -1266,7 +1269,7 @@ function crearEvento(){
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────────
 function abrirWhatsApp(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const{ini}=eventoRange(ev);
   const fecha=ini.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
   const hora=ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
@@ -1481,7 +1484,7 @@ function togglePasados(){
 }
 
 function openEvento(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const completado=ev.estado==='Cerrado'||ev.estado==='Activo';
   const esEntrega=agendaTab==='entregas';
 
@@ -1501,14 +1504,14 @@ function openEvento(id){
   }
   const{ini,fin,buf}=eventoRange(ev);
   const sI=new Date(ev.fechaIni);
-  const sF=new Date(sI.getTime()+ev.dias*86400000);
+  const sF=new Date(ev.fechaIni);sF.setDate(sF.getDate()+ev.dias);
   const cochesDisponibles=STATE.vehiculos.filter(v=>{
     if(v.cat!==ev.cat&&ev.cat!=='SIN CAT') return false;
     if(v.mat===ev.matricula) return true; // el coche actual siempre disponible para editar
     if(v.estado==='Taller'||v.estado==='Alq. L/T') return false;
     // Comprobar solapamiento excluyendo el propio evento
     return !STATE.eventos.some(e2=>{
-      if(e2.id===ev.id) return false;
+      if(String(e2.id)===String(ev.id)) return false;
       if(e2.matricula!==v.mat) return false;
       if(e2.estado==='Cerrado'||e2.estado==='Cancelado') return false;
       const{ini,buf}=eventoRange(e2);
@@ -1553,12 +1556,12 @@ function openEvento(id){
 }
 
 function completarEntrega(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Activo'; // entregado al cliente, sigue en alquiler
   saveState();closeModal();renderAgenda();showToast('Entrega confirmada 🚗','success');
 }
 function completarRecogida(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Cerrado'; // devuelto, coche libre
   if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
   saveState();closeModal();renderAgenda();showToast('Recogida completada ✓','success');
@@ -1567,7 +1570,7 @@ function completarRecogida(id){
 function completarEvento(id){completarRecogida(id);}
 
 function asignarMatricula(id,mat){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   // Liberar matrícula anterior si había
   if(ev.matricula&&ev.matricula!==mat){
     const vOld=STATE.vehiculos.find(x=>x.mat===ev.matricula);
@@ -1582,9 +1585,15 @@ function asignarMatricula(id,mat){
   showToast(mat?mat+' asignado ✓':'Matrícula eliminada','success');
   openEvento(id);
 }
-function eliminarEvento(id){const ev=STATE.eventos.find(e=>e.id===id);if(ev?.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}STATE.eventos=STATE.eventos.filter(e=>e.id!==id);saveState();closeModal();renderAgenda();showToast('Evento eliminado','success');}
+function eliminarEvento(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));
+  if(!ev)return;
+  STATE.eventos=STATE.eventos.filter(e=>String(e.id)!==String(id));
+  sincronizarEstadoVehiculos();
+  saveState();closeModal();renderAgenda();showToast('Evento eliminado','success');
+}
 function editarEvento(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const fp=ev.fechaIni.split('T')[0];
   const hp=ev.fechaIni.split('T')[1]?.slice(0,5)||'10:00';
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:\'Nunito\',sans-serif;font-size:15px;outline:none;-webkit-appearance:none;appearance:none;';
@@ -1624,7 +1633,7 @@ function editarEvento(id){
 
 function actualizarMatriculasEdit(id){
   const cat=document.getElementById('edit-cat').value;
-  const ev=STATE.eventos.find(e=>e.id===id);
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));
   const sel=document.getElementById('edit-mat');
   sel.innerHTML=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===cat)
@@ -1632,7 +1641,7 @@ function actualizarMatriculasEdit(id){
 }
 
 function guardarEdicion(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const f=document.getElementById('edit-fecha').value;
   const h=document.getElementById('edit-hora').value;
   const d=parseInt(document.getElementById('edit-dias').value);
@@ -1667,7 +1676,7 @@ function guardarEdicion(id){
   renderAgenda();
 }
 function editarDevolucion(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const{fin}=eventoRange(ev);
   const fechaActual=fin.toISOString().split('T')[0];
   const horaActual=fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
@@ -1683,7 +1692,7 @@ function editarDevolucion(id){
     </div>`;
 }
 function guardarDevolucion(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const f=document.getElementById('dev-fecha').value;
   const h=document.getElementById('dev-hora').value;
   if(!f||!h){showToast('Rellena fecha y hora','error');return;}
@@ -1692,7 +1701,7 @@ function guardarDevolucion(id){
 }
 
 function prolongarEvento(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const{fin}=eventoRange(ev);
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:\'Nunito\',sans-serif;font-size:15px;outline:none;';
   document.getElementById('modal-content').innerHTML=`
@@ -1705,18 +1714,18 @@ function prolongarEvento(id){
     </div>`;
 }
 function guardarProlongacion(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const diasExtra=parseInt(document.getElementById('prol-dias').value)||0;
   if(diasExtra<1){showToast('Introduce los días a añadir','error');return;}
   const{fin}=eventoRange(ev);
-  const nuevaFin=new Date(fin.getTime()+diasExtra*86400000);
+  const nuevaFin=new Date(fin);nuevaFin.setDate(nuevaFin.getDate()+diasExtra);
   ev.devolucionCustom=nuevaFin.toISOString().slice(0,16);
   ev.dias=ev.dias+diasExtra;
   saveState();showToast('+'+diasExtra+' día'+(diasExtra>1?'s':'')+' añadidos ✓','success');openEvento(id);renderAgenda();
 }
 
 function editarParkingEvento(id){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">📍 Ubicación</div>
     <div class="field"><label>¿Dónde está aparcado?</label><input type="text" id="parking-input" value="${ev.parking||''}" placeholder="Hotel Sol, parking aeropuerto..." style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
@@ -1725,7 +1734,7 @@ function editarParkingEvento(id){
       <button class="btn btn-primary" style="flex:1" onclick="guardarParkingEvento(${id})">Guardar</button>
     </div>`;
 }
-function guardarParkingEvento(id){const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;ev.parking=document.getElementById('parking-input').value.trim();saveState();showToast('Ubicación guardada ✓','success');openEvento(id);renderAgenda();}
+function guardarParkingEvento(id){const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;ev.parking=document.getElementById('parking-input').value.trim();saveState();showToast('Ubicación guardada ✓','success');openEvento(id);renderAgenda();}
 
 // ── FLOTA ─────────────────────────────────────────────────────────────────
 let flotaCat='todos';
@@ -1828,7 +1837,7 @@ function toggleModoAero(){
   const horaAero=document.getElementById('disp-hora-aero');
   const btnAero=document.getElementById('btn-buscar-aero');
   horaAero.style.display=aero?'block':'none';
-  btnAero.style.display=aero?'block':'none';
+  if(btnAero)btnAero.style.display=aero?'block':'none';
   if(aero){
     document.getElementById('disp-rapido').style.display='none';
     limpiarResultado();
@@ -1838,10 +1847,14 @@ function toggleModoAero(){
 }
 
 function getHoraSeleccionada(){
-  const aero=document.getElementById('modo-aero').checked;
-  return aero
-    ? document.getElementById('disp-hora-aero').value
-    : document.getElementById('disp-hora').value;
+  const aeroEl=document.getElementById('modo-aero');
+  const aero=aeroEl&&aeroEl.checked;
+  if(aero){
+    const el=document.getElementById('disp-hora-aero');
+    return el?el.value:'';
+  }
+  const el=document.getElementById('disp-hora');
+  return el?el.value:'';
 }
 
 // ── DISPONIBILIDAD RÁPIDA (nuevo flujo) ───────────────────────────────────
@@ -1852,7 +1865,7 @@ function buscarDisponibilidadRapida(){
   const catsDiv=document.getElementById('disp-rapido-cats');
   limpiarResultado();
 
-  if(!fecha){rapidoDiv.style.display='none';return;}
+  if(!fecha||!dias||dias<1){rapidoDiv.style.display='none';return;}
   actualizarSlots();
 
   const sI=new Date(fecha+'T00:00:00');
@@ -2014,7 +2027,7 @@ function seleccionarHoraCat(cat, hora){
 
   document.getElementById('disp-resultado').style.display='block';
   document.getElementById('form-nuevo').style.display='block';
-  document.getElementById('form-mat-label-text').innerHTML=
+  const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
     `<span style="font-size:18px;">${info.emoji}</span> Cat. ${cat} · ${hora} — sin matrícula`;
   document.getElementById('avail-grid-form').style.display='none';
 
@@ -2063,7 +2076,7 @@ function seleccionarCocheForm(mat, cat){
   document.getElementById('nev-mat-sel').value=mat;
   document.getElementById('nev-cat-sel').value=cat;
   const info=CAT_INFO[cat]||{emoji:'🚗'};
-  document.getElementById('form-mat-label-text').innerHTML=
+  const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
     `<span style="font-size:18px;">${info.emoji}</span> ${mat} (Cat. ${cat})`;
   // Refrescar grid para mostrar selección
   abrirGridMatriculas();
@@ -2089,8 +2102,10 @@ function getSlotsDelDia(fecha){
 }
 
 function actualizarSlots(){
-  const fecha=document.getElementById('disp-fecha').value;
+  const fechaEl=document.getElementById('disp-fecha');
   const sel=document.getElementById('disp-hora');
+  if(!fechaEl||!sel) return;
+  const fecha=fechaEl.value;
   if(!fecha){sel.innerHTML='<option value="">— Elige fecha primero —</option>';return;}
   const todosSlots=getSlotsDelDia(fecha);
   // Contar reservas existentes por slot
@@ -2280,7 +2295,7 @@ function togglePostitAccion(id){
 }
 
 function completarEntregaCorcho(id, btn){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Activo';
   saveState();
   // Animación de quitar el postit
@@ -2295,7 +2310,7 @@ function completarEntregaCorcho(id, btn){
 }
 
 function completarRecogidaCorcho(id, btn){
-  const ev=STATE.eventos.find(e=>e.id===id);if(!ev)return;
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Cerrado';
   if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
   saveState();
@@ -2413,12 +2428,8 @@ function calcularPrecio(){
 }
 
 function renderTarifas(){
-  const tbody=document.getElementById('tarifa-tbody');if(!tbody)return;
-  tbody.innerHTML=TARIFAS.map((t,idx)=>{
-    const bg=idx%2===0?'background:var(--surface)':'background:var(--surface2)';
-    const cells=t.precios.map(p=>`<td style="padding:13px 10px;text-align:center;font-size:15px;font-weight:800;color:var(--accent);border-bottom:1px solid var(--border);">${p}€</td>`).join('');
-    return`<tr style="${bg}"><td style="padding:13px 14px;border-bottom:1px solid var(--border);"><div style="font-size:13px;font-weight:800;color:var(--text);">Cat. ${t.cat}</div><div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">${t.nombre}</div></td>${cells}</tr>`;
-  }).join('');
+  // La tabla fue reemplazada por imagen — inicializar calculador
+  calcularPrecio();
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
