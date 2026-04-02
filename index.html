@@ -1027,6 +1027,7 @@ function validarConflicto(mat, cat, fechaIni, dias, idExcluir=null){
 }
 
 
+function fmtDate(dt){return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});}
 function fmtDT(dt){return fmtDate(dt)+' '+dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
 
 // ── DISPONIBILIDAD + NUEVO EVENTO ─────────────────────────────────────────
@@ -1259,7 +1260,7 @@ function crearEvento(){
       <div style="font-size:13px;color:var(--muted);font-weight:600">${fmtDT(ini)} · ${ev.dias} día${ev.dias>1?'s':''}</div>
       ${ev.lugar?`<div style="font-size:13px;color:var(--muted);margin-top:4px">${ev.lugar}</div>`:''}
     </div>
-    <button onclick="abrirWhatsApp(${ev.id});closeModal();" style="width:100%;padding:14px;border-radius:10px;border:none;background:#25D366;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
+    <button onclick="abrirWhatsApp('${ev.id}');closeModal();" style="width:100%;padding:14px;border-radius:10px;border:none;background:#25D366;color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.17 1.535 5.943L.057 23.927a.5.5 0 0 0 .609.61l6.056-1.49A11.943 11.943 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.877 9.877 0 0 1-5.031-1.378l-.36-.214-3.733.918.95-3.646-.235-.374A9.869 9.869 0 0 1 2.106 12C2.106 6.533 6.533 2.106 12 2.106c5.467 0 9.894 4.427 9.894 9.894 0 5.467-4.427 9.894-9.894 9.894z"/></svg>
       Enviar por WhatsApp
     </button>
@@ -1390,7 +1391,7 @@ function renderAgenda(){
     const sc=ev.estado.toLowerCase();
     if(agendaTab==='recogidas'){
       const horaDev=fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-      return`<div class="evento-card" onclick="openEvento(${ev.id})">
+      return`<div class="evento-card" onclick="openEvento('${ev.id}')">
         <div class="ev-stripe ${sc}"></div>
         <div class="ev-body">
           <div>
@@ -1404,7 +1405,7 @@ function renderAgenda(){
       </div>`;
     }else{
       const horaEnt=ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-      return`<div class="evento-card" onclick="openEvento(${ev.id})">
+      return`<div class="evento-card" onclick="openEvento('${ev.id}')">
         <div class="ev-stripe ${sc}"></div>
         <div class="ev-body">
           <div>
@@ -1456,7 +1457,7 @@ function renderAgenda(){
           const{ini,fin}=eventoRange(ev);
           const sc=ev.estado.toLowerCase();
           const fechaLabel=agendaTab==='recogidas'?fmtDate(fin):fmtDate(ini);
-          return`<div class="evento-card" onclick="openEvento(${ev.id})" style="opacity:.75;border-style:dashed;">
+          return`<div class="evento-card" onclick="openEvento('${ev.id}')" style="opacity:.75;border-style:dashed;">
             <div class="ev-stripe ${sc}"></div>
             <div class="ev-body">
               <div>
@@ -1491,15 +1492,15 @@ function openEvento(id){
   // Lógica del botón completar según pestaña
   let completarHTML;
   if(ev.estado==='Cerrado'){
-    completarHTML=`<div class="completar-banner">✓ Recogida completada — coche disponible</div><div class="modal-row"><span class="modal-key">📍 Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento(${id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button></span></div>`;
+    completarHTML=`<div class="completar-banner">✓ Recogida completada — coche disponible</div><div class="modal-row"><span class="modal-key">📍 Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button></span></div>`;
   }else if(ev.estado==='Activo'){
     completarHTML=`<div class="completar-banner" style="background:var(--accent-bg);border-color:var(--accent-lt);color:var(--accent);">🚗 Entregado — pendiente de recogida</div>
-    <button class="btn btn-complete" onclick="completarRecogida(${id})" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
+    <button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
   }else{
     if(esEntrega){
-      completarHTML=`<button class="btn btn-complete" onclick="completarEntrega(${id})" style="margin-bottom:10px;background:var(--accent);">🚗 Confirmar entrega al cliente</button>`;
+      completarHTML=`<button class="btn btn-complete" onclick="completarEntrega('${id}')" style="margin-bottom:10px;background:var(--accent);">🚗 Confirmar entrega al cliente</button>`;
     }else{
-      completarHTML=`<button class="btn btn-complete" onclick="completarRecogida(${id})" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
+      completarHTML=`<button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
     }
   }
   const{ini,fin,buf}=eventoRange(ev);
@@ -1523,7 +1524,7 @@ function openEvento(id){
     cochesDisponibles.map(v=>`<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} (Cat.${v.cat})</option>`).join('');
 
   const matHTML=`<div class="modal-row"><span class="modal-key">Matrícula</span>
-    <select onchange="asignarMatricula(${id},this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif;max-width:200px">
+    <select onchange="asignarMatricula('${id}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Nunito',sans-serif;max-width:200px">
       ${matOpts}
     </select></div>`;
   const completarHTML_dummy=null; // removed duplicate
@@ -1536,7 +1537,7 @@ function openEvento(id){
     <div class="modal-row"><span class="modal-key">Devolución</span>
       <span style="display:flex;align-items:center;gap:8px;">
         <span class="modal-val" style="${ev.devolucionCustom?'color:var(--amber);font-weight:700':''}">${fmtDT(fin)}${ev.devolucionCustom?' ✎':''}</span>
-        <button onclick="editarDevolucion(${id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button>
+        <button onclick="editarDevolucion('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif">Editar</button>
       </span>
     </div>
     <div class="modal-row"><span class="modal-key">Disponible desde</span><span class="modal-val" style="color:var(--green);font-weight:700">${fmtDT(buf)}</span></div>
@@ -1547,10 +1548,10 @@ function openEvento(id){
     ${completarHTML}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
       <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
-      <button class="btn btn-sm" style="background:#e8f5e9;color:#1b5e20;border:1.5px solid #a5d6a7;font-weight:700;" onclick="abrirWhatsApp(${id})">WhatsApp</button>
-      <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;" onclick="prolongarEvento(${id})">📅 Prolongar</button>
-      <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);font-weight:700;" onclick="editarEvento(${id})">✏️ Editar</button>
-      <button class="btn btn-sm btn-danger" onclick="eliminarEvento(${id})" style="flex:1">Eliminar</button>
+      <button class="btn btn-sm" style="background:#e8f5e9;color:#1b5e20;border:1.5px solid #a5d6a7;font-weight:700;" onclick="abrirWhatsApp('${id}')">WhatsApp</button>
+      <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;" onclick="prolongarEvento('${id}')">📅 Prolongar</button>
+      <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);font-weight:700;" onclick="editarEvento('${id}')">✏️ Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="eliminarEvento('${id}')" style="flex:1">Eliminar</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -1626,8 +1627,8 @@ function editarEvento(id){
     <div class="field"><label>Info</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Hab. 204, tel..." style="${inputStyle}"></div>
     <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${ev.extras||''}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion(${id})">Guardar cambios</button>
+      <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion('${id}')">Guardar cambios</button>
     </div>`;
 }
 
@@ -1687,8 +1688,8 @@ function editarDevolucion(id){
     <div class="field"><label>Fecha devolución</label><input type="date" id="dev-fecha" value="${fechaActual}" style="${inputStyle}"></div>
     <div class="field"><label>Hora devolución</label><input type="time" id="dev-hora" value="${horaActual}" style="${inputStyle}"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1" onclick="guardarDevolucion(${id})">Guardar</button>
+      <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarDevolucion('${id}')">Guardar</button>
     </div>`;
 }
 function guardarDevolucion(id){
@@ -1709,8 +1710,8 @@ function prolongarEvento(id){
     <p style="font-size:13px;color:var(--muted);margin-bottom:16px;font-weight:500">Devolución actual: <strong style="color:var(--text)">${fmtDT(fin)}</strong></p>
     <div class="field"><label>Días adicionales</label><input type="number" id="prol-dias" min="1" max="30" value="1" placeholder="Ej: 2" style="${inputStyle}"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1;background:var(--amber);box-shadow:none;" onclick="guardarProlongacion(${id})">Prolongar</button>
+      <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;background:var(--amber);box-shadow:none;" onclick="guardarProlongacion('${id}')">Prolongar</button>
     </div>`;
 }
 function guardarProlongacion(id){
@@ -1730,8 +1731,8 @@ function editarParkingEvento(id){
     <div class="modal-title">📍 Ubicación</div>
     <div class="field"><label>¿Dónde está aparcado?</label><input type="text" id="parking-input" value="${ev.parking||''}" placeholder="Hotel Sol, parking aeropuerto..." style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;outline:none;"></div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-secondary btn-sm" onclick="openEvento(${id})">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1" onclick="guardarParkingEvento(${id})">Guardar</button>
+      <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarParkingEvento('${id}')">Guardar</button>
     </div>`;
 }
 function guardarParkingEvento(id){const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;ev.parking=document.getElementById('parking-input').value.trim();saveState();showToast('Ubicación guardada ✓','success');openEvento(id);renderAgenda();}
@@ -2232,7 +2233,7 @@ function renderCorcho(){
     const color=urgente?'#FF4757':colors[idx%colors.length];
     const rotation=(Math.random()*3-1.5).toFixed(1);
     const accionLabel=isEntrega?'✓ Confirmar entrega':'✓ Confirmar recogida';
-    const accionFn=isEntrega?`completarEntregaCorcho(${ev.id})`:`completarRecogidaCorcho(${ev.id})`;
+    const accionFn=isEntrega?`completarEntregaCorcho('${ev.id}')`:`completarRecogidaCorcho('${ev.id}')`;
 
     const contenido = isEntrega
       ? `${urgente?`<div style="font-size:10px;font-weight:900;color:rgba(255,255,255,.9);background:rgba(0,0,0,.3);padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:6px;letter-spacing:.08em;">⚠️ HOY — PENDIENTE</div><br>`:''}
@@ -2253,7 +2254,7 @@ function renderCorcho(){
       transition:transform .2s;cursor:pointer;flex-shrink:0;"
       onmouseover="this.style.transform='rotate(0deg) scale(1.02)'"
       onmouseout="this.style.transform='rotate(${rotation}deg)'"
-      onclick="togglePostitAccion(${ev.id})">
+      onclick="togglePostitAccion('${ev.id}')">
       <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:18px;height:18px;background:#c0392b;border-radius:50%;border:3px solid #922b21;box-shadow:0 2px 4px rgba(0,0,0,.3);"></div>
       ${contenido}
       <div id="accion-${ev.id}" style="display:none;margin-top:14px;" onclick="event.stopPropagation()">
@@ -2351,7 +2352,7 @@ function renderHistorial(){
       ${evs.map(ev=>{
         const{ini,fin}=eventoRange(ev);
         const sc=ev.estado.toLowerCase();
-        return`<div class="evento-card" onclick="openEvento(${ev.id})" style="opacity:.85;">
+        return`<div class="evento-card" onclick="openEvento('${ev.id}')" style="opacity:.85;">
           <div class="ev-stripe ${sc}"></div>
           <div class="ev-body">
             <div>
