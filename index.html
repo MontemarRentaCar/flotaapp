@@ -1273,28 +1273,28 @@ html,body {
     </div>
   </div>
   <!-- Columnas -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px 28px;height:calc(100vh - 72px);overflow-y:auto;position:relative;z-index:1;" id="corcho-cols">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px 20px;height:calc(100vh - 72px);overflow:hidden;position:relative;z-index:1;" id="corcho-cols">
     <!-- Entregas -->
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:rgba(0,0,0,.25);padding:10px 16px;border-radius:12px;">
-        <span style="font-size:24px;">🚗</span>
+    <div style="display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:rgba(0,0,0,.25);padding:7px 12px;border-radius:10px;flex-shrink:0;">
+        <span style="font-size:20px;">🚗</span>
         <div>
-          <div style="font-size:16px;font-weight:900;color:#fff;">ENTREGAS</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;" id="corcho-num-entregas"></div>
+          <div style="font-size:14px;font-weight:900;color:#fff;">ENTREGAS</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;" id="corcho-num-entregas"></div>
         </div>
       </div>
-      <div id="corcho-entregas" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;"></div>
+      <div id="corcho-entregas" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;align-content:flex-start;overflow:hidden;flex:1;"></div>
     </div>
     <!-- Recogidas -->
-    <div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:rgba(0,0,0,.25);padding:10px 16px;border-radius:12px;">
-        <span style="font-size:24px;">🔁</span>
+    <div style="display:flex;flex-direction:column;min-height:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:rgba(0,0,0,.25);padding:7px 12px;border-radius:10px;flex-shrink:0;">
+        <span style="font-size:20px;">🔁</span>
         <div>
-          <div style="font-size:16px;font-weight:900;color:#fff;">RECOGIDAS</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;" id="corcho-num-recogidas"></div>
+          <div style="font-size:14px;font-weight:900;color:#fff;">RECOGIDAS</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.65);font-weight:600;" id="corcho-num-recogidas"></div>
         </div>
       </div>
-      <div id="corcho-recogidas" style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;"></div>
+      <div id="corcho-recogidas" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;align-content:flex-start;overflow:hidden;flex:1;"></div>
     </div>
   </div>
 </div>
@@ -1311,7 +1311,7 @@ const TARIFAS=[{cat:"1",nombre:"Fiat Panda or similar",precios:[50,95,135,170,20
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────
 const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponible"}));
-let STATE={vehiculos:VEHICULOS_INIT,eventos:[],theme:localStorage.getItem('flotaapp_theme')||'light'};
+let STATE={vehiculos:VEHICULOS_INIT,eventos:[],corchoLimpio:{},theme:localStorage.getItem('flotaapp_theme')||'light'};
 let firebaseReady=false;
 let db=null;
 
@@ -1319,12 +1319,12 @@ let _saveTimer=null;
 function saveState(){
   localStorage.setItem('flotaapp_theme',STATE.theme);
   // Backup local inmediato
-  try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+  try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos,corchoLimpio:STATE.corchoLimpio||{}}));}catch(e){}
   // Debounce Firebase: agrupa escrituras rápidas en una sola
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(()=>{
     if(db&&firebaseReady){
-      try{db.ref('estado').set({vehiculos:STATE.vehiculos,eventos:STATE.eventos});}catch(e){console.error('Firebase save error:',e);}
+      try{db.ref('estado').set({vehiculos:STATE.vehiculos,eventos:STATE.eventos,corchoLimpio:STATE.corchoLimpio||{}});}catch(e){console.error('Firebase save error:',e);}
     }
   },300);
 }
@@ -1352,7 +1352,7 @@ function refreshUI(){
 // Intentar cargar backup local inmediatamente
 try{
   const backup=localStorage.getItem('flotaapp_backup');
-  if(backup){const d=JSON.parse(backup);STATE.vehiculos=d.vehiculos||VEHICULOS_INIT;STATE.eventos=d.eventos||[];}
+  if(backup){const d=JSON.parse(backup);STATE.vehiculos=d.vehiculos||VEHICULOS_INIT;STATE.eventos=d.eventos||[];STATE.corchoLimpio=d.corchoLimpio||{};}
 }catch(e){}
 
 // Conectar Firebase con timeout
@@ -1372,12 +1372,12 @@ try{
     clearTimeout(fbTimeout);
     firebaseReady=true;
     const data=snap.val();
-    if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];}
+    if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];STATE.corchoLimpio=data.corchoLimpio||{};}
     else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[]});}
     // Sincronizar estado de vehículos automáticamente basado en eventos
     sincronizarEstadoVehiculos();
     // Actualizar backup local
-    try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+    try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos,corchoLimpio:STATE.corchoLimpio||{}}));}catch(e){}
     refreshUI();
   },err=>{
     console.warn('Firebase error:',err);
@@ -2665,6 +2665,60 @@ function actualizarSlots(){
 const POSTIT_COLORS_ENT=['#FFE234']; // Amarillo fijo entregas
 const POSTIT_COLORS_REC=['#87CEEB']; // Celeste fijo recogidas
 
+// Estado de limpieza de post-its: { [eventoId]: true/false }
+
+function toggleLimpieza(id, event){
+  event.stopPropagation();
+  const limpio=!STATE.corchoLimpio[id];
+  STATE.corchoLimpio[id]=limpio;
+  saveState();
+  const badge=document.getElementById('limpio-badge-'+id);
+  const btn=document.getElementById('limpio-btn-'+id);
+  if(badge){
+    if(limpio){
+      badge.textContent='\u2705 LIMPIO';
+      badge.style.background='rgba(0,180,80,.92)';
+      badge.style.color='#fff';
+      badge.style.border='2px solid rgba(0,140,60,.8)';
+    }else{
+      badge.textContent='\uD83E\uDEA3 SUCIO';
+      badge.style.background='rgba(190,20,20,.9)';
+      badge.style.color='#fff';
+      badge.style.border='2px solid rgba(140,10,10,.8)';
+    }
+  }
+  if(btn) btn.textContent=limpio?'Marcar sucio':'Marcar limpio';
+  showToast(limpio?'\uD83E\uDDF9 Marcado como LIMPIO':'\uD83E\uDEA3 Marcado como SUCIO','success');
+}
+
+// Estado de limpieza de post-its: { [eventoId]: true/false }
+if(!STATE.corchoLimpio) STATE.corchoLimpio={};
+
+function toggleLimpieza(id, event){
+  event.stopPropagation();
+  const limpio=!STATE.corchoLimpio[id];
+  STATE.corchoLimpio[id]=limpio;
+  saveState();
+  // Update the badge in-place without full re-render
+  const badge=document.getElementById('limpio-badge-'+id);
+  const btn=document.getElementById('limpio-btn-'+id);
+  if(badge){
+    if(limpio){
+      badge.textContent='✅ LIMPIO';
+      badge.style.background='rgba(0,180,80,.9)';
+      badge.style.color='#fff';
+    }else{
+      badge.textContent='🪣 SUCIO';
+      badge.style.background='rgba(180,0,0,.85)';
+      badge.style.color='#fff';
+    }
+  }
+  if(btn){
+    btn.textContent=limpio?'Marcar sucio':'Marcar limpio';
+  }
+  showToast(limpio?'🧹 Marcado como LIMPIO':'🪣 Marcado como SUCIO','success');
+}
+
 let corchoDia=0; // 0=hoy, 1=mañana
 
 function abrirCorcho(){
@@ -2760,46 +2814,62 @@ function renderCorcho(){
     const rotation=(Math.random()*2-1).toFixed(1);
     const accionLabel=isEntrega?'✓ Confirmar entrega':'✓ Confirmar recogida';
     const accionFn=isEntrega?`completarEntregaCorcho('${ev.id}')`:`completarRecogidaCorcho('${ev.id}')`;
+    // Size tier set before calling buildPostit
+    const sz=buildPostit._sz||'md';
+    const szMap={
+      xl:{hora:'clamp(20px,2.4vw,34px)',lugar:'clamp(13px,1.5vw,19px)',mat:'clamp(11px,1.3vw,17px)',dias:'clamp(10px,1vw,13px)',pad:'13px 13px 15px',gap:'7px',pin:15,pinTop:-8},
+      lg:{hora:'clamp(16px,2vw,28px)',lugar:'clamp(12px,1.3vw,16px)',mat:'clamp(10px,1.1vw,14px)',dias:'clamp(9px,.95vw,12px)',pad:'10px 10px 12px',gap:'6px',pin:13,pinTop:-7},
+      md:{hora:'clamp(13px,1.6vw,22px)',lugar:'clamp(11px,1.1vw,14px)',mat:'clamp(10px,1vw,13px)',dias:'clamp(9px,.9vw,11px)',pad:'7px 8px 9px',gap:'4px',pin:11,pinTop:-6},
+      sm:{hora:'clamp(11px,1.3vw,18px)',lugar:'clamp(10px,.95vw,13px)',mat:'clamp(9px,.9vw,11px)',dias:'clamp(8px,.8vw,10px)',pad:'5px 6px 7px',gap:'3px',pin:10,pinTop:-5},
+    };
+    const s=szMap[sz]||szMap.md;
 
     const contenido = isEntrega
-      ? `${urgente?`<div style="font-size:11px;font-weight:900;color:rgba(255,255,255,.9);background:rgba(0,0,0,.3);padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:8px;letter-spacing:.08em;">⚠️ HOY — PENDIENTE</div><br>`:''}
-         <div style="font-family:'DM Mono',monospace;font-size:clamp(30px,3.5vw,50px);font-weight:900;color:rgba(0,0,0,.87);line-height:1;margin-bottom:10px;">${hora}</div>
-         <div style="font-size:clamp(16px,2vw,26px);font-weight:900;color:rgba(0,0,0,.82);line-height:1.2;margin-bottom:10px;">${ev.lugar||'<span style="opacity:.4;font-style:italic;">Sin lugar</span>'}</div>
-         <div style="font-family:'DM Mono',monospace;font-size:clamp(14px,1.8vw,22px);font-weight:800;color:rgba(0,0,0,.72);letter-spacing:.04em;margin-bottom:5px;">${ev.matricula||`Cat. ${ev.cat}`}</div>
-         <div style="font-size:clamp(11px,1.3vw,16px);font-weight:700;color:rgba(0,0,0,.5);">x ${ev.dias} día${ev.dias>1?'s':''}</div>
-         ${ev.extras?`<div style="font-size:clamp(11px,1.3vw,15px);color:rgba(0,0,0,.6);margin-top:8px;font-weight:700;background:rgba(0,0,0,.08);padding:4px 8px;border-radius:6px;display:inline-block;">🎁 ${ev.extras}</div>`:''}`
-      : `<div style="font-family:'DM Mono',monospace;font-size:clamp(30px,3.5vw,50px);font-weight:900;color:rgba(0,0,0,.87);line-height:1;margin-bottom:10px;">${hora}</div>
-         <div style="font-size:clamp(16px,2vw,26px);font-weight:900;color:rgba(0,0,0,.8);line-height:1.2;margin-bottom:10px;">${ev.lugar||'<span style="opacity:.4;font-style:italic;">Sin lugar</span>'}</div>
-         <div style="font-family:'DM Mono',monospace;font-size:clamp(15px,1.8vw,24px);font-weight:800;color:rgba(0,0,0,.78);letter-spacing:.04em;">${ev.matricula||`<span style="font-style:italic;opacity:.6;">Cat. ${ev.cat}</span>`}</div>`;
+      ? `${urgente?`<div style="font-size:9px;font-weight:900;color:rgba(255,255,255,.9);background:rgba(0,0,0,.3);padding:1px 5px;border-radius:20px;display:inline-block;margin-bottom:${s.gap};letter-spacing:.06em;">⚠️ HOY</div><br>`:''}
+         <div style="font-family:'DM Mono',monospace;font-size:${s.hora};font-weight:900;color:rgba(0,0,0,.87);line-height:1;margin-bottom:${s.gap};">${hora}</div>
+         <div style="font-size:${s.lugar};font-weight:900;color:rgba(0,0,0,.82);line-height:1.2;margin-bottom:${s.gap};">${ev.lugar||'<span style="opacity:.4;font-style:italic;">Sin lugar</span>'}</div>
+         <div style="font-family:'DM Mono',monospace;font-size:${s.mat};font-weight:800;color:rgba(0,0,0,.72);letter-spacing:.04em;margin-bottom:2px;">${ev.matricula||`Cat. ${ev.cat}`}</div>
+         <div style="font-size:${s.dias};font-weight:700;color:rgba(0,0,0,.5);">x ${ev.dias} día${ev.dias>1?'s':''}</div>
+         ${ev.extras?`<div style="font-size:${s.dias};color:rgba(0,0,0,.6);margin-top:3px;font-weight:700;background:rgba(0,0,0,.08);padding:2px 5px;border-radius:5px;display:inline-block;">🎁 ${ev.extras}</div>`:''}`
+      : `<div style="font-family:'DM Mono',monospace;font-size:${s.hora};font-weight:900;color:rgba(0,0,0,.87);line-height:1;margin-bottom:${s.gap};">${hora}</div>
+         <div style="font-size:${s.lugar};font-weight:900;color:rgba(0,0,0,.8);line-height:1.2;margin-bottom:${s.gap};">${ev.lugar||'<span style="opacity:.4;font-style:italic;">Sin lugar</span>'}</div>
+         <div style="font-family:'DM Mono',monospace;font-size:${s.mat};font-weight:800;color:rgba(0,0,0,.78);letter-spacing:.04em;">${ev.matricula||`<span style="font-style:italic;opacity:.6;">Cat. ${ev.cat}</span>`}</div>`;
 
     return`<div id="postit-${ev.id}" style="background:${color};border-radius:4px;
-      padding:20px 18px 22px;
-      width:calc(50% - 7px);min-width:160px;
-      box-shadow:4px 6px 16px rgba(0,0,0,.3),0 1px 3px rgba(0,0,0,.15);
+      padding:${s.pad};
+      flex:1 1 110px;max-width:calc(25% - 5px);min-width:90px;
+      box-shadow:3px 4px 10px rgba(0,0,0,.3),0 1px 3px rgba(0,0,0,.15);
       transform:rotate(${rotation}deg);position:relative;
       transition:transform .2s;cursor:pointer;flex-shrink:0;"
       onmouseover="this.style.transform='rotate(0deg) scale(1.02)'"
       onmouseout="this.style.transform='rotate(${rotation}deg)'"
       onclick="togglePostitAccion('${ev.id}')">
-      <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:18px;height:18px;background:#c0392b;border-radius:50%;border:3px solid #922b21;box-shadow:0 2px 4px rgba(0,0,0,.3);"></div>
+      <div style="position:absolute;top:${s.pinTop}px;left:50%;transform:translateX(-50%);width:${s.pin}px;height:${s.pin}px;background:#c0392b;border-radius:50%;border:2px solid #922b21;box-shadow:0 2px 4px rgba(0,0,0,.3);"></div>
       ${contenido}
-      <div id="accion-${ev.id}" style="display:none;margin-top:14px;" onclick="event.stopPropagation()">
+      <div style="margin-top:${s.gap};" onclick="toggleLimpieza('${ev.id}',event)">
+        <span id="limpio-badge-${ev.id}" style="display:inline-block;font-family:'Plus Jakarta Sans',sans-serif;font-size:${s.dias};font-weight:900;letter-spacing:.07em;padding:2px 7px;border-radius:4px;cursor:pointer;${STATE.corchoLimpio&&STATE.corchoLimpio[ev.id]?'background:rgba(0,180,80,.92);color:#fff;border:2px solid rgba(0,140,60,.8);':'background:rgba(190,20,20,.9);color:#fff;border:2px solid rgba(140,10,10,.8);'}">
+          ${STATE.corchoLimpio&&STATE.corchoLimpio[ev.id]?'\u2705 LIMPIO':'\uD83E\uDEA3 SUCIO'}
+        </span>
+      </div>
+      <div id="accion-${ev.id}" style="display:none;margin-top:6px;" onclick="event.stopPropagation()">
         <button onclick="${accionFn}"
-          style="width:100%;padding:11px;background:rgba(0,0,0,.8);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+          style="width:100%;padding:6px;background:rgba(0,0,0,.8);color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;margin-bottom:4px;">
           ${accionLabel}
+        </button>
+        <button id="limpio-btn-${ev.id}" onclick="toggleLimpieza('${ev.id}',event)"
+          style="width:100%;padding:5px;background:rgba(255,255,255,.25);color:rgba(0,0,0,.8);border:1.5px solid rgba(0,0,0,.2);border-radius:5px;font-size:11px;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+          ${STATE.corchoLimpio&&STATE.corchoLimpio[ev.id]?'Marcar sucio':'Marcar limpio'}
         </button>
       </div>
     </div>`;
   }
 
+  // Determine size tier based on total number of cards
+  const totalCards=(entregas.length+entregasUrgentesHoy.length+recogidas.length);
+  buildPostit._sz = totalCards<=6?'xl':totalCards<=12?'lg':totalCards<=20?'md':'sm';
+
   const entDiv=document.getElementById('corcho-entregas');
   const recDiv=document.getElementById('corcho-recogidas');
-
-  // Entregas: urgentes de hoy primero (solo cuando vemos mañana), luego las del día seleccionado
-  const entHtml=[
-    ...entregasUrgentesHoy.map((ev,i)=>buildPostit(ev,true,i,POSTIT_COLORS_ENT,true)),
-    ...entregas.map((ev,i)=>buildPostit(ev,true,i,POSTIT_COLORS_ENT,false))
-  ].join('');
 
   // Agrupar por hora para mostrar juntos los eventos de la misma hora
   function groupByHora(evList, isEnt){
@@ -2818,9 +2888,9 @@ function renderCorcho(){
   function renderGrupoHora(evList, isEnt, colors){
     const grupos=groupByHora(evList,isEnt);
     return grupos.map(([hora,items])=>`
-      <div style="margin-bottom:18px;">
-        ${items.length>1?`<div style="font-size:10px;font-weight:900;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-left:4px;">🕐 ${hora} — ${items.length} eventos</div>`:''}
-        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+      <div style="margin-bottom:10px;">
+        ${items.length>1?`<div style="font-size:9px;font-weight:900;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;padding-left:3px;">🕐 ${hora} — ${items.length}</div>`:''}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
           ${items.map(({ev,i})=>buildPostit(ev,isEnt,i,colors,false)).join('')}
         </div>
       </div>`).join('');
