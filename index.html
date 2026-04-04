@@ -1255,7 +1255,7 @@ html,body {
 </div>
 
 <!-- PANEL CORCHO -->
-<div id="corcho-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#8B5E3C;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;flex-direction:column;">
+<div id="corcho-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#8B5E3C;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;flex-direction:column;" onresize="scaleCorchoGrid()">
   <!-- Textura corcho -->
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 8px);pointer-events:none;"></div>
   <!-- Header -->
@@ -1274,7 +1274,7 @@ html,body {
   </div>
   <!-- Columnas -->
   <div style="flex:1;min-height:0;overflow:hidden;position:relative;z-index:1;display:flex;align-items:flex-start;" id="corcho-scale-wrap">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 18px;width:100%;transform-origin:top left;" id="corcho-cols">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 18px;width:100%;transform-origin:top left;transition:transform .2s;" id="corcho-cols">
     <!-- Entregas -->
     <div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:rgba(0,0,0,.2);padding:6px 12px;border-radius:10px;">
@@ -2663,6 +2663,37 @@ function actualizarSlots(){
   if(!hayLibres) sel.innerHTML = '<option value="">Sin horas disponibles este día</option>';
 }
 
+
+// ── CORCHO AUTO-SCALE ─────────────────────────────────────────────────────
+// Scales the grid so ALL post-its always fit in the visible viewport
+// without any scroll. Called after renderCorcho and on resize.
+function scaleCorchoGrid(){
+  const overlay = document.getElementById('corcho-overlay');
+  const cols    = document.getElementById('corcho-cols');
+  const wrap    = document.getElementById('corcho-scale-wrap');
+  if(!overlay || !cols || !wrap) return;
+
+  // Reset scale to measure natural size
+  cols.style.transform = 'scale(1)';
+  cols.style.width = '100%';
+
+  const availW = overlay.offsetWidth;
+  const headerH = overlay.querySelector('div[style*="backdrop-filter"]')?.offsetHeight || 68;
+  const availH = overlay.offsetHeight - headerH;
+
+  const naturalW = cols.scrollWidth;
+  const naturalH = cols.scrollHeight;
+
+  const scaleX = availW / naturalW;
+  const scaleY = availH / naturalH;
+  const scale  = Math.min(scaleX, scaleY, 1); // never upscale
+
+  cols.style.transform = `scale(${scale})`;
+  cols.style.transformOrigin = 'top left';
+  // Compensate wrap height so scaled content doesn't overflow
+  wrap.style.height = availH + 'px';
+}
+
 // ── CORCHO ────────────────────────────────────────────────────────────────
 const POSTIT_COLORS_ENT=['#FFE234']; // Amarillo fijo entregas
 
@@ -2931,22 +2962,8 @@ function renderCorcho(){
         <div style="font-weight:700;font-size:14px;">Sin recogidas ${corchoDia===1?'ma\xF1ana':'hoy'}</div>
       </div>`;
 
-  // Auto-scale: fit all content into the available screen height without scroll
-  requestAnimationFrame(()=>autoScaleCorcho());
-}
-
-function autoScaleCorcho(){
-  const wrap = document.getElementById('corcho-scale-wrap');
-  const cols = document.getElementById('corcho-cols');
-  if(!wrap || !cols) return;
-  // Reset scale first to measure real size
-  cols.style.transform = 'scale(1)';
-  const availH = wrap.clientHeight;
-  const contentH = cols.scrollHeight;
-  if(contentH <= availH){ cols.style.transform = 'scale(1)'; return; }
-  const scale = Math.max(0.35, availH / contentH);
-  cols.style.transform = `scale(${scale})`;
-  cols.style.width = `${100/scale}%`;
+  // Auto-scale grid to fit viewport without scroll
+  requestAnimationFrame(scaleCorchoGrid);
 }
 function togglePostitAccion(id){
   const accion=document.getElementById('accion-'+id);
@@ -3134,8 +3151,8 @@ function initDesktop(){
 const today=new Date().toISOString().split('T')[0];
 document.getElementById('disp-fecha').value=today;
 actualizarSlots();
+window.addEventListener('resize', ()=>{ if(document.getElementById('corcho-overlay').style.display!=='none') scaleCorchoGrid(); });
 window.addEventListener('resize', ()=>{
-  if(document.getElementById('corcho-overlay').style.display!=='none') autoScaleCorcho();
 });
 renderTarifas();
 initDesktop();
