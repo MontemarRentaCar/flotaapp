@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -1255,7 +1255,7 @@ html,body {
 </div>
 
 <!-- PANEL CORCHO -->
-<div id="corcho-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#8B5E3C;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;">
+<div id="corcho-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#8B5E3C;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;flex-direction:column;">
   <!-- Textura corcho -->
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 8px);pointer-events:none;"></div>
   <!-- Header -->
@@ -1273,7 +1273,8 @@ html,body {
     </div>
   </div>
   <!-- Columnas -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 18px;height:calc(100vh - 68px);overflow:hidden;position:relative;z-index:1;" id="corcho-cols">
+  <div style="flex:1;min-height:0;overflow:hidden;position:relative;z-index:1;display:flex;align-items:flex-start;" id="corcho-scale-wrap">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 18px;width:100%;transform-origin:top left;" id="corcho-cols">
     <!-- Entregas -->
     <div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:rgba(0,0,0,.2);padding:6px 12px;border-radius:10px;">
@@ -1296,6 +1297,7 @@ html,body {
       </div>
       <div id="corcho-recogidas" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;align-content:flex-start;overflow:hidden;"></div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -2365,54 +2367,50 @@ function getHoraSeleccionada(){
 
 // ── DISPONIBILIDAD RÁPIDA (nuevo flujo) ───────────────────────────────────
 function buscarDisponibilidadRapida(){
-  const fecha=document.getElementById('disp-fecha').value;
-  const dias=parseInt(document.getElementById('disp-dias').value)||1;
-  const rapidoDiv=document.getElementById('disp-rapido');
-  const catsDiv=document.getElementById('disp-rapido-cats');
+  const fecha  = document.getElementById('disp-fecha').value;
+  const dias   = parseInt(document.getElementById('disp-dias').value) || 1;
+  const rapidoDiv = document.getElementById('disp-rapido');
+  const catsDiv   = document.getElementById('disp-rapido-cats');
   limpiarResultado();
 
-  if(!fecha||!dias||dias<1){rapidoDiv.style.display='none';return;}
+  if(!fecha || !dias || dias < 1){ rapidoDiv.style.display='none'; return; }
   actualizarSlots();
 
-  const sI=new Date(fecha+'T00:00:00');
-  const sF=new Date(sI); sF.setDate(sF.getDate()+dias);
+  const todosSlots = getSlotsDelDia(fecha);
+  let html = '';
+  let hayCualquiera = false;
 
-  const todosSlots=getSlotsDelDia(fecha);
+  CATS.forEach(cat => {
+    const info = CAT_INFO[cat] || {nombre:'Cat.'+cat, emoji:'🚗', grad:['#1e5fa8','#2472c8']};
+    const [c1,c2] = info.grad;
 
-  // Contar reservas por slot ese día
-  const conteoSlots={};
-  STATE.eventos.forEach(ev=>{
-    if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return;
-    if(ev.fechaIni.split('T')[0]!==fecha) return;
-    const h=(ev.fechaIni.split('T')[1]||'').substring(0,5);
-    conteoSlots[h]=(conteoSlots[h]||0)+1;
-  });
+    // Para cada slot: calcular cuántos coches de esta cat están libres
+    // sI = fecha+hora_slot, sF = sI + dias
+    const slotsConLibres = todosSlots.map(slot => {
+      const sI = new Date(fecha + 'T' + slot);
+      const sF = new Date(sI); sF.setDate(sF.getDate() + dias);
+      const libres = libresEnCat(cat, sI, sF);
+      return { slot, libres, sI, sF };
+    }).filter(x => x.libres > 0);
 
-  let html='';
-  let hayCualquiera=false;
+    if(slotsConLibres.length === 0) return;
+    hayCualquiera = true;
 
-  CATS.forEach(cat=>{
-    const info=CAT_INFO[cat]||{nombre:'Cat.'+cat,emoji:'🚗',grad:['#1e5fa8','#2472c8']};
-    const [c1,c2]=info.grad;
+    // Max libres across all slots (for the header badge)
+    const maxLibres = Math.max(...slotsConLibres.map(x => x.libres));
+    const stockColor = maxLibres === 1 ? '#f39c12' : maxLibres <= 3 ? '#e67e22' : '#27ae60';
 
-    // Coches libres para esas fechas
-    const cochesVeh=STATE.vehiculos.filter(v=>{
-      if(v.cat!==cat) return false;
-      return cocheDisponible(v,sI,sF);
+    // Matrículas libres para el primer slot disponible (informativo)
+    const firstSlot = slotsConLibres[0];
+    const cochesVeh = STATE.vehiculos.filter(v => {
+      if(v.cat !== cat) return false;
+      return cocheDisponible(v, firstSlot.sI, firstSlot.sF);
     });
 
-    const libresEfectivos=libresEnCat(cat,sI,sF);
-    if(libresEfectivos===0) return;
-    hayCualquiera=true;
-
-    const slotsLibres=todosSlots.filter(s=>(conteoSlots[s]||0)<2);
-    const stockColor=libresEfectivos===1?'#f39c12':libresEfectivos<=3?'#e67e22':'#27ae60';
-
-    // Contenido expandido (horas + matrículas)
-    const slotsExpandido=slotsLibres.map(s=>{
-      const ocupados=conteoSlots[s]||0;
-      const ultimo=ocupados===1;
-      return`<button onclick="seleccionarHoraCat('${cat}','${s}')"
+    // Slot buttons
+    const slotsExpandido = slotsConLibres.map(({slot, libres}) => {
+      const ultimo = libres === 1;
+      return `<button onclick="seleccionarHoraCat('${cat}','${slot}')"
         style="padding:8px 12px;border-radius:8px;
         border:1.5px solid ${ultimo?'rgba(243,156,18,.6)':'rgba(255,255,255,.3)'};
         background:${ultimo?'rgba(243,156,18,.2)':'rgba(255,255,255,.15)'};
@@ -2420,23 +2418,43 @@ function buscarDisponibilidadRapida(){
         font-family:'DM Mono',monospace;transition:all .15s;"
         onmouseover="this.style.background='rgba(255,255,255,.3)'"
         onmouseout="this.style.background='${ultimo?'rgba(243,156,18,.2)':'rgba(255,255,255,.15)'}'">
-        ${s}${ultimo?' ·1':''}
+        ${slot}${ultimo?' · último':''}
       </button>`;
     }).join('');
 
-    const matsExpandido=cochesVeh.map(v=>{
-      const ubi=v.ubicacion?`<div style="font-size:10px;color:rgba(255,255,255,.7);">📍 ${v.ubicacion}</div>`:'';
-      return`<div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
-        border-radius:8px;padding:8px 10px;cursor:default;">
+    // Matrículas expandido (libres para el primer slot)
+    const matsExpandido = cochesVeh.map(v => {
+      const ubi = v.ubicacion
+        ? `<div style="font-size:10px;color:rgba(255,255,255,.7);">📍 ${v.ubicacion}</div>` : '';
+      return `<div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
+        border-radius:8px;padding:8px 10px;">
         <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#fff;">${v.mat}</div>
         ${ubi}
       </div>`;
     }).join('');
 
-    html+=`<div style="border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 12px var(--shadow-md);">
-      <!-- CABECERA — siempre visible, clic para expandir -->
-      <div onclick="toggleCatRapida('${cat}')" style="background:linear-gradient(135deg,${c1},${c2});
-        padding:14px 18px;cursor:pointer;user-select:none;">
+    // Entregas ya programadas ese día en esta cat (info)
+    const evsDia = STATE.eventos.filter(e => {
+      if(e.estado === 'Cerrado' || e.estado === 'Cancelado') return false;
+      return e.fechaIni.split('T')[0] === fecha;
+    }).sort((a,b) => a.fechaIni.localeCompare(b.fechaIni));
+
+    const evsDiaHtml = evsDia.length ? `
+      <div style="padding:10px 18px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.1);">
+        <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">📋 Reservas este día</div>
+        ${evsDia.map(e => {
+          const h = (e.fechaIni.split('T')[1]||'').substring(0,5);
+          const quien = e.matricula || 'Cat.'+e.cat;
+          const lug = e.lugar ? ` · ${e.lugar}` : '';
+          return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);">
+            <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#fff;min-width:38px;">${h}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.85);font-weight:700;">${quien} x${e.dias}d${lug}</span>
+          </div>`;
+        }).join('')}
+      </div>` : '';
+
+    html += `<div style="border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 12px var(--shadow-md);">
+      <div onclick="toggleCatRapida('${cat}')" style="background:linear-gradient(135deg,${c1},${c2});padding:14px 18px;cursor:pointer;user-select:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:32px;">${info.emoji}</span>
@@ -2447,66 +2465,40 @@ function buscarDisponibilidadRapida(){
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:6px 14px;text-align:center;">
-              <div style="font-size:24px;font-weight:900;color:${stockColor};line-height:1;">${libresEfectivos}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,.65);">libre${libresEfectivos!==1?'s':''}</div>
+              <div style="font-size:24px;font-weight:900;color:${stockColor};line-height:1;">${slotsConLibres.length}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.65);">horario${slotsConLibres.length!==1?'s':''}</div>
             </div>
             <span id="arrow-rap-${cat}" style="color:rgba(255,255,255,.7);font-size:12px;font-weight:700;">▼ Ver</span>
           </div>
         </div>
       </div>
-      <!-- DETALLE — expandible -->
       <div id="det-${cat}" style="display:none;background:linear-gradient(135deg,${c1}dd,${c2}dd);">
-        <!-- Resumen entregas del día -->
-        ${(()=>{
-          const evsDia=STATE.eventos.filter(e=>{
-            if(e.estado==='Cerrado'||e.estado==='Cancelado') return false;
-            return e.fechaIni.split('T')[0]===fecha;
-          }).sort((a,b)=>a.fechaIni.localeCompare(b.fechaIni));
-          if(!evsDia.length) return '';
-          const items=evsDia.map(e=>{
-            const h=e.fechaIni.split('T')[1]?.substring(0,5)||'';
-            const quien=e.matricula||'Cat.'+e.cat;
-            const lug=e.lugar?` · ${e.lugar}`:'';
-            return`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);">
-              <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:#fff;min-width:38px;">${h}</span>
-              <span style="font-size:12px;color:rgba(255,255,255,.85);font-weight:700;">${quien} x${e.dias}d${lug}</span>
-            </div>`;
-          }).join('');
-          return`<div style="padding:10px 18px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.1);">
-            <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">📋 Entregas previstas este día</div>
-            ${items}
-          </div>`;
-        })()}
-        <!-- Horas disponibles -->
+        ${evsDiaHtml}
         <div style="padding:14px 18px 8px;">
           <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">🕐 Horas disponibles</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            ${slotsLibres.length ? slotsExpandido : '<span style="font-size:12px;color:rgba(255,255,255,.5);">Sin horas disponibles este día</span>'}
-          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${slotsExpandido}</div>
         </div>
-        <!-- Matrículas libres -->
         <div style="padding:8px 18px 14px;">
           <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">🚗 Matrículas libres</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">${matsExpandido}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">${matsExpandido || '<span style="font-size:12px;color:rgba(255,255,255,.5);">Solo disponible por categoría</span>'}</div>
         </div>
       </div>
     </div>`;
   });
 
   if(!hayCualquiera){
-    html=`<div style="text-align:center;padding:30px;color:var(--muted);">
+    html = `<div style="text-align:center;padding:30px;color:var(--muted);">
       <div style="font-size:32px;margin-bottom:8px;">😔</div>
       <div style="font-weight:700;">Sin disponibilidad para esta fecha</div>
     </div>`;
   }
 
-  const d=new Date(fecha+'T12:00');
-  document.getElementById('disp-rapido-label').textContent=
-    d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'})+' · '+dias+' día'+(dias>1?'s':'');
-  catsDiv.innerHTML=html;
-  rapidoDiv.style.display='block';
+  const d = new Date(fecha+'T12:00');
+  document.getElementById('disp-rapido-label').textContent =
+    d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}) + ' · ' + dias + ' día' + (dias>1?'s':'');
+  catsDiv.innerHTML = html;
+  rapidoDiv.style.display = 'block';
 }
-
 function toggleCatRapida(cat){
   const det=document.getElementById('det-'+cat);
   const arrow=document.getElementById('arrow-rap-'+cat);
@@ -2629,36 +2621,46 @@ function getSlotsDelDia(fecha){
 }
 
 function actualizarSlots(){
-  const fechaEl=document.getElementById('disp-fecha');
-  const sel=document.getElementById('disp-hora');
-  if(!fechaEl||!sel) return;
-  const fecha=fechaEl.value;
-  if(!fecha){sel.innerHTML='<option value="">— Elige fecha primero —</option>';return;}
-  const todosSlots=getSlotsDelDia(fecha);
-  // Contar reservas existentes por slot
-  const conteo={};
-  STATE.eventos.forEach(ev=>{
-    if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return;
-    const evFecha=ev.fechaIni.split('T')[0];
-    if(evFecha!==fecha) return;
-    const evHora=(ev.fechaIni.split('T')[1]||'').substring(0,5);
-    conteo[evHora]=(conteo[evHora]||0)+1;
-  });
-  const prevVal=sel.value;
-  sel.innerHTML='<option value="">— Selecciona hora —</option>';
-  let hayLibres=false;
-  todosSlots.forEach(slot=>{
-    const libres=2-(conteo[slot]||0);
-    if(libres>0){
-      const opt=document.createElement('option');
-      opt.value=slot;
-      opt.textContent=libres===1?`${slot}  ·  queda 1 plaza`:slot;
-      if(slot===prevVal)opt.selected=true;
+  const fechaEl = document.getElementById('disp-fecha');
+  const diasEl  = document.getElementById('disp-dias');
+  const sel     = document.getElementById('disp-hora');
+  if(!fechaEl || !sel) return;
+  const fecha = fechaEl.value;
+  const dias  = parseInt(diasEl?.value) || 1;
+  if(!fecha){ sel.innerHTML='<option value="">— Elige fecha primero —</option>'; return; }
+
+  const todosSlots = getSlotsDelDia(fecha);
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona hora —</option>';
+  let hayLibres = false;
+
+  todosSlots.forEach(slot => {
+    // Calcular disponibilidad real por slot usando el motor de disponibilidad
+    // sI = hora exacta del slot, sF = sI + dias
+    const sI = new Date(fecha + 'T' + slot);
+    const sF = new Date(sI); sF.setDate(sF.getDate() + dias);
+
+    // Contar cuántos coches en TOTAL están libres para este slot (todas las categorías)
+    const totalLibres = STATE.vehiculos.filter(v => cocheDisponible(v, sI, sF)).length;
+    // Restar reservas sin matrícula que consumen plaza para este slot
+    const sinMat = STATE.eventos.filter(e => {
+      if(e.matricula || e.estado==='Cerrado' || e.estado==='Cancelado') return false;
+      const{ini,buf}=eventoRange(e);
+      return ini < sF && buf > sI;
+    }).length;
+    const efectivos = Math.max(0, totalLibres - sinMat);
+
+    if(efectivos > 0){
+      const opt = document.createElement('option');
+      opt.value = slot;
+      opt.textContent = efectivos === 1 ? `${slot}  ·  queda 1 plaza` : slot;
+      if(slot === prevVal) opt.selected = true;
       sel.appendChild(opt);
-      hayLibres=true;
+      hayLibres = true;
     }
   });
-  if(!hayLibres) sel.innerHTML='<option value="">Sin horas disponibles este día</option>';
+
+  if(!hayLibres) sel.innerHTML = '<option value="">Sin horas disponibles este día</option>';
 }
 
 // ── CORCHO ────────────────────────────────────────────────────────────────
@@ -2695,7 +2697,7 @@ function abrirCorcho(){
   document.getElementById('corcho-fecha').textContent=hoy.charAt(0).toUpperCase()+hoy.slice(1);
   document.getElementById('btn-dia-corcho').textContent='📅 Ver mañana';
   renderCorcho();
-  document.getElementById('corcho-overlay').style.display='block';
+  document.getElementById('corcho-overlay').style.display='flex';
   document.body.style.overflow='hidden';
 }
 
@@ -2928,6 +2930,23 @@ function renderCorcho(){
         <div style="font-size:36px;margin-bottom:8px;">\uD83D\uDE34</div>
         <div style="font-weight:700;font-size:14px;">Sin recogidas ${corchoDia===1?'ma\xF1ana':'hoy'}</div>
       </div>`;
+
+  // Auto-scale: fit all content into the available screen height without scroll
+  requestAnimationFrame(()=>autoScaleCorcho());
+}
+
+function autoScaleCorcho(){
+  const wrap = document.getElementById('corcho-scale-wrap');
+  const cols = document.getElementById('corcho-cols');
+  if(!wrap || !cols) return;
+  // Reset scale first to measure real size
+  cols.style.transform = 'scale(1)';
+  const availH = wrap.clientHeight;
+  const contentH = cols.scrollHeight;
+  if(contentH <= availH){ cols.style.transform = 'scale(1)'; return; }
+  const scale = Math.max(0.35, availH / contentH);
+  cols.style.transform = `scale(${scale})`;
+  cols.style.width = `${100/scale}%`;
 }
 function togglePostitAccion(id){
   const accion=document.getElementById('accion-'+id);
@@ -3115,6 +3134,9 @@ function initDesktop(){
 const today=new Date().toISOString().split('T')[0];
 document.getElementById('disp-fecha').value=today;
 actualizarSlots();
+window.addEventListener('resize', ()=>{
+  if(document.getElementById('corcho-overlay').style.display!=='none') autoScaleCorcho();
+});
 renderTarifas();
 initDesktop();
 window.addEventListener('resize',()=>{if(isDesktop())initDesktop();});
