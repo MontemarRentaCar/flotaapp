@@ -1255,7 +1255,7 @@ html,body {
 </div>
 
 <!-- PANEL CORCHO -->
-<div id="corcho-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#8B5E3C;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;flex-direction:column;" onresize="scaleCorchoGrid()">
+<div id="corcho-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:#8B5E3C;font-family:'Plus Jakarta Sans',sans-serif;flex-direction:column;overflow:hidden;">
   <!-- Textura corcho -->
   <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 8px),repeating-linear-gradient(-45deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 8px);pointer-events:none;"></div>
   <!-- Header -->
@@ -1272,32 +1272,31 @@ html,body {
       <button onclick="cerrarCorcho()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">✕ Cerrar</button>
     </div>
   </div>
-  <!-- Columnas -->
-  <div style="flex:1;min-height:0;overflow:hidden;position:relative;z-index:1;display:flex;align-items:flex-start;height:0;" id="corcho-scale-wrap">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 18px;width:100%;transform-origin:top left;transition:transform .2s;" id="corcho-cols">
-    <!-- Entregas -->
-    <div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:rgba(0,0,0,.2);padding:6px 12px;border-radius:10px;">
-        <span style="font-size:18px;">🚗</span>
-        <div>
-          <div style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.04em;">ENTREGAS</div>
+  <!-- Scroll body — ocupa todo el espacio restante, hace scroll vertical -->
+  <div id="corcho-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;position:relative;z-index:1;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;">
+    <div style="padding:10px 14px 24px;">
+
+      <!-- Sección ENTREGAS -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:rgba(0,0,0,.22);padding:8px 14px;border-radius:12px;position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);">
+        <span style="font-size:20px;">🚗</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.06em;text-transform:uppercase;">Entregas</div>
           <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;" id="corcho-num-entregas"></div>
         </div>
       </div>
-      <div id="corcho-entregas" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;align-content:flex-start;overflow:hidden;"></div>
-    </div>
-    <!-- Recogidas -->
-    <div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;background:rgba(0,0,0,.2);padding:6px 12px;border-radius:10px;">
-        <span style="font-size:18px;">🔁</span>
-        <div>
-          <div style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.04em;">RECOGIDAS</div>
+      <div id="corcho-entregas" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
+
+      <!-- Sección RECOGIDAS -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:rgba(0,0,0,.22);padding:8px 14px;border-radius:12px;position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);">
+        <span style="font-size:20px;">🔁</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.06em;text-transform:uppercase;">Recogidas</div>
           <div style="font-size:11px;color:rgba(255,255,255,.65);font-weight:600;" id="corcho-num-recogidas"></div>
         </div>
       </div>
-      <div id="corcho-recogidas" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;align-content:flex-start;overflow:hidden;"></div>
+      <div id="corcho-recogidas" style="display:flex;flex-direction:column;gap:10px;"></div>
+
     </div>
-  </div>
   </div>
 </div>
 
@@ -2697,37 +2696,6 @@ function actualizarSlots(){
 }
 
 
-// ── CORCHO AUTO-SCALE ─────────────────────────────────────────────────────
-// Scales the grid so ALL post-its always fit in the visible viewport
-// without any scroll. Called after renderCorcho and on resize.
-function scaleCorchoGrid(){
-  const overlay = document.getElementById('corcho-overlay');
-  const cols    = document.getElementById('corcho-cols');
-  const wrap    = document.getElementById('corcho-scale-wrap');
-  if(!overlay || !cols || !wrap) return;
-
-  // Reset scale to measure natural size
-  cols.style.transform = 'scale(1)';
-  cols.style.width = '100%';
-
-  const availW = overlay.offsetWidth;
-  const headerH = overlay.querySelector('div[style*="backdrop-filter"]')?.offsetHeight || 68;
-  const availH = overlay.offsetHeight - headerH;
-
-  const naturalW = cols.scrollWidth;
-  const naturalH = cols.scrollHeight;
-
-  const scaleX = availW / naturalW;
-  const scaleY = availH / naturalH;
-  const scale  = Math.min(scaleX, scaleY, 1); // never upscale beyond 1
-  // Minimum scale: 0.35 to keep readability on TV
-  const scaleFinal = Math.max(scale, 0.35);
-
-  cols.style.transform = `scale(${scaleFinal})`;
-  cols.style.transformOrigin = 'top left';
-  // Compensate wrap height so scaled content doesn't overflow
-  wrap.style.height = availH + 'px';
-}
 
 // ── CORCHO ────────────────────────────────────────────────────────────────
 const POSTIT_COLORS_ENT=['#FFE234']; // Amarillo fijo entregas
@@ -2844,161 +2812,107 @@ function renderCorcho(){
     const hora=isEntrega
       ? ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
       : fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-    const color=urgente?'#FF4757':colors[idx%colors.length];
-    const rotation=(Math.random()*2-1).toFixed(2);
-    const accionLabel=isEntrega?'Confirmar entrega':'Confirmar recogida';
+
+    const color=urgente?'#c0392b':colors[idx%colors.length];
+    const accionLabel=isEntrega?'✓ Confirmar entrega':'✓ Confirmar recogida';
     const accionFn=isEntrega?`completarEntregaCorcho('${ev.id}')`:`completarRecogidaCorcho('${ev.id}')`;
-    const sz=buildPostit._sz||'md';
-    const S={
-      xl:{fH:27,fL:14,fM:13,fS:11,p:'17px 14px 13px',r:6,pin:16,pTop:-9},
-      lg:{fH:22,fL:13,fM:12,fS:10,p:'14px 12px 11px',r:5,pin:13,pTop:-7},
-      md:{fH:17,fL:12,fM:11,fS:9, p:'11px 10px 10px',r:5,pin:11,pTop:-6},
-      sm:{fH:14,fL:11,fM:10,fS:8, p:'9px 8px 8px',  r:4,pin:9, pTop:-5},
-    }[sz]||{fH:17,fL:12,fM:11,fS:9,p:'11px 10px 10px',r:5,pin:11,pTop:-6};
 
     const limpio=STATE.corchoLimpio&&STATE.corchoLimpio[ev.id];
-    const isUrgente=urgente;
-    // Paper gradient
-    const bg=isUrgente?'#FF6B6B':colors[idx%colors.length];
-    const paperGrad=isUrgente
-      ?'linear-gradient(150deg,rgba(255,255,255,.15) 0%,rgba(0,0,0,.08) 100%)'
-      :'linear-gradient(150deg,rgba(255,255,255,.5) 0%,rgba(0,0,0,.04) 100%)';
-
-    // Build HTML pieces
-    const urgEl=isUrgente?`<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,.22);color:#fff;font-size:8px;font-weight:900;padding:2px 7px;border-radius:20px;margin-bottom:6px;letter-spacing:.07em;text-transform:uppercase;">⚠\uFE0F&nbsp;Urgente hoy</div>`:'' ;
-
-    const horaEl=`<div style="font-family:'DM Mono',monospace;font-size:${S.fH}px;font-weight:900;color:rgba(0,0,0,.88);line-height:1;letter-spacing:-.02em;margin-bottom:4px;">${hora}</div>`;
-
-    const lugarEl=`<div style="font-size:${S.fL}px;font-weight:800;color:rgba(0,0,0,.76);line-height:1.25;margin-bottom:4px;word-break:break-word;">${ev.lugar||'<span style="opacity:.35;font-style:italic;">Sin lugar</span>'}</div>`;
-
-    const matEl=`<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,.10);padding:2px 7px;border-radius:4px;margin-bottom:3px;"><span style="font-family:'DM Mono',monospace;font-size:${S.fM}px;font-weight:700;color:rgba(0,0,0,.65);letter-spacing:.05em;">${ev.matricula||('Cat.&nbsp;'+ev.cat)}</span></div>`;
-
-    const diasEl=isEntrega?`<div style="font-size:${S.fS}px;font-weight:600;color:rgba(0,0,0,.48);">&#128197;&nbsp;${ev.dias}&nbsp;d\xEDa${ev.dias>1?'s':''}</div>`:'';
-
-    const extrasEl=ev.extras?`<div style="margin-top:3px;display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,.09);padding:2px 6px;border-radius:4px;font-size:${S.fS}px;font-weight:700;color:rgba(0,0,0,.56);">&#127873;&nbsp;${ev.extras}</div>`:'';
-
-    const sepEl=`<div style="height:1px;background:rgba(0,0,0,.13);margin:7px 0 6px;border-radius:1px;"></div>`;
-
     const badgeBg=limpio?'#1a9e4a':'#c0392b';
-    const badgeHtml=limpio?'<span>\u2705</span>&nbsp;LIMPIO':'<span>\uD83E\uDEA3</span>&nbsp;SUCIO';
-    const limpioEl=`<div id="limpio-badge-${ev.id}"
-      onclick="toggleLimpieza('${ev.id}',event)"
-      style="display:flex;align-items:center;justify-content:center;gap:4px;
-        padding:5px 4px;border-radius:${S.r}px;cursor:pointer;
-        background:${badgeBg};color:#fff;
-        font-family:'Plus Jakarta Sans',sans-serif;font-size:${S.fS+1}px;font-weight:900;
-        letter-spacing:.1em;text-transform:uppercase;
-        box-shadow:inset 0 -2px 0 rgba(0,0,0,.22),0 1px 4px rgba(0,0,0,.2);
-        user-select:none;transition:filter .15s;"
-      onmouseover="this.style.filter='brightness(1.12)'"
-      onmouseout="this.style.filter='brightness(1)'">${badgeHtml}</div>`;
+    const badgeHtml=limpio?'✅ LIMPIO':'🪣 SUCIO';
 
-    const accionEl=`<div id="accion-${ev.id}" style="display:none;" onclick="event.stopPropagation()">
-      <div style="height:1px;background:rgba(0,0,0,.12);margin:7px 0 5px;"></div>
-      <button onclick="${accionFn}"
-        style="width:100%;padding:7px 4px;background:rgba(0,0,0,.82);color:#fff;border:none;
-          border-radius:${S.r}px;font-size:${S.fS}px;font-weight:900;cursor:pointer;
-          font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:.04em;
-          box-shadow:0 2px 5px rgba(0,0,0,.28);transition:background .15s;"
-        onmouseover="this.style.background='rgba(0,0,0,.95)'"
-        onmouseout="this.style.background='rgba(0,0,0,.82)'">
-        \u2713&nbsp;${accionLabel}
-      </button>
-    </div>`;
+    const urgEl=urgente?`<span style="background:rgba(255,80,60,.85);color:#fff;font-size:10px;font-weight:900;padding:2px 8px;border-radius:20px;letter-spacing:.08em;">⚠️ URGENTE</span>`:'';
 
     return`<div id="postit-${ev.id}"
-      style="position:relative;cursor:pointer;flex-shrink:0;
-        flex:1 1 120px;max-width:calc(25% - 6px);min-width:105px;
-        background:${bg};background-image:${paperGrad};
-        border-radius:${S.r}px;
-        padding:${S.p};
-        box-shadow:3px 5px 14px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.55);
-        transform:rotate(${rotation}deg);
-        transition:transform .18s ease,box-shadow .18s ease;
-        overflow:hidden;"
-      onmouseover="this.style.transform='rotate(0deg) scale(1.03)';this.style.boxShadow='5px 8px 22px rgba(0,0,0,.42),0 2px 5px rgba(0,0,0,.2)'"
-      onmouseout="this.style.transform='rotate(${rotation}deg)';this.style.boxShadow='3px 5px 14px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.55)'"
+      style="background:${color};border-radius:14px;overflow:hidden;
+        box-shadow:0 4px 16px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.4);
+        transition:transform .15s,box-shadow .15s;cursor:pointer;"
       onclick="togglePostitAccion('${ev.id}')">
 
-      <!-- Chincheta 3D -->
-      <div style="position:absolute;top:${S.pTop}px;left:50%;transform:translateX(-50%);
-        width:${S.pin}px;height:${S.pin}px;
-        background:radial-gradient(circle at 38% 35%,#e74c3c 0%,#922b21 70%);
-        border-radius:50%;
-        box-shadow:0 2px 6px rgba(0,0,0,.45),inset 0 -1px 2px rgba(0,0,0,.25),inset 1px 1px 1px rgba(255,120,120,.4);">
+      <!-- Franja superior con hora + chincheta visual -->
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px 10px;border-bottom:1px solid rgba(0,0,0,.12);">
+        <!-- Hora grande -->
+        <div style="font-family:'DM Mono',monospace;font-size:32px;font-weight:900;color:rgba(0,0,0,.85);line-height:1;flex-shrink:0;">${hora}</div>
+        <!-- Separador -->
+        <div style="width:3px;height:40px;background:rgba(0,0,0,.18);border-radius:2px;flex-shrink:0;"></div>
+        <!-- Info central -->
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:17px;font-weight:800;color:rgba(0,0,0,.85);line-height:1.2;word-break:break-word;">${ev.lugar||'<span style="opacity:.4;font-style:italic;">Sin lugar</span>'}</div>
+          ${ev.info?`<div style="font-size:12px;font-weight:600;color:rgba(0,0,0,.5);margin-top:2px;">${ev.info}</div>`:''}
+        </div>
+        <!-- Días -->
+        ${isEntrega?`<div style="background:rgba(0,0,0,.12);border-radius:8px;padding:5px 10px;text-align:center;flex-shrink:0;">
+          <div style="font-size:18px;font-weight:900;color:rgba(0,0,0,.75);line-height:1;">${ev.dias}</div>
+          <div style="font-size:9px;font-weight:700;color:rgba(0,0,0,.45);text-transform:uppercase;">día${ev.dias!==1?'s':''}</div>
+        </div>`:''}
       </div>
 
-      <!-- Franja lateral adhesiva -->
-      <div style="position:absolute;left:0;top:0;bottom:0;width:4px;
-        background:linear-gradient(to right,rgba(0,0,0,.12),transparent);
-        border-radius:${S.r}px 0 0 ${S.r}px;">
-      </div>
-
-      <!-- Contenido -->
-      <div style="padding-left:5px;">
+      <!-- Fila inferior: matrícula + extras + limpio -->
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 16px 10px;flex-wrap:wrap;">
+        <!-- Matrícula -->
+        <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:700;background:rgba(0,0,0,.12);padding:4px 10px;border-radius:6px;color:rgba(0,0,0,.75);">${ev.matricula||('Cat. '+ev.cat)}</div>
+        <!-- Extras -->
+        ${ev.extras?`<div style="font-size:12px;font-weight:700;background:rgba(0,0,0,.09);padding:4px 9px;border-radius:6px;color:rgba(0,0,0,.6);">🎁 ${ev.extras}</div>`:''}
         ${urgEl}
-        ${horaEl}
-        ${lugarEl}
-        ${matEl}
-        ${diasEl}
-        ${extrasEl}
-        ${sepEl}
-        ${limpioEl}
-        ${accionEl}
+        <!-- Spacer -->
+        <div style="flex:1;"></div>
+        <!-- Badge LIMPIO/SUCIO -->
+        <div id="limpio-badge-${ev.id}"
+          onclick="toggleLimpieza('${ev.id}',event)"
+          style="padding:5px 12px;border-radius:20px;cursor:pointer;
+            background:${badgeBg};color:#fff;
+            font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+            box-shadow:inset 0 -2px 0 rgba(0,0,0,.2);user-select:none;">${badgeHtml}</div>
+      </div>
+
+      <!-- Botón confirmar (oculto, aparece al tocar) -->
+      <div id="accion-${ev.id}" style="display:none;" onclick="event.stopPropagation()">
+        <div style="margin:0 16px;height:1px;background:rgba(0,0,0,.15);"></div>
+        <div style="padding:10px 16px;">
+          <button onclick="${accionFn}"
+            style="width:100%;padding:12px;background:rgba(0,0,0,.8);color:#fff;border:none;
+              border-radius:10px;font-size:14px;font-weight:900;cursor:pointer;
+              font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:.03em;
+              box-shadow:0 3px 8px rgba(0,0,0,.3);">
+            ${accionLabel}
+          </button>
+        </div>
       </div>
     </div>`;
   }
 
-  // Tier by total cards
-  const totalCards=(entregas.length+entregasUrgentesHoy.length+recogidas.length);
-  buildPostit._sz=totalCards<=6?'xl':totalCards<=12?'lg':totalCards<=20?'md':'sm';
+    // ── Render entregas ──────────────────────────────────────────
+  const POSTIT_COLORS_ENT=['#FFFDE7','#FFF8E1','#FFF3E0','#FFF9C4','#FFECB3','#FFE082'];
+  const POSTIT_COLORS_REC=['#E3F2FD','#E8F5E9','#F3E5F5','#E0F7FA','#E8EAF6','#F9FBE7'];
 
   const entDiv=document.getElementById('corcho-entregas');
   const recDiv=document.getElementById('corcho-recogidas');
 
-  function groupByHora(evList,isEnt){
-    const g={};
-    evList.forEach((ev,i)=>{
-      const{ini,fin}=eventoRange(ev);
-      const h=isEnt
-        ?ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
-        :fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-      if(!g[h])g[h]=[];
-      g[h].push({ev,i});
-    });
-    return Object.entries(g).sort(([a],[b])=>a.localeCompare(b));
+  // Entregas urgentes de hoy (cuando se ve mañana)
+  const allEntregas=[...entregasUrgentesHoy,...entregas];
+
+  if(allEntregas.length){
+    entDiv.innerHTML=allEntregas.map((ev,i)=>
+      buildPostit(ev,true,i,POSTIT_COLORS_ENT,entregasUrgentesHoy.includes(ev))
+    ).join('');
+  }else{
+    entDiv.innerHTML=`<div style="text-align:center;padding:30px 20px;color:rgba(255,255,255,.4);">
+      <div style="font-size:36px;margin-bottom:8px;">☀️</div>
+      <div style="font-weight:700;font-size:14px;">Sin entregas ${corchoDia===1?'mañana':'hoy'}</div>
+    </div>`;
   }
 
-  function renderGrupoHora(evList,isEnt,colors){
-    const grupos=groupByHora(evList,isEnt);
-    return grupos.map(([hora,items])=>`
-      <div style="margin-bottom:8px;">
-        ${items.length>1?`<div style="font-size:9px;font-weight:900;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;padding-left:2px;">\uD83D\uDD50 ${hora} \u2014 ${items.length}</div>`:''}
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${items.map(({ev,i})=>buildPostit(ev,isEnt,i,colors,false)).join('')}
-        </div>
-      </div>`).join('');
+  if(recogidas.length){
+    recDiv.innerHTML=recogidas.map((ev,i)=>
+      buildPostit(ev,false,i,POSTIT_COLORS_REC)
+    ).join('');
+  }else{
+    recDiv.innerHTML=`<div style="text-align:center;padding:30px 20px;color:rgba(255,255,255,.4);">
+      <div style="font-size:36px;margin-bottom:8px;">☀️</div>
+      <div style="font-weight:700;font-size:14px;">Sin recogidas ${corchoDia===1?'mañana':'hoy'}</div>
+    </div>`;
   }
 
-  entDiv.innerHTML=entregas.length||entregasUrgentesHoy.length
-    ?( entregasUrgentesHoy.length
-        ?entregasUrgentesHoy.map((ev,i)=>buildPostit(ev,true,i,POSTIT_COLORS_ENT,true)).join('')
-        :'' )
-      +renderGrupoHora(entregas,true,POSTIT_COLORS_ENT)
-    :`<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);">
-        <div style="font-size:36px;margin-bottom:8px;">\u2600\uFE0F</div>
-        <div style="font-weight:700;font-size:14px;">Sin entregas ${corchoDia===1?'ma\xF1ana':'hoy'}</div>
-      </div>`;
-
-  recDiv.innerHTML=recogidas.length
-    ?renderGrupoHora(recogidas,false,POSTIT_COLORS_REC)
-    :`<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,.4);">
-        <div style="font-size:36px;margin-bottom:8px;">\uD83D\uDE34</div>
-        <div style="font-weight:700;font-size:14px;">Sin recogidas ${corchoDia===1?'ma\xF1ana':'hoy'}</div>
-      </div>`;
-
-  // Auto-scale grid to fit viewport without scroll
-  requestAnimationFrame(scaleCorchoGrid);
 }
 function togglePostitAccion(id){
   const accion=document.getElementById('accion-'+id);
@@ -3009,16 +2923,15 @@ function togglePostitAccion(id){
 function completarEntregaCorcho(id, btn){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Activo';
-  // Al confirmar entrega, marcar coche como SUCIO (sale a la calle limpio pero volverá sucio)
   if(STATE.corchoLimpio)delete STATE.corchoLimpio[id];
   saveState();
-  // Animación de quitar el postit
+  // Animación: deslizar hacia la derecha y desaparecer
   const postit=document.getElementById('postit-'+id);
   if(postit){
-    postit.style.transition='transform .3s,opacity .4s';
-    postit.style.transform='rotate(-8deg) translateY(-20px) scale(.8)';
+    postit.style.transition='transform .3s ease,opacity .3s ease,max-height .3s ease .2s';
+    postit.style.transform='translateX(60px)';
     postit.style.opacity='0';
-    setTimeout(()=>{postit.remove();renderCorcho();},400);
+    setTimeout(()=>{renderCorcho();},380);
   }
   showToast('Entrega confirmada 🚗','success');
 }
@@ -3027,15 +2940,14 @@ function completarRecogidaCorcho(id, btn){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Cerrado';
   if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
-  // Limpiar estado de limpieza del post-it
   if(STATE.corchoLimpio)delete STATE.corchoLimpio[id];
   saveState();
   const postit=document.getElementById('postit-'+id);
   if(postit){
-    postit.style.transition='transform .3s,opacity .4s';
-    postit.style.transform='rotate(8deg) translateY(-20px) scale(.8)';
+    postit.style.transition='transform .3s ease,opacity .3s ease';
+    postit.style.transform='translateX(60px)';
     postit.style.opacity='0';
-    setTimeout(()=>{postit.remove();renderCorcho();},400);
+    setTimeout(()=>{renderCorcho();},380);
   }
   showToast('Recogida completada ✓','success');
 }
@@ -3193,7 +3105,7 @@ function initDesktop(){
 const today=new Date().toISOString().split('T')[0];
 document.getElementById('disp-fecha').value=today;
 actualizarSlots();
-window.addEventListener('resize', ()=>{ if(document.getElementById('corcho-overlay').style.display!=='none') scaleCorchoGrid(); });
+
 renderTarifas();
 initDesktop();
 window.addEventListener('resize',()=>{if(isDesktop())initDesktop();});
