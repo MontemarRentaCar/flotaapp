@@ -2429,8 +2429,11 @@ function buscarDisponibilidadRapida(){
     const cochesVeh = STATE.vehiculos.filter(v => cochesLibresSet.has(v.mat));
 
     // Slot buttons
+    // Solo mostrar "último" si hay slots con más de 1 libre (para dar contexto)
+    // Si todos los slots tienen el mismo nº de coches, no es útil el aviso
+    const todosUltimo = slotsConLibres.every(x => x.libres === 1);
     const slotsExpandido = slotsConLibres.map(({slot, libres}) => {
-      const ultimo = libres === 1;
+      const ultimo = !todosUltimo && libres === 1; // solo marcar si hay slots con más
       return `<button onclick="seleccionarHoraCat('${cat}','${slot}')"
         style="padding:8px 12px;border-radius:8px;
         border:1.5px solid ${ultimo?'rgba(243,156,18,.6)':'rgba(255,255,255,.3)'};
@@ -2454,10 +2457,11 @@ function buscarDisponibilidadRapida(){
       </div>`;
     }).join('');
 
-    // Entregas ya programadas ese día en esta cat (info)
+    // Entregas ya programadas ese día para ESTA categoría (info)
     const evsDia = STATE.eventos.filter(e => {
       if(e.estado === 'Cerrado' || e.estado === 'Cancelado') return false;
-      return e.fechaIni.split('T')[0] === fecha;
+      if(e.fechaIni.split('T')[0] !== fecha) return false;
+      return e.cat === cat; // solo reservas de esta categoría
     }).sort((a,b) => a.fechaIni.localeCompare(b.fechaIni));
 
     const evsDiaHtml = evsDia.length ? `
