@@ -1273,7 +1273,7 @@ html,body {
     </div>
   </div>
   <!-- Columnas -->
-  <div style="flex:1;min-height:0;overflow:hidden;position:relative;z-index:1;display:flex;align-items:flex-start;" id="corcho-scale-wrap">
+  <div style="flex:1;min-height:0;overflow:hidden;position:relative;z-index:1;display:flex;align-items:flex-start;height:0;" id="corcho-scale-wrap">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:10px 18px;width:100%;transform-origin:top left;transition:transform .2s;" id="corcho-cols">
     <!-- Entregas -->
     <div>
@@ -1335,8 +1335,9 @@ let _lastStateHash='';
 function refreshUI(){
   // Solo re-renderizar si el estado realmente cambió
   const hash=JSON.stringify({
-    evs:STATE.eventos.map(e=>e.id+e.estado+e.matricula),
-    vehs:STATE.vehiculos.map(v=>v.mat+v.estado+v.ubicacion)
+    evs:STATE.eventos.map(e=>e.id+e.estado+e.matricula+e.dias),
+    vehs:STATE.vehiculos.map(v=>v.mat+v.estado+v.ubicacion),
+    limpio:Object.keys(STATE.corchoLimpio||{}).join()
   });
   const changed=hash!==_lastStateHash;
   _lastStateHash=hash;
@@ -1375,7 +1376,7 @@ try{
     firebaseReady=true;
     const data=snap.val();
     if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];STATE.corchoLimpio=data.corchoLimpio||{};}
-    else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[]});}
+    else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[],corchoLimpio:{}});}
     // Sincronizar estado de vehículos automáticamente basado en eventos
     sincronizarEstadoVehiculos();
     // Actualizar backup local
@@ -1558,6 +1559,7 @@ function fmtDT(dt){return fmtDate(dt)+' '+dt.toLocaleTimeString('es-ES',{hour:'2
 
 // ── DISPONIBILIDAD + NUEVO EVENTO ─────────────────────────────────────────
 let dispRes={};let activeCat='todos';let matSeleccionada='';
+let _horaSeleccionada=''; // hora del slot seleccionado en el flujo rápido
 
 function limpiarResultado(){
   const r=document.getElementById('disp-resultado');
@@ -1566,12 +1568,14 @@ function limpiarResultado(){
   if(r)r.style.display='none';
   if(f)f.style.display='none';
   matSeleccionada='';
+  _horaSeleccionada='';
   dispRes={};
 }
 
 function buscarDisponibilidad(){
   const fecha=document.getElementById('disp-fecha').value;
-  const hora=getHoraSeleccionada();
+  const horaRaw=getHoraSeleccionada();
+  const hora=horaRaw||'10:00';
   const dias=parseInt(document.getElementById('disp-dias').value)||1;
   if(!fecha){showToast('Selecciona una fecha','error');return;}
   const sI=new Date(fecha+'T'+hora);const sF=new Date(fecha+'T'+hora);sF.setDate(sF.getDate()+dias);
@@ -1605,9 +1609,7 @@ function buscarDisponibilidad(){
   document.getElementById('disp-resultado').style.display='block';
 }
 
-function renderDispTabs(){
-  document.getElementById('cat-tabs').innerHTML='';
-}
+function renderDispTabs(){}  // legacy stub
 function setCatTab(cat,el){}
 
 // Info visual por categoría
@@ -1716,9 +1718,15 @@ function toggleCatGrid(cat){
 
 function seleccionarCategoria(cat){
   matSeleccionada='';
+  const hora=getHoraSeleccionada();
+  const fecha=document.getElementById('disp-fecha').value;
+  const dias=parseInt(document.getElementById('disp-dias').value)||1;
   document.getElementById('nev-mat-sel').value='';
   document.getElementById('nev-cat-sel').value=cat;
-  document.getElementById('form-mat-label').innerHTML=`<span style="font-size:16px">📋</span> Cat. ${cat} — sin matrícula asignada`;
+  const infoSel=CAT_INFO[cat]||{emoji:'🚗'};
+  const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
+    `<span style="font-size:18px">${infoSel.emoji}</span> Cat. ${cat}${hora?' · '+hora:''} — sin matrícula`;
+  document.getElementById('form-mat-label').innerHTML=`<span style="font-size:16px">📋</span> Cat. ${cat}${hora?' · '+hora:''} — sin matrícula asignada`;
   document.getElementById('nev-lugar').value='';
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
@@ -1762,7 +1770,9 @@ function crearEvento(){
   const lugar=document.getElementById('nev-lugar').value.trim();
   const info=document.getElementById('nev-info').value.trim();
   const extras=document.getElementById('nev-extras').value.trim();
-  if(!fecha||!hora||!dias){showToast('Rellena fecha, hora y días','error');return;}
+  if(!fecha){showToast('Selecciona una fecha','error');return;}
+  if(!hora){showToast('Selecciona una hora de entrega','error');return;}
+  if(!dias||dias<1){showToast('Introduce el número de días','error');return;}
   const catFinal=cat||STATE.vehiculos.find(x=>x.mat===mat)?.cat||'SIN CAT';
   // ── VALIDACIÓN ANTI-CONFLICTO ──
   const conflicto=validarConflicto(mat,catFinal,fecha+'T'+hora,dias);
@@ -1773,8 +1783,11 @@ function crearEvento(){
   saveState();
   // Refrescar slots para reflejar la nueva reserva
   actualizarSlots();
+  // Refrescar tarjetas de disponibilidad para reflejar la nueva reserva
+  buscarDisponibilidadRapida();
   document.getElementById('disp-resultado').style.display='none';
   matSeleccionada='';
+  _horaSeleccionada='';
   document.getElementById('form-nuevo').style.display='none';
   // Modal confirmación con WhatsApp
   const{ini}=eventoRange(ev);
@@ -1876,7 +1889,7 @@ function renderAgenda(){
     evsPasados=todos.filter(e=>{const{buf}=eventoRange(e);return buf<now&&buf>=limite48h;});
     evsPasados.sort((a,b)=>eventoRange(b).buf-eventoRange(a).buf);
     // Auto-eliminar eventos con más de 48h desde la devolución
-    const paraEliminar=todos.filter(e=>{const{buf}=eventoRange(e);return buf<limite48h;});
+    const paraEliminar=todos.filter(e=>{const{buf}=eventoRange(e);return buf<limite48h&&e.estado!=='Activo';});
     if(paraEliminar.length){
       paraEliminar.forEach(ev=>{
         if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v&&v.estado==='En alquiler')v.estado='Disponible';}
@@ -2010,19 +2023,19 @@ function openEvento(id){
     }
   }
   const{ini,fin,buf}=eventoRange(ev);
-  const sI=new Date(ev.fechaIni);
-  const sF=new Date(ev.fechaIni);sF.setDate(sF.getDate()+ev.dias);
+  const sI=ini;
+  const sF=ev.devolucionCustom?fin:new Date(ini.getTime());if(!ev.devolucionCustom)sF.setDate(sF.getDate()+Number(ev.dias));
   const cochesDisponibles=STATE.vehiculos.filter(v=>{
     if(v.cat!==ev.cat&&ev.cat!=='SIN CAT') return false;
-    if(v.mat===ev.matricula) return true; // el coche actual siempre disponible para editar
+    if(v.mat===ev.matricula) return true; // el coche actual siempre disponible
     if(v.estado==='Taller'||v.estado==='Alq. L/T') return false;
-    // Comprobar solapamiento excluyendo el propio evento
+    // Usar motor central excluyendo el propio evento
     return !STATE.eventos.some(e2=>{
       if(String(e2.id)===String(ev.id)) return false;
       if(e2.matricula!==v.mat) return false;
       if(e2.estado==='Cerrado'||e2.estado==='Cancelado') return false;
-      const{ini,buf}=eventoRange(e2);
-      return ini<sF&&buf>sI;
+      const{ini:e2i,buf:e2b}=eventoRange(e2);
+      return e2i<sF&&e2b>sI;
     });
   });
 
@@ -2033,7 +2046,6 @@ function openEvento(id){
     <select onchange="asignarMatricula('${id}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;max-width:200px">
       ${matOpts}
     </select></div>`;
-  const completarHTML_dummy=null; // removed duplicate
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">${agendaTab==='recogidas'?'🔁 Recogida':'🚗 Entrega'}</div>
     ${matHTML}
@@ -2086,7 +2098,7 @@ function asignarMatricula(id,mat){
   ev.matricula=mat||'';
   if(mat){
     const vNew=STATE.vehiculos.find(x=>x.mat===mat);
-    if(vNew)vNew.estado='En alquiler';
+    if(vNew&&vNew.estado!=='Taller'&&vNew.estado!=='Alq. L/T')vNew.estado='En alquiler';
   }
   saveState();
   showToast(mat?mat+' asignado ✓':'Matrícula eliminada','success');
@@ -2095,9 +2107,13 @@ function asignarMatricula(id,mat){
 function eliminarEvento(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));
   if(!ev)return;
+  const quien=ev.matricula||('Cat.'+ev.cat);
+  const{ini}=eventoRange(ev);
+  if(!confirm('¿Eliminar reserva '+quien+' del '+fmtDate(ini)+'?'))return;
+  if(STATE.corchoLimpio)delete STATE.corchoLimpio[id];
   STATE.eventos=STATE.eventos.filter(e=>String(e.id)!==String(id));
   sincronizarEstadoVehiculos();
-  saveState();closeModal();renderAgenda();showToast('Evento eliminado','success');
+  saveState();closeModal();renderAgenda();showToast('Reserva eliminada','success');
 }
 function editarEvento(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
@@ -2168,7 +2184,7 @@ function guardarEdicion(id){
   }
   if(mat&&mat!==ev.matricula){
     const vNew=STATE.vehiculos.find(x=>x.mat===mat);
-    if(vNew)vNew.estado='En alquiler';
+    if(vNew&&vNew.estado!=='Taller'&&vNew.estado!=='Alq. L/T')vNew.estado='En alquiler';
   }
   ev.fechaIni=f+'T'+h;
   ev.dias=d;
@@ -2227,7 +2243,9 @@ function guardarProlongacion(id){
   const{fin}=eventoRange(ev);
   const nuevaFin=new Date(fin);nuevaFin.setDate(nuevaFin.getDate()+diasExtra);
   ev.devolucionCustom=nuevaFin.toISOString().slice(0,16);
-  ev.dias=ev.dias+diasExtra;
+  // Recalcular días desde inicio hasta nueva devolución (DST-safe)
+  const iniMs=new Date(ev.fechaIni).getTime();
+  ev.dias=Math.round((nuevaFin.getTime()-iniMs)/(86400000));
   saveState();showToast('+'+diasExtra+' día'+(diasExtra>1?'s':'')+' añadidos ✓','success');openEvento(id);renderAgenda();
 }
 
@@ -2361,6 +2379,8 @@ function getHoraSeleccionada(){
     const el=document.getElementById('disp-hora-aero');
     return el?el.value:'';
   }
+  // Usar variable de módulo si disponible, luego select como fallback
+  if(_horaSeleccionada) return _horaSeleccionada;
   const el=document.getElementById('disp-hora');
   return el?el.value:'';
 }
@@ -2400,12 +2420,13 @@ function buscarDisponibilidadRapida(){
     const maxLibres = Math.max(...slotsConLibres.map(x => x.libres));
     const stockColor = maxLibres === 1 ? '#f39c12' : maxLibres <= 3 ? '#e67e22' : '#27ae60';
 
-    // Matrículas libres para el primer slot disponible (informativo)
-    const firstSlot = slotsConLibres[0];
-    const cochesVeh = STATE.vehiculos.filter(v => {
-      if(v.cat !== cat) return false;
-      return cocheDisponible(v, firstSlot.sI, firstSlot.sF);
+    // Matrículas que tienen AL MENOS un slot libre (referencia visual)
+    const cochesLibresSet = new Set();
+    slotsConLibres.forEach(({sI,sF}) => {
+      STATE.vehiculos.filter(v => v.cat === cat && cocheDisponible(v, sI, sF))
+        .forEach(v => cochesLibresSet.add(v.mat));
     });
+    const cochesVeh = STATE.vehiculos.filter(v => cochesLibresSet.has(v.mat));
 
     // Slot buttons
     const slotsExpandido = slotsConLibres.map(({slot, libres}) => {
@@ -2465,8 +2486,8 @@ function buscarDisponibilidadRapida(){
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:6px 14px;text-align:center;">
-              <div style="font-size:24px;font-weight:900;color:${stockColor};line-height:1;">${slotsConLibres.length}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,.65);">horario${slotsConLibres.length!==1?'s':''}</div>
+              <div style="font-size:24px;font-weight:900;color:${stockColor};line-height:1;">${maxLibres}</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.65);">libre${maxLibres!==1?'s':''}</div>
             </div>
             <span id="arrow-rap-${cat}" style="color:rgba(255,255,255,.7);font-size:12px;font-weight:700;">▼ Ver</span>
           </div>
@@ -2520,7 +2541,8 @@ function seleccionarHoraCat(cat, hora){
   const fecha=document.getElementById('disp-fecha').value;
   const dias=parseInt(document.getElementById('disp-dias').value)||1;
 
-  // Guardar hora en select oculto para crearEvento
+  // Guardar hora de forma fiable: variable + select oculto
+  _horaSeleccionada=hora;
   const sel=document.getElementById('disp-hora');
   let opt=Array.from(sel.options).find(o=>o.value===hora);
   if(!opt){opt=new Option(hora,hora);sel.add(opt);}
@@ -2562,6 +2584,12 @@ function abrirGridMatriculas(){
 
   if(gridDiv.style.display!=='none'){gridDiv.style.display='none';return;}
 
+  if(!hora){
+    gridDiv.innerHTML='<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px;font-weight:600;">⚠️ Selecciona primero una hora de entrega</div>';
+    gridDiv.style.display='block';
+    return;
+  }
+
   const sI=new Date(fecha+'T'+hora);
   const sF=new Date(sI); sF.setDate(sF.getDate()+dias);
   const items=STATE.vehiculos
@@ -2579,7 +2607,7 @@ function abrirGridMatriculas(){
     ${items.map(i=>{
       const ubi=i.veh.ubicacion?`<div style="font-size:10px;color:var(--accent);font-weight:700;">📍 ${i.veh.ubicacion}</div>`:'';
       const dispClass=i.disp==='libre'?'libre':'ocupado';
-      const dispLabel=i.disp==='libre'?'● Libre':'✕ No disp.';
+      const dispLabel=i.disp==='libre'?'● Libre':i.disp==='taller'?'⚠ Taller':'✕ Ocupado';
       const matSel=document.getElementById('nev-mat-sel').value;
       return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}"
         onclick="${i.disp==='libre'?`seleccionarCocheForm('${i.mat}','${cat}')`:''}" >
@@ -2597,8 +2625,9 @@ function seleccionarCocheForm(mat, cat){
   const info=CAT_INFO[cat]||{emoji:'🚗'};
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
     `<span style="font-size:18px;">${info.emoji}</span> ${mat} (Cat. ${cat})`;
-  // Refrescar grid para mostrar selección
-  abrirGridMatriculas();
+  // Refrescar grid mostrando la selección actual
+  const gf=document.getElementById('avail-grid-form');
+  gf.style.display='none'; // reset toggle state
   abrirGridMatriculas();
 }
 
@@ -2686,9 +2715,11 @@ function scaleCorchoGrid(){
 
   const scaleX = availW / naturalW;
   const scaleY = availH / naturalH;
-  const scale  = Math.min(scaleX, scaleY, 1); // never upscale
+  const scale  = Math.min(scaleX, scaleY, 1); // never upscale beyond 1
+  // Minimum scale: 0.35 to keep readability on TV
+  const scaleFinal = Math.max(scale, 0.35);
 
-  cols.style.transform = `scale(${scale})`;
+  cols.style.transform = `scale(${scaleFinal})`;
   cols.style.transformOrigin = 'top left';
   // Compensate wrap height so scaled content doesn't overflow
   wrap.style.height = availH + 'px';
@@ -2974,6 +3005,8 @@ function togglePostitAccion(id){
 function completarEntregaCorcho(id, btn){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Activo';
+  // Al confirmar entrega, marcar coche como SUCIO (sale a la calle limpio pero volverá sucio)
+  if(STATE.corchoLimpio)delete STATE.corchoLimpio[id];
   saveState();
   // Animación de quitar el postit
   const postit=document.getElementById('postit-'+id);
@@ -2990,6 +3023,8 @@ function completarRecogidaCorcho(id, btn){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Cerrado';
   if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
+  // Limpiar estado de limpieza del post-it
+  if(STATE.corchoLimpio)delete STATE.corchoLimpio[id];
   saveState();
   const postit=document.getElementById('postit-'+id);
   if(postit){
@@ -3068,7 +3103,10 @@ function renderHistorial(){
 }
 
 function calcularPrecio(){
-  const cat=document.getElementById('calc-cat').value;
+  const catRaw=document.getElementById('calc-cat').value;
+  // Normalizar categorías para tarifas
+  const catMap={'AXL':'A','MB7':'MB','MB9':'MB'};
+  const cat=catMap[catRaw]||catRaw;
   const dias=parseInt(document.getElementById('calc-dias').value)||0;
   const silla=document.getElementById('calc-silla').checked;
   const gps=false;
@@ -3152,8 +3190,6 @@ const today=new Date().toISOString().split('T')[0];
 document.getElementById('disp-fecha').value=today;
 actualizarSlots();
 window.addEventListener('resize', ()=>{ if(document.getElementById('corcho-overlay').style.display!=='none') scaleCorchoGrid(); });
-window.addEventListener('resize', ()=>{
-});
 renderTarifas();
 initDesktop();
 window.addEventListener('resize',()=>{if(isDesktop())initDesktop();});
