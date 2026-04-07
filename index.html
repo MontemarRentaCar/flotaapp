@@ -2501,13 +2501,12 @@ function buscarDisponibilidadRapida(){
     const maxLibres = Math.max(...slotsConLibres.map(x => x.libres));
     const stockColor = maxLibres === 1 ? '#f39c12' : maxLibres <= 3 ? '#e67e22' : '#27ae60';
 
-    // Matrículas que tienen AL MENOS un slot libre (referencia visual)
-    const cochesLibresSet = new Set();
-    slotsConLibres.forEach(({sI,sF}) => {
-      STATE.vehiculos.filter(v => v.cat === cat && cocheDisponible(v, sI, sF))
-        .forEach(v => cochesLibresSet.add(v.mat));
-    });
-    const cochesVeh = STATE.vehiculos.filter(v => cochesLibresSet.has(v.mat));
+    // Matrículas libres para el PRIMER slot disponible del día
+    // (cuando el usuario pulse un slot concreto, el formulario mostrará las reales)
+    const primerSlot = slotsConLibres[0];
+    const cochesVeh = primerSlot
+      ? STATE.vehiculos.filter(v => v.cat === cat && cocheDisponible(v, primerSlot.sI, primerSlot.sF))
+      : [];
 
     // Slot buttons
     const todosUltimo = slotsConLibres.every(x => x.libres === 1);
@@ -2537,20 +2536,25 @@ function buscarDisponibilidadRapida(){
       </button>`;
     }).join('');
 
-    // Matrículas expandido (libres para el primer slot)
+    // Matrículas libres para el primer slot — con indicación de desde qué hora
+    const primerSlotLabel = primerSlot ? primerSlot.slot : '';
     const matsExpandido = cochesVeh.map(v => {
       const ubi = v.ubicacion
         ? `<div style="font-size:10px;color:rgba(255,255,255,.7);">📍 ${v.ubicacion}</div>` : '';
+      // Buscar el primer slot de todo el día en que este coche concreto está libre
+      const primerSlotCoche = slotsConLibres.find(({sI,sF}) => cocheDisponible(v, sI, sF));
+      const desdeHora = primerSlotCoche ? primerSlotCoche.slot : primerSlotLabel;
       return `<div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
         border-radius:8px;padding:8px 10px;">
         <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#fff;">${v.mat}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">desde ${desdeHora}</div>
         ${ubi}
       </div>`;
     }).join('');
 
-    // Todas las reservas del día (logística por proximidad — ver todas las entregas juntas)
+    // Entregas PENDIENTES del día (excluye ya entregados, cerrados y cancelados)
     const evsDia = STATE.eventos.filter(e => {
-      if(e.estado === 'Cerrado' || e.estado === 'Cancelado') return false;
+      if(e.estado !== 'Pendiente') return false; // solo pendientes, no Activo ni Cerrado
       return e.fechaIni.split('T')[0] === fecha;
     }).sort((a,b) => a.fechaIni.localeCompare(b.fechaIni));
 
