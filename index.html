@@ -2478,19 +2478,20 @@ function buscarDisponibilidadRapida(){
       const sI = new Date(fecha + 'T' + slot);
       const sF = new Date(sI); sF.setDate(sF.getDate() + dias);
       const libres = libresEnCat(cat, sI, sF);
-      // REGLA: máximo 2 entregas en la misma franja horaria (hh:00 o hh:30)
+      if(libres === 0) return { slot, libres: 0, sI, sF, franjaLlena: false };
+      // Calcular cuántas entregas hay YA en esta franja (± 30 min), globalmente
       const [hh, mm] = slot.split(':').map(Number);
       const franjaBase = mm < 30 ? `${String(hh).padStart(2,'0')}:00` : `${String(hh).padStart(2,'0')}:30`;
       const entregasEnFranja = STATE.eventos.filter(e => {
         if(e.estado === 'Cerrado' || e.estado === 'Cancelado') return false;
         if(e.fechaIni.split('T')[0] !== fecha) return false;
-        const eMM = parseInt((e.fechaIni.split('T')[1]||'00:00').split(':')[1]);
-        const eHH = parseInt((e.fechaIni.split('T')[1]||'00:00').split(':')[0]);
-        const eFranjaBase = eMM < 30 ? `${String(eHH).padStart(2,'0')}:00` : `${String(eHH).padStart(2,'0')}:30`;
-        return eFranjaBase === franjaBase;
+        const eParts = (e.fechaIni.split('T')[1]||'00:00').split(':');
+        const eHH = parseInt(eParts[0]); const eMM = parseInt(eParts[1]);
+        const eFranja = eMM < 30 ? `${String(eHH).padStart(2,'0')}:00` : `${String(eHH).padStart(2,'0')}:30`;
+        return eFranja === franjaBase;
       }).length;
-      if(entregasEnFranja >= 2) return { slot, libres: 0, sI, sF }; // franja llena
-      return { slot, libres, sI, sF };
+      // franjaLlena = aviso visual, NO bloquea la reserva
+      return { slot, libres, sI, sF, franjaLlena: entregasEnFranja >= 2 };
     }).filter(x => x.libres > 0);
 
     if(slotsConLibres.length === 0) return;
@@ -2509,20 +2510,30 @@ function buscarDisponibilidadRapida(){
     const cochesVeh = STATE.vehiculos.filter(v => cochesLibresSet.has(v.mat));
 
     // Slot buttons
-    // Solo mostrar "último" si hay slots con más de 1 libre (para dar contexto)
-    // Si todos los slots tienen el mismo nº de coches, no es útil el aviso
     const todosUltimo = slotsConLibres.every(x => x.libres === 1);
-    const slotsExpandido = slotsConLibres.map(({slot, libres}) => {
-      const ultimo = !todosUltimo && libres === 1; // solo marcar si hay slots con más
+    const slotsExpandido = slotsConLibres.map(({slot, libres, franjaLlena}) => {
+      const ultimo = !todosUltimo && libres === 1;
+      // Color y aviso según estado
+      let bkg, bdr, label;
+      if(franjaLlena){
+        bkg='rgba(220,50,50,.2)'; bdr='rgba(220,50,50,.5)';
+        label=slot+' ⚠';
+      }else if(ultimo){
+        bkg='rgba(243,156,18,.2)'; bdr='rgba(243,156,18,.6)';
+        label=slot+' · último';
+      }else{
+        bkg='rgba(255,255,255,.15)'; bdr='rgba(255,255,255,.3)';
+        label=slot;
+      }
       return `<button onclick="seleccionarHoraCat('${cat}','${slot}')"
+        title="${franjaLlena?'Franja operativa llena (2 entregas) — puedes reservar igualmente':''}"
         style="padding:8px 12px;border-radius:8px;
-        border:1.5px solid ${ultimo?'rgba(243,156,18,.6)':'rgba(255,255,255,.3)'};
-        background:${ultimo?'rgba(243,156,18,.2)':'rgba(255,255,255,.15)'};
+        border:1.5px solid ${bdr};background:${bkg};
         color:#fff;font-size:13px;font-weight:800;cursor:pointer;
         font-family:'DM Mono',monospace;transition:all .15s;"
         onmouseover="this.style.background='rgba(255,255,255,.3)'"
-        onmouseout="this.style.background='${ultimo?'rgba(243,156,18,.2)':'rgba(255,255,255,.15)'}'">
-        ${slot}${ultimo?' · último':''}
+        onmouseout="this.style.background='${bkg}'">
+        ${label}
       </button>`;
     }).join('');
 
