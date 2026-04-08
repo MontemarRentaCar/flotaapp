@@ -800,28 +800,15 @@ html,body {
 }
 
 /* ── MODOS DE VISTA ──────────────────────────────── */
-[data-view="tv"] {
-  font-size: 20px !important;
-}
-[data-view="tv"] .app-shell { max-width: 100%; }
-[data-view="tv"] .evento-card { padding: 0; margin-bottom: 14px; }
-[data-view="tv"] .ev-hora-big { font-size: 28px !important; }
-[data-view="tv"] .ev-mat { font-size: 22px !important; }
-[data-view="tv"] .nav-btn { font-size: 16px; padding: 10px 6px; }
-[data-view="tv"] .nav-btn svg { width: 28px; height: 28px; }
-[data-view="tv"] .card { padding: 20px; }
-[data-view="tv"] label { font-size: 16px; }
-[data-view="tv"] input, [data-view="tv"] select { font-size: 18px !important; padding: 14px !important; }
-[data-view="tv"] .btn { font-size: 17px; padding: 15px 20px; }
-[data-view="tv"] .badge { font-size: 14px; padding: 6px 14px; }
-[data-view="tv"] .page-title { font-size: 26px; }
-[data-view="tv"] .day-header { font-size: 16px; }
-
+/* iPhone 17 Pro Max: 430px lógicos */
 [data-view="mobile"] .app-shell { max-width: 430px; }
 
-[data-view="desktop"] .app-shell { max-width: 900px; }
+/* HP Pavilion All-in-One: 1920px — layout de dos columnas */
+[data-view="desktop"] .app-shell { max-width: 960px; }
 [data-view="desktop"] #screen-nuevo .card { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 [data-view="desktop"] #disp-rapido-cats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+[data-view="desktop"] .page-title { font-size: 24px; }
+[data-view="desktop"] .evento-card { margin-bottom: 12px; }
 
 /* ── DESKTOP ── */
 @media (min-width:960px) {
@@ -1061,7 +1048,7 @@ html,body {
       <span id="fb-dot" title="Firebase" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block;margin-right:2px;transition:background .5s;" title="Sin conexión"></span>
       <span id="clock">--:--</span>
       <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
-      <button class="theme-btn" onclick="toggleViewMode()" id="view-btn" title="Cambiar vista">📱</button>
+      <button class="theme-btn" onclick="toggleViewMode()" id="view-btn" title="Cambiar vista: Móvil / PC">📱</button>
     </div>
   </div>
 
@@ -1357,8 +1344,8 @@ try{
 
 // ── THEME ─────────────────────────────────────────────────────────────────
 // Vista: mobile | desktop | tv
-const VIEW_MODES=['mobile','desktop','tv'];
-const VIEW_ICONS={'mobile':'📱','desktop':'🖥️','tv':'📺'};
+const VIEW_MODES=['mobile','desktop'];
+const VIEW_ICONS={'mobile':'📱','desktop':'🖥️'};
 let currentView=localStorage.getItem('flotaapp_view')||'mobile';
 function applyView(v){
   document.documentElement.setAttribute('data-view',v);
@@ -1370,7 +1357,7 @@ function toggleViewMode(){
   const idx=VIEW_MODES.indexOf(currentView);
   currentView=VIEW_MODES[(idx+1)%VIEW_MODES.length];
   applyView(currentView);
-  showToast('Vista: '+currentView.toUpperCase(),'success');
+  showToast(currentView==='mobile'?'📱 Modo iPhone':'🖥️ Modo PC','success');
 }
 
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);document.getElementById('theme-btn').textContent=t==='dark'?'☀️':'🌙';}
@@ -2042,7 +2029,8 @@ function openEvento(id){
     completarHTML=`<div class="completar-banner">✓ Recogida completada — coche disponible</div><div class="modal-row"><span class="modal-key">📍 Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">Editar</button></span></div>`;
   }else if(ev.estado==='Activo'){
     completarHTML=`<div class="completar-banner" style="background:var(--accent-bg);border-color:var(--accent-lt);color:var(--accent);">🚗 Entregado — pendiente de recogida</div>
-    <button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px">✓ Confirmar recogida</button>`;
+    <button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px">✓ Confirmar recogida</button>
+    <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;width:100%;margin-bottom:6px;" onclick="deshacerEntrega('${id}')">↩ Deshacer entrega — volver a Pendiente</button>`;
   }else{
     if(esEntrega){
       completarHTML=`<button class="btn btn-complete" onclick="completarEntrega('${id}')" style="margin-bottom:10px;background:var(--accent);">🚗 Confirmar entrega al cliente</button>`;
@@ -2113,7 +2101,11 @@ function openEvento(id){
 
 function completarEntrega(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
-  ev.estado='Activo'; // entregado al cliente, sigue en alquiler
+  const{ini}=eventoRange(ev);
+  const quien=ev.matricula||('Cat.'+ev.cat);
+  const lugar=ev.lugar?'\n📍 '+ev.lugar:'';
+  if(!confirm('¿Confirmar entrega al cliente?\n\n'+quien+lugar+'\n\n✅ El coche quedará como "En ruta".'))return;
+  ev.estado='Activo';
   saveState();closeModal();renderAgenda();showToast('Entrega confirmada 🚗','success');
 }
 function completarRecogida(id){
@@ -2121,6 +2113,18 @@ function completarRecogida(id){
   ev.estado='Cerrado'; // devuelto, coche libre
   if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
   saveState();closeModal();renderAgenda();showToast('Recogida completada ✓','success');
+}
+function deshacerEntrega(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  const quien=ev.matricula||('Cat.'+ev.cat);
+  if(!confirm('¿Deshacer la entrega de '+quien+'?\n\nVolverá a aparecer en ENTREGAS como Pendiente.'))return;
+  ev.estado='Pendiente';
+  // El coche vuelve a estar reservado (no libre)
+  if(ev.matricula){
+    const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+    if(v&&v.estado!=='Taller'&&v.estado!=='Alq. L/T') v.estado='En alquiler';
+  }
+  saveState();closeModal();renderAgenda();showToast('Entrega deshecha — vuelve a Pendiente','info');
 }
 // Mantener compatibilidad por si acaso
 function completarEvento(id){completarRecogida(id);}
