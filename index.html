@@ -1325,7 +1325,12 @@ try{
     const fbDot=document.getElementById('fb-dot');
     if(fbDot){fbDot.style.background='#22c55e';fbDot.title='Firebase conectado';}
     const data=snap.val();
-    if(data){STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=data.eventos||[];STATE.corchoLimpio=data.corchoLimpio||{};}
+    if(data){
+      const eventosFirebase=data.eventos||[];
+      if(!_notifInicializado) _inicializarDetectorFirebase(eventosFirebase);
+      else _detectarNuevasReservasFirebase(eventosFirebase);
+      STATE.vehiculos=data.vehiculos||VEHICULOS_INIT;STATE.eventos=eventosFirebase;STATE.corchoLimpio=data.corchoLimpio||{};
+    }
     else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[],corchoLimpio:{}});}
     // Sincronizar estado de vehículos automáticamente basado en eventos
     sincronizarEstadoVehiculos();
@@ -1341,6 +1346,63 @@ try{
 }catch(e){
   console.warn('Firebase no disponible:',e);
 }
+
+// ── NOTIFICACIONES ────────────────────────────────────────────────────────
+let _notifPermiso=Notification.permission;
+let _eventosConocidos=new Set(); // IDs ya vistos, para detectar reservas de otros dispositivos
+let _notifInicializado=false;
+
+function pedirPermisoNotif(){
+  if(!('Notification' in window))return;
+  if(Notification.permission==='default'){
+    Notification.requestPermission().then(p=>{
+      _notifPermiso=p;
+      if(p==='granted') showToast('🔔 Notificaciones activadas','success');
+    });
+  }
+}
+
+function notifReserva(ev, origen='local'){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  const{ini,fin}=eventoRange(ev);
+  const quien=ev.matricula||'Cat. '+ev.cat;
+  const fechaStr=ini.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});
+  const horaStr=ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  const titulo=origen==='local'?'✅ Reserva creada':'🔔 Nueva reserva';
+  const cuerpo=`${quien} · ${ev.dias} día${ev.dias>1?'s':''}\n${fechaStr} a las ${horaStr}${ev.lugar?' · '+ev.lugar:''}`;
+  try{
+    new Notification(titulo,{
+      body:cuerpo,
+      icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230d1b35"/><text x="32" y="44" font-size="36" text-anchor="middle">🚗</text></svg>',
+      badge:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230d1b35"/><text x="32" y="44" font-size="36" text-anchor="middle">🚗</text></svg>',
+      tag:'reserva-'+ev.id,
+      renotify:false
+    });
+  }catch(e){console.warn('Notif error:',e);}
+}
+
+// Detectar reservas creadas desde OTRO dispositivo via Firebase
+function _inicializarDetectorFirebase(eventosActuales){
+  if(_notifInicializado) return;
+  _notifInicializado=true;
+  // Cargar IDs ya conocidos (los que ya estaban al abrir la app)
+  (eventosActuales||[]).forEach(ev=>_eventosConocidos.add(String(ev.id)));
+}
+
+function _detectarNuevasReservasFirebase(eventosNuevos){
+  if(!_notifInicializado) return;
+  (eventosNuevos||[]).forEach(ev=>{
+    const id=String(ev.id);
+    if(!_eventosConocidos.has(id)){
+      _eventosConocidos.add(id);
+      // Solo notificar si NO fue creada por este mismo dispositivo (la local ya la disparó)
+      if(!_misReservasLocales.has(id)){
+        notifReserva(ev,'remota');
+      }
+    }
+  });
+}
+const _misReservasLocales=new Set(); // IDs creados en ESTE dispositivo
 
 // ── THEME ─────────────────────────────────────────────────────────────────
 // Vista: mobile | desktop | tv
@@ -1745,6 +1807,11 @@ function crearEvento(){
   if(conflicto){showToast('⚠️ Conflicto: '+conflicto,'error');return;}
   const ev={id:Date.now(),fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
   STATE.eventos.unshift(ev);
+  // Registrar como creada localmente y notificar
+  _misReservasLocales.add(String(ev.id));
+  _eventosConocidos.add(String(ev.id));
+  pedirPermisoNotif();
+  notifReserva(ev,'local');
   if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
   saveState();
   // Refrescar slots para reflejar la nueva reserva
