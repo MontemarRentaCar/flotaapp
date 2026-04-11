@@ -1901,7 +1901,8 @@ function renderAgenda(){
         const rec=STATE.eventos.find(e=>String(e.id)===String(ev.volverseConId));
         if(!rec)return '';
         const rFin=eventoRange(rec).fin;
-        return '<div style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--green);background:var(--green-bg);border:1px solid var(--green-lt);border-radius:6px;padding:3px 10px;margin-top:4px;">↩ '+rFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+(rec.lugar?' · '+rec.lugar:'')+'</div>';
+        const rMat=rec.matricula?rec.matricula:('Cat.'+rec.cat);
+        return '<div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--green);background:var(--green-bg);border:1px solid var(--green-lt);border-radius:6px;padding:3px 10px;margin-top:4px;">↩ '+'<span style="font-family:\'DM Mono\',monospace;font-weight:900;">'+rMat+'</span>'+'<span style="opacity:.7;">·</span>'+rFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})+(rec.lugar?' · '+rec.lugar:'')+'</div>';
       })();
       return`<div class="evento-card" onclick="openEvento('${ev.id}')" style="border-left:4px solid var(--amber);padding:0;overflow:hidden;">
         <div style="display:flex;align-items:stretch;">
@@ -2080,7 +2081,8 @@ function openEvento(id){
       const rec=STATE.eventos.find(e=>String(e.id)===String(ev.volverseConId));
       if(!rec)return '';
       const{fin:recFin}=eventoRange(rec);
-      return `<div class="modal-row"><span class="modal-key">↩ Volverse con</span><span class="modal-val" style="color:var(--green);font-weight:700">${recFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})} · ${rec.lugar||rec.matricula||'Recogida'} <button onclick="quitarVolverseCon('${id}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:4px;">✕</button></span></div>`;
+      const rMatModal=rec.matricula?rec.matricula:('Cat.'+rec.cat);
+      return `<div class="modal-row"><span class="modal-key">↩ Volverse con</span><span class="modal-val" style="color:var(--green);font-weight:700;display:flex;align-items:center;gap:6px;"><span style="font-family:'DM Mono',monospace;font-weight:900;">${rMatModal}</span><span style="opacity:.6;">·</span>${recFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}${rec.lugar?' · '+rec.lugar:''} <button onclick="quitarVolverseCon('${id}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:4px;">✕</button></span></div>`;
     })()} 
     ${ev.lugar?`<div class="modal-row"><span class="modal-key">Lugar</span><span class="modal-val">${ev.lugar}</span></div>`:''}
     ${ev.info ?`<div class="modal-row"><span class="modal-key">Info</span><span class="modal-val">${ev.info}</span></div>`:''}
