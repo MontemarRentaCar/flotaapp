@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
 /* ── MONTEMAR CORPORATE BLUE THEME ── */
 :root {
@@ -1036,9 +1037,71 @@ html,body {
   0%,100%{opacity:.4} 50%{opacity:.8}
 }
 
+/* ── LOGIN SCREEN ── */
+#login-overlay {
+  position:fixed;inset:0;z-index:9999;
+  background:var(--navy-950,#050d1a);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .4s ease;
+}
+#login-overlay.hidden { opacity:0; pointer-events:none; }
+#login-box {
+  background:var(--surface,#fff);
+  border-radius:20px;
+  padding:40px 36px 36px;
+  width:min(380px,90vw);
+  box-shadow:0 24px 64px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;gap:18px;
+  text-align:center;
+}
+#login-box .lb-logo {
+  font-size:1.7rem;font-weight:900;
+  background:linear-gradient(135deg,#d4a730,#f0c84a);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.5px;
+}
+#login-box .lb-sub {
+  font-size:.85rem;color:var(--text2,#1a2e50);margin-top:-10px;
+}
+#login-box input {
+  width:100%;box-sizing:border-box;
+  padding:12px 14px;border-radius:10px;
+  border:1.5px solid var(--border,#c8d8ec);
+  font-size:.95rem;background:var(--bg2,#edf2f9);
+  color:var(--text,#060d1c);outline:none;
+  transition:border-color .2s;
+}
+#login-box input:focus { border-color:var(--accent,#2563eb); }
+#login-btn {
+  padding:13px;border-radius:12px;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#fff;font-weight:700;font-size:1rem;
+  border:none;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+#login-btn:hover { transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.4); }
+#login-btn:disabled { opacity:.6;cursor:not-allowed;transform:none; }
+#login-error {
+  font-size:.82rem;color:#e05858;
+  min-height:18px;margin-top:-8px;
+}
+
 </style>
 </head>
 <body>
+
+<!-- ── LOGIN OVERLAY ────────────────────────────────────────────────────── -->
+<div id="login-overlay">
+  <div id="login-box">
+    <div class="lb-logo">🚗 FlotaApp</div>
+    <div class="lb-sub">Montemar Rent a Car</div>
+    <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="email">
+    <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password">
+    <button id="login-btn" onclick="doLogin()">Entrar</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
 <div id="app">
   <div id="topbar">
     <div class="logo-wrap">
@@ -1262,6 +1325,7 @@ const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponibl
 let STATE={vehiculos:VEHICULOS_INIT,eventos:[],corchoLimpio:{},theme:localStorage.getItem('flotaapp_theme')||'light'};
 let firebaseReady=false;
 let db=null;
+let auth=null;
 
 let _saveTimer=null;
 function saveState(){
@@ -1300,17 +1364,70 @@ function refreshUI(){
   _updateReservaBadge();
 }
 
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-error');
+  if(!email||!pass){err.textContent='Introduce email y contraseña.';return;}
+  btn.disabled=true;btn.textContent='Entrando…';err.textContent='';
+  auth.signInWithEmailAndPassword(email,pass)
+    .catch(e=>{
+      btn.disabled=false;btn.textContent='Entrar';
+      const msg={
+        'auth/wrong-password':'Contraseña incorrecta.',
+        'auth/user-not-found':'Usuario no encontrado.',
+        'auth/invalid-email':'Email inválido.',
+        'auth/too-many-requests':'Demasiados intentos. Espera un momento.'
+      };
+      err.textContent=msg[e.code]||'Error al iniciar sesión.';
+    });
+}
+
+// Enter key en los campos de login
+document.addEventListener('DOMContentLoaded',()=>{
+  ['login-email','login-pass'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  });
+});
+
 // Intentar cargar backup local inmediatamente
 try{
   const backup=localStorage.getItem('flotaapp_backup');
   if(backup){const d=JSON.parse(backup);STATE.vehiculos=d.vehiculos||VEHICULOS_INIT;STATE.eventos=d.eventos||[];STATE.corchoLimpio=d.corchoLimpio||{};}
 }catch(e){}
 
-// Conectar Firebase con timeout
+// Conectar Firebase con Auth + timeout
 try{
   firebase.initializeApp({databaseURL:"https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app"});
   db=firebase.database();
+  auth=firebase.auth();
 
+  // Persistencia de sesión: el usuario no necesita hacer login cada vez
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+  // Escuchar cambios de autenticación
+  auth.onAuthStateChanged(user=>{
+    const overlay=document.getElementById('login-overlay');
+    if(user){
+      // Usuario autenticado: ocultar login y arrancar Firebase
+      if(overlay){overlay.classList.add('hidden');setTimeout(()=>{overlay.style.display='none';},400);}
+      _arrancarFirebase();
+    } else {
+      // No autenticado: mostrar login
+      if(overlay){overlay.style.display='flex';overlay.classList.remove('hidden');}
+      const fbDot=document.getElementById('fb-dot');
+      if(fbDot){fbDot.style.background='#888';fbDot.title='No autenticado';}
+    }
+  });
+
+}catch(e){
+  console.warn('Firebase no disponible:',e);
+}
+
+function _arrancarFirebase(){
   // Timeout: si Firebase no responde en 6 segundos, continuar con datos locales
   const fbTimeout=setTimeout(()=>{
     if(!firebaseReady){
@@ -1343,8 +1460,6 @@ try{
     if(fbDotE){fbDotE.style.background='var(--red)';fbDotE.title='Sin conexión';}
     showToast('Error de conexión — datos locales','info');
   });
-}catch(e){
-  console.warn('Firebase no disponible:',e);
 }
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────────────
