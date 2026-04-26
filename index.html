@@ -1372,16 +1372,25 @@ function doLogin(){
   const err=document.getElementById('login-error');
   if(!email||!pass){err.textContent='Introduce email y contraseña.';return;}
   btn.disabled=true;btn.textContent='Entrando…';err.textContent='';
+  // Timeout de seguridad: si en 10s no responde, resetear botón
+  const loginTimeout=setTimeout(()=>{
+    btn.disabled=false;btn.textContent='Entrar';
+    err.textContent='Tiempo de espera agotado. Comprueba tu conexión.';
+  },10000);
   auth.signInWithEmailAndPassword(email,pass)
+    .then(()=>{ clearTimeout(loginTimeout); /* onAuthStateChanged se encarga del resto */ })
     .catch(e=>{
+      clearTimeout(loginTimeout);
       btn.disabled=false;btn.textContent='Entrar';
       const msg={
         'auth/wrong-password':'Contraseña incorrecta.',
         'auth/user-not-found':'Usuario no encontrado.',
         'auth/invalid-email':'Email inválido.',
-        'auth/too-many-requests':'Demasiados intentos. Espera un momento.'
+        'auth/invalid-credential':'Email o contraseña incorrectos.',
+        'auth/too-many-requests':'Demasiados intentos. Espera un momento.',
+        'auth/network-request-failed':'Sin conexión a internet.'
       };
-      err.textContent=msg[e.code]||'Error al iniciar sesión.';
+      err.textContent=msg[e.code]||'Error al iniciar sesión. ('+e.code+')';
     });
 }
 
@@ -1405,22 +1414,38 @@ try{
   db=firebase.database();
   auth=firebase.auth();
 
-  // Persistencia de sesión: el usuario no necesita hacer login cada vez
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
-  // Escuchar cambios de autenticación
-  auth.onAuthStateChanged(user=>{
-    const overlay=document.getElementById('login-overlay');
-    if(user){
-      // Usuario autenticado: ocultar login y arrancar Firebase
-      if(overlay){overlay.classList.add('hidden');setTimeout(()=>{overlay.style.display='none';},400);}
-      _arrancarFirebase();
-    } else {
-      // No autenticado: mostrar login
-      if(overlay){overlay.style.display='flex';overlay.classList.remove('hidden');}
-      const fbDot=document.getElementById('fb-dot');
-      if(fbDot){fbDot.style.background='#888';fbDot.title='No autenticado';}
-    }
+  // Persistencia de sesión + arrancar auth una vez configurada
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(()=>{
+    // Escuchar cambios de autenticación (solo tras configurar persistencia)
+    auth.onAuthStateChanged(user=>{
+      const overlay=document.getElementById('login-overlay');
+      if(user){
+        // Usuario autenticado: ocultar login y arrancar Firebase
+        if(overlay){overlay.classList.add('hidden');setTimeout(()=>{overlay.style.display='none';},400);}
+        _arrancarFirebase();
+      } else {
+        // No autenticado: mostrar login, resetear botón por si venía de doLogin
+        if(overlay){overlay.style.display='flex';overlay.classList.remove('hidden');}
+        const btn=document.getElementById('login-btn');
+        if(btn){btn.disabled=false;btn.textContent='Entrar';}
+        const fbDot=document.getElementById('fb-dot');
+        if(fbDot){fbDot.style.background='#888';fbDot.title='No autenticado';}
+      }
+    });
+  }).catch(e=>{
+    console.warn('setPersistence error:',e);
+    // Fallback: arrancar auth igualmente sin persistencia configurada
+    auth.onAuthStateChanged(user=>{
+      const overlay=document.getElementById('login-overlay');
+      if(user){
+        if(overlay){overlay.classList.add('hidden');setTimeout(()=>{overlay.style.display='none';},400);}
+        _arrancarFirebase();
+      } else {
+        if(overlay){overlay.style.display='flex';overlay.classList.remove('hidden');}
+        const btn=document.getElementById('login-btn');
+        if(btn){btn.disabled=false;btn.textContent='Entrar';}
+      }
+    });
   });
 
 }catch(e){
