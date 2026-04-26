@@ -1410,7 +1410,15 @@ try{
 
 // Conectar Firebase con Auth + timeout
 try{
-  firebase.initializeApp({databaseURL:"https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app"});
+  firebase.initializeApp({
+    apiKey: "AIzaSyAU97M-_dLZRGUX7AxUTEJURwnITT7UgEg",
+    authDomain: "flotaapp-7451b.firebaseapp.com",
+    databaseURL: "https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "flotaapp-7451b",
+    storageBucket: "flotaapp-7451b.firebasestorage.app",
+    messagingSenderId: "504611917234",
+    appId: "1:504611917234:web:df36f118dd86d5509228ab"
+  });
   db=firebase.database();
   auth=firebase.auth();
 
