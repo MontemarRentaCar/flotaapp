@@ -790,6 +790,12 @@ input::placeholder, textarea::placeholder {
 .ev2.tipo-recogida .ev2-time { background:var(--blue-frost); }
 .ev2.tipo-recogida .ev2-time-val { color:var(--blue); }
 .ev2.tipo-recogida .ev2-time-lbl { color:var(--blue); }
+/* ITV */
+.ev2.tipo-itv { border-left:3px solid var(--purple); }
+.ev2.tipo-itv .ev2-time { background:var(--purple-bg); }
+.ev2.tipo-itv .ev2-time-val { color:var(--purple); }
+.ev2.tipo-itv .ev2-time-lbl { color:var(--purple); }
+.ev2-tag-itv { color:var(--purple); background:var(--purple-bg); border-color:var(--purple-lt); font-weight:800; letter-spacing:.04em; }
 
 /* ── FLOTA CARDS NEU ─────────────────────────────────────── */
 .veh2 {
@@ -1067,8 +1073,16 @@ input::placeholder, textarea::placeholder {
           </div>
           <!-- Grid matrículas (colapsado por defecto) -->
           <div id="avail-grid-form" style="display:none;margin-bottom:12px;"></div>
-          <div class="field"><label>Lugar de entrega</label><input type="text" id="nev-lugar" placeholder="Hotel, aeropuerto, dirección..."></div>
-          <div class="field"><label>Info</label><input type="text" id="nev-info" placeholder="Hab. 204, tel. 612 345 678..."></div>
+          <div class="field"><label>Lugar de entrega</label><input type="text" id="nev-lugar" placeholder="Hotel + habitación, apto + dirección, aeropuerto + nº vuelo..."></div>
+          <div class="field" style="display:none;" id="nev-devol-wrap">
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Lugar de devolución</span>
+              <button type="button" onclick="quitarLugarDevolucion()" style="background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.04em;">Quitar</button>
+            </label>
+            <input type="text" id="nev-lugar-devol" placeholder="Si difiere del lugar de entrega...">
+          </div>
+          <button type="button" id="btn-add-devol" onclick="mostrarLugarDevolucion()" style="background:none;border:1.5px dashed var(--border);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;width:100%;margin-bottom:10px;">+ Lugar de devolución diferente</button>
+          <div class="field"><label>Info cliente</label><input type="text" id="nev-info" placeholder="Nombre y teléfono del cliente..."></div>
           <div class="field"><label>Extras</label><input type="text" id="nev-extras" placeholder="GPS, silla bebé..."></div>
           <input type="hidden" id="nev-mat-sel">
           <input type="hidden" id="nev-cat-sel">
@@ -1442,7 +1456,13 @@ function notifReserva(ev, origen='local'){
   const quien=ev.matricula||'Cat. '+ev.cat;
   const fechaStr=ini.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});
   const horaStr=ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-  const titulo=origen==='local'?'Reserva creada':'Nueva reserva';
+  const esITV=ev.tipoEvento==='ITV';
+  let titulo;
+  if(esITV){
+    titulo=origen==='local'?'ITV programada':'Nueva ITV';
+  }else{
+    titulo=origen==='local'?'Reserva creada':'Nueva reserva';
+  }
   const cuerpo=`${quien} · ${ev.dias} día${ev.dias>1?'s':''}\n${fechaStr} a las ${horaStr}${ev.lugar?' · '+ev.lugar:''}`;
   try{
     new Notification(titulo,{
@@ -1605,15 +1625,27 @@ function cocheDisponible(v, sI, sF){
 // Sincroniza el estado visual de los vehículos (solo para UI de Flota)
 // NO usar para calcular disponibilidad — usar cocheDisponible()
 function calcularEstadoVehiculo(mat){
-  // Devuelve: 'En alquiler' | 'Reservado' | 'Disponible'
+  // Devuelve: 'En alquiler' | 'Reservado' | 'Taller' | 'Disponible'
   const ahora=new Date();
   const eventos=STATE.eventos.filter(ev=>{
     if(ev.matricula!==mat) return false;
     if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
     return true;
   });
-  // En alquiler: tiene evento Activo, o Pendiente cuya entrega ya fue (buf > ahora)
+  // ITV en curso → Taller
+  const enITV=eventos.some(ev=>{
+    if(ev.tipoEvento!=='ITV') return false;
+    if(ev.estado==='Activo') return true;
+    if(ev.estado==='Pendiente'){
+      const{ini,buf}=eventoRange(ev);
+      return ini<=ahora && buf>ahora;
+    }
+    return false;
+  });
+  if(enITV) return 'Taller';
+  // En alquiler: tiene evento Activo (no ITV), o Pendiente cuya entrega ya fue (buf > ahora)
   const enAlquiler=eventos.some(ev=>{
+    if(ev.tipoEvento==='ITV') return false;
     if(ev.estado==='Activo') return true;
     if(ev.estado==='Pendiente'){
       const{ini,buf}=eventoRange(ev);
@@ -1622,7 +1654,7 @@ function calcularEstadoVehiculo(mat){
     return false;
   });
   if(enAlquiler) return 'En alquiler';
-  // Reservado: tiene evento Pendiente con fecha futura
+  // Reservado: tiene evento Pendiente con fecha futura (incluye ITV programada futura)
   const reservado=eventos.some(ev=>{
     if(ev.estado!=='Pendiente') return false;
     const{ini}=eventoRange(ev);
@@ -1633,8 +1665,25 @@ function calcularEstadoVehiculo(mat){
 }
 
 function sincronizarEstadoVehiculos(){
+  const ahora=new Date();
   STATE.vehiculos.forEach(v=>{
-    if(v.estado==='Taller'||v.estado==='Alq. L/T') return;
+    // Alq. L/T se mantiene siempre
+    if(v.estado==='Alq. L/T') return;
+    // Comprobar si tiene una ITV en curso
+    const tieneITVActiva=STATE.eventos.some(ev=>{
+      if(ev.matricula!==v.mat) return false;
+      if(ev.tipoEvento!=='ITV') return false;
+      if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
+      if(ev.estado==='Activo') return true;
+      if(ev.estado==='Pendiente'){
+        const{ini,buf}=eventoRange(ev);
+        return ini<=ahora && buf>ahora;
+      }
+      return false;
+    });
+    // Si está en Taller manual (sin ITV activa) → respetarlo
+    if(v.estado==='Taller' && !tieneITVActiva) return;
+    // Resto: recalcular
     v.estado=calcularEstadoVehiculo(v.mat);
   });
 }
@@ -1846,6 +1895,7 @@ function seleccionarCategoria(cat){
   document.getElementById('nev-lugar').value='';
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
+  resetLugarDevolucion();
   document.getElementById('form-nuevo').style.display='block';
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
@@ -1860,6 +1910,7 @@ function seleccionarSinCoche(){
   document.getElementById('nev-lugar').value='';
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
+  resetLugarDevolucion();
   document.getElementById('form-nuevo').style.display='block';
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
@@ -1872,9 +1923,29 @@ function seleccionarCoche(mat){
   document.getElementById('nev-lugar').value='';
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
+  resetLugarDevolucion();
   document.getElementById('form-nuevo').style.display='block';
   renderDispGrid();
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+function mostrarLugarDevolucion(){
+  const wrap=document.getElementById('nev-devol-wrap');
+  const btn=document.getElementById('btn-add-devol');
+  if(wrap)wrap.style.display='block';
+  if(btn)btn.style.display='none';
+  setTimeout(()=>{const el=document.getElementById('nev-lugar-devol');if(el)el.focus();},50);
+}
+function quitarLugarDevolucion(){
+  resetLugarDevolucion();
+}
+function resetLugarDevolucion(){
+  const wrap=document.getElementById('nev-devol-wrap');
+  const btn=document.getElementById('btn-add-devol');
+  const inp=document.getElementById('nev-lugar-devol');
+  if(inp)inp.value='';
+  if(wrap)wrap.style.display='none';
+  if(btn)btn.style.display='block';
 }
 
 function crearEvento(){
@@ -1884,6 +1955,8 @@ function crearEvento(){
   const mat=document.getElementById('nev-mat-sel').value;
   const cat=document.getElementById('nev-cat-sel').value;
   const lugar=document.getElementById('nev-lugar').value.trim();
+  const lugarDevolEl=document.getElementById('nev-lugar-devol');
+  const lugarDevol=lugarDevolEl?lugarDevolEl.value.trim():'';
   const info=document.getElementById('nev-info').value.trim();
   const extras=document.getElementById('nev-extras').value.trim();
   if(!fecha){showToast('Selecciona una fecha','error');return;}
@@ -1897,6 +1970,8 @@ function crearEvento(){
   // si dos dispositivos crean reservas en el mismo milisegundo.
   const evId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const ev={id:evId,fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
+  // Solo guardar lugarDevol si difiere y no está vacío
+  if(lugarDevol&&lugarDevol!==lugar)ev.lugarDevol=lugarDevol;
   STATE.eventos.unshift(ev);
   // Registrar como creada localmente y notificar
   _misReservasLocales.add(String(ev.id));
@@ -2044,9 +2119,27 @@ function renderAgenda(){
     const{ini,fin}=eventoRange(ev);
     const sc=ev.estado.toLowerCase();
     const isRec=agendaTab==='recogidas';
+    const esITV=ev.tipoEvento==='ITV';
     const hora=isRec
       ? fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
       : ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+
+    // ── TARJETA ITV ──────────────────────────────────────────────
+    if(esITV){
+      const lblTime=isRec?'↩ vuelta':'→ ITV';
+      return`<div class="ev2 tipo-itv" onclick="openEvento('${ev.id}')">
+        <div class="ev2-time"><div class="ev2-time-lbl">${lblTime}</div><div class="ev2-time-val">${hora}</div></div>
+        <div class="ev2-body">
+          <div class="ev2-lugar">${ev.lugar?esc(ev.lugar):'<span style="color:var(--muted);font-style:italic">ITV</span>'}</div>
+          ${ev.info?`<div class="ev2-info">${esc(ev.info)}</div>`:''}
+          <div class="ev2-tags">
+            <span class="ev2-tag ev2-tag-itv">ITV</span>
+            <span class="ev2-tag ev2-tag-mat">${esc(ev.matricula)||'Sin matrícula'}</span>
+            <span class="ev2-tag ev2-tag-dias">${ev.dias}d → ${fmtDate(fin)}</span>
+          </div>
+        </div>
+      </div>`;
+    }
 
     // ── TARJETA ENTREGA ──────────────────────────────────────────
     if(!isRec){
@@ -2080,10 +2173,11 @@ function renderAgenda(){
     const matTagRec=ev.matricula
       ?`<span class="ev2-tag ev2-tag-mat">${esc(ev.matricula)}</span>`
       :`<span class="ev2-tag ev2-tag-cat">Cat. ${esc(ev.cat)}</span>`;
+    const lugarRec=ev.lugarDevol||ev.lugar;
     return`<div class="ev2 tipo-recogida" onclick="openEvento('${ev.id}')">
       <div class="ev2-time"><div class="ev2-time-lbl">↓ recog.</div><div class="ev2-time-val">${hora}</div></div>
       <div class="ev2-body">
-        <div class="ev2-lugar">${ev.lugar?esc(ev.lugar):'<span style="color:var(--muted);font-style:italic">Sin lugar</span>'}</div>
+        <div class="ev2-lugar">${lugarRec?esc(lugarRec):'<span style="color:var(--muted);font-style:italic">Sin lugar</span>'}</div>
         <div class="ev2-tags">${matTagRec}</div>
       </div>
     </div>`;
@@ -2156,6 +2250,8 @@ function togglePasados(){
 
 function openEvento(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  // ── ITV: modal específico ──────────────────────────────────────
+  if(ev.tipoEvento==='ITV'){return openEventoITV(id);}
   const completado=ev.estado==='Cerrado'||ev.estado==='Activo';
   const esEntrega=agendaTab==='entregas';
 
@@ -2219,8 +2315,14 @@ function openEvento(id){
       const rMatModal=rec.matricula?rec.matricula:('Cat.'+rec.cat);
       return `<div class="modal-row"><span class="modal-key">Volverse con</span><span class="modal-val" style="color:var(--green);font-weight:700;display:flex;align-items:center;gap:6px;"><span style="font-family:monospace;font-weight:900;">${esc(rMatModal)}</span><span style="opacity:.6;">·</span>${recFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}${rec.lugar?' · '+esc(rec.lugar):''} <button onclick="quitarVolverseCon('${id}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:4px;">×</button></span></div>`;
     })()} 
-    ${ev.lugar?`<div class="modal-row"><span class="modal-key">Lugar</span><span class="modal-val">${esc(ev.lugar)}</span></div>`:''}
-    ${ev.info ?`<div class="modal-row"><span class="modal-key">Info</span><span class="modal-val">${esc(ev.info)}</span></div>`:''}
+    ${ev.lugar?`<div class="modal-row"><span class="modal-key">Lugar entrega</span><span class="modal-val">${esc(ev.lugar)}</span></div>`:''}
+    <div class="modal-row"><span class="modal-key">Lugar devolución</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span class="modal-val" style="${ev.lugarDevol?'color:var(--blue);font-weight:700':'color:var(--muted);font-style:italic'}">${ev.lugarDevol?esc(ev.lugarDevol):(ev.lugar?'Mismo que entrega':'—')}</span>
+        <button onclick="editarLugarDevolucion('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit">Editar</button>
+      </span>
+    </div>
+    ${ev.info ?`<div class="modal-row"><span class="modal-key">Info cliente</span><span class="modal-val">${esc(ev.info)}</span></div>`:''}
     ${ev.extras?`<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val">${esc(ev.extras)}</span></div>`:''}
     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
     ${completarHTML}
@@ -2245,6 +2347,127 @@ function completarEntrega(id){
   ev.estado='Activo';
   saveState();closeModal();renderAgenda();showToast('Entrega confirmada','success');
 }
+
+// ── MODAL ESPECÍFICO ITV ──────────────────────────────────────────────────
+function openEventoITV(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  const{ini,fin,buf}=eventoRange(ev);
+  let bannerHTML='';
+  let accionHTML='';
+  if(ev.estado==='Cerrado'){
+    bannerHTML=`<div class="completar-banner" style="background:var(--purple-bg);border-color:var(--purple-lt);color:var(--purple);">ITV completada — coche disponible</div>`;
+  }else if(ev.estado==='Activo'){
+    bannerHTML=`<div class="completar-banner" style="background:var(--purple-bg);border-color:var(--purple-lt);color:var(--purple);">Coche en la ITV</div>`;
+    accionHTML=`<button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px;background:var(--purple);">Marcar ITV completada</button>
+    <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;width:100%;margin-bottom:6px;" onclick="deshacerEntrega('${id}')">Volver a Pendiente</button>`;
+  }else{
+    accionHTML=`<button class="btn btn-complete" onclick="completarEntregaITV('${id}')" style="margin-bottom:10px;background:var(--purple);">Marcar coche llevado a ITV</button>`;
+  }
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--purple-bg);color:var(--purple);font-size:13px;font-weight:900;">ITV</span>
+      ${ev.estado==='Cerrado'?'ITV completada':ev.estado==='Activo'?'En la ITV':'ITV programada'} · ${esc(ev.matricula)}
+    </div>
+    <div class="modal-row"><span class="modal-key">Matrícula</span><span class="modal-val" style="font-family:monospace;font-weight:700;">${esc(ev.matricula)}</span></div>
+    <div class="modal-row"><span class="modal-key">Categoría</span><span class="modal-val">Cat. ${esc(ev.cat)}</span></div>
+    <div class="modal-row"><span class="modal-key">Inicio</span><span class="modal-val">${fmtDT(ini)}</span></div>
+    <div class="modal-row"><span class="modal-key">Días</span><span class="modal-val">${ev.dias} día${ev.dias>1?'s':''}</span></div>
+    <div class="modal-row"><span class="modal-key">Fin</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span class="modal-val" style="${ev.devolucionCustom?'color:var(--amber);font-weight:700':''}">${fmtDT(fin)}${ev.devolucionCustom?' ✎':''}</span>
+        <button onclick="editarDevolucion('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit">Editar</button>
+      </span>
+    </div>
+    <div class="modal-row"><span class="modal-key">Disponible desde</span><span class="modal-val" style="color:var(--green);font-weight:700">${fmtDT(buf)}</span></div>
+    ${ev.lugar?`<div class="modal-row"><span class="modal-key">Estación</span><span class="modal-val">${esc(ev.lugar)}</span></div>`:''}
+    ${ev.info?`<div class="modal-row"><span class="modal-key">Notas</span><span class="modal-val">${esc(ev.info)}</span></div>`:''}
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+    ${bannerHTML}
+    ${accionHTML}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
+      <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;" onclick="prolongarEvento('${id}')">Prolongar</button>
+      <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);font-weight:700;" onclick="editarITV('${id}')">Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="eliminarEvento('${id}')">Borrar</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function completarEntregaITV(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  if(!confirm('¿Confirmar que '+ev.matricula+' ha sido llevado a la ITV?'))return;
+  ev.estado='Activo';
+  saveState();closeModal();renderAgenda();showToast('Coche en ITV','success');
+}
+
+function editarITV(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev||ev.tipoEvento!=='ITV')return;
+  const fp=ev.fechaIni.split('T')[0];
+  const hp=ev.fechaIni.split('T')[1]||'09:00';
+  const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:15px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--purple-bg);color:var(--purple);font-size:14px;font-weight:900;">ITV</span>
+      Editar ITV
+    </div>
+    <div style="background:var(--purple-bg);border:1px solid var(--purple-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:800;color:var(--text);font-family:monospace;letter-spacing:.03em;">${esc(ev.matricula)}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Cat. ${esc(ev.cat)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Fecha</div>
+        <input type="date" id="itv-edit-fecha" value="${fp}" style="${inputStyle}">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Hora</div>
+          <input type="time" id="itv-edit-hora" value="${hp.slice(0,5)}" style="${inputStyle}">
+        </div>
+        <div style="width:100px;">
+          <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Días</div>
+          <input type="number" id="itv-edit-dias" value="${ev.dias}" min="1" max="10" style="${inputStyle}">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Estación / Lugar</div>
+        <input type="text" id="itv-edit-lugar" value="${esc(ev.lugar||'')}" style="${inputStyle}">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Notas</div>
+        <input type="text" id="itv-edit-info" value="${esc(ev.info||'')}" style="${inputStyle}">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')" style="flex:1;">Cancelar</button>
+        <button class="btn btn-sm" style="flex:1;background:var(--purple);color:#fff;border:1.5px solid var(--purple);font-weight:800;" onclick="guardarEdicionITV('${id}')">Guardar</button>
+      </div>
+    </div>`;
+}
+
+function guardarEdicionITV(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev||ev.tipoEvento!=='ITV')return;
+  const fecha=document.getElementById('itv-edit-fecha').value;
+  const hora=document.getElementById('itv-edit-hora').value||'09:00';
+  const dias=parseInt(document.getElementById('itv-edit-dias').value)||1;
+  const lugar=document.getElementById('itv-edit-lugar').value.trim();
+  const info=document.getElementById('itv-edit-info').value.trim();
+  if(!fecha){showToast('Selecciona una fecha','error');return;}
+  if(dias<1){showToast('Mínimo 1 día','error');return;}
+  // Validar conflicto excluyendo este evento
+  const conflicto=validarConflicto(ev.matricula,ev.cat,fecha+'T'+hora,dias,id);
+  if(conflicto){showToast('Conflicto: '+conflicto,'error');return;}
+  ev.fechaIni=fecha+'T'+hora;
+  ev.dias=dias;
+  ev.lugar=lugar||'ITV';
+  ev.info=info;
+  // Si se edita la fecha/dias, invalidamos devolución custom anterior
+  if(ev.devolucionCustom)delete ev.devolucionCustom;
+  saveState();
+  showToast('ITV actualizada','success');
+  openEvento(id);
+  renderAgenda();
+}
+
 function completarRecogida(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Cerrado'; // devuelto, coche libre
@@ -2335,8 +2558,9 @@ function editarEvento(id){
         ${matOpts}
       </select>
     </div>
-    <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel, aeropuerto..." style="${inputStyle}"></div>
-    <div class="field"><label>Info</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Hab. 204, tel..." style="${inputStyle}"></div>
+    <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel + hab., apto + dirección, aeropuerto + vuelo..." style="${inputStyle}"></div>
+    <div class="field"><label>Lugar de devolución <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional)</span></label><input type="text" id="edit-lugar-devol" value="${ev.lugarDevol||''}" placeholder="Si difiere del lugar de entrega..." style="${inputStyle}"></div>
+    <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Nombre y teléfono..." style="${inputStyle}"></div>
     <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${ev.extras||''}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
@@ -2361,6 +2585,8 @@ function guardarEdicion(id){
   const cat=document.getElementById('edit-cat').value;
   const mat=document.getElementById('edit-mat').value;
   const lugar=document.getElementById('edit-lugar').value.trim();
+  const lugarDevolEl=document.getElementById('edit-lugar-devol');
+  const lugarDevol=lugarDevolEl?lugarDevolEl.value.trim():'';
   const info=document.getElementById('edit-info').value.trim();
   const extras=document.getElementById('edit-extras').value.trim();
   if(!f||!h||!d){showToast('Rellena fecha, hora y días','error');return;}
@@ -2385,6 +2611,12 @@ function guardarEdicion(id){
   ev.cat=cat||ev.cat;
   ev.matricula=mat||'';
   ev.lugar=lugar;
+  // Solo guardar lugarDevol si difiere y no está vacío
+  if(lugarDevol&&lugarDevol!==lugar){
+    ev.lugarDevol=lugarDevol;
+  }else{
+    delete ev.lugarDevol;
+  }
   ev.info=info;
   ev.extras=extras;
   saveState();
@@ -2467,6 +2699,43 @@ function editarParkingEvento(id){
 }
 function guardarParkingEvento(id){const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;ev.parking=document.getElementById('parking-input').value.trim();saveState();showToast('Ubicación guardada','success');openEvento(id);renderAgenda();if(document.getElementById('corcho-overlay').style.display!=='none')renderCorcho();}
 
+// ── LUGAR DE DEVOLUCIÓN (puede diferir del de entrega) ────────────────────
+function editarLugarDevolucion(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  const valor=ev.lugarDevol||'';
+  const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:inherit;font-size:15px;outline:none;box-sizing:border-box;';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Lugar de devolución</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Lugar de entrega</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);">${ev.lugar?esc(ev.lugar):'<span style="color:var(--muted);font-style:italic">Sin lugar</span>'}</div>
+    </div>
+    <div class="field" style="margin-bottom:8px;">
+      <label>¿Dónde se devuelve el coche?</label>
+      <input type="text" id="lugar-devol-input" value="${esc(valor)}" placeholder="Aeropuerto, oficina, otro hotel..." style="${inputStyle}">
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-weight:500;margin-bottom:14px;line-height:1.4;">
+      Déjalo vacío si la devolución es en el mismo lugar que la entrega.
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarLugarDevolucion('${id}')">Guardar</button>
+    </div>`;
+}
+function guardarLugarDevolucion(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  const v=document.getElementById('lugar-devol-input').value.trim();
+  if(v&&v!==ev.lugar){
+    ev.lugarDevol=v;
+  }else{
+    delete ev.lugarDevol;
+  }
+  saveState();
+  showToast('Lugar de devolución actualizado','success');
+  openEvento(id);
+  renderAgenda();
+}
+
 // ── FLOTA ─────────────────────────────────────────────────────────────────
 let flotaCat='todos';
 function renderFlota(){
@@ -2522,8 +2791,16 @@ function openVehiculo(mat){
   const evs=STATE.eventos.filter(e=>e.matricula===mat).sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
   var ahora=new Date();
   var proxEv=evs.find(function(e){return e.estado==='Pendiente'||e.estado==='Activo';});
-  var proxHTML=proxEv?('<div style="background:var(--accent-bg);border:1px solid var(--accent-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;"><div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Próxima reserva</div><div style="font-size:14px;font-weight:700;color:var(--text);">'+fmtDT(eventoRange(proxEv).ini)+' · '+proxEv.dias+'d'+(proxEv.lugar?' · '+esc(proxEv.lugar):'')+'</div></div>'):'';
-  const evHTML=evs.length?evs.slice(0,5).map(function(ev){const rng=eventoRange(ev);const isPast=rng.fin<ahora;return'<div style="padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;opacity:'+(isPast?'.55':'1')+'" onclick="openEvento('+"'"+ev.id+"'"+')"><span style="font-size:13px;font-weight:600;cursor:pointer">'+fmtDate(rng.ini)+' → '+fmtDate(rng.fin)+(ev.lugar?' · '+esc(ev.lugar):'')+'</span><span class="badge badge-'+ev.estado.toLowerCase()+'">'+ev.estado+'</span></div>';}).join(''):'<p style="font-size:13px;color:var(--muted);padding:12px 0;font-weight:500">Sin eventos registrados</p>';
+  var proxHTML='';
+  if(proxEv){
+    var esITVProx=proxEv.tipoEvento==='ITV';
+    var lblProx=esITVProx?'Próxima ITV':'Próxima reserva';
+    var bgProx=esITVProx?'var(--purple-bg)':'var(--accent-bg)';
+    var brProx=esITVProx?'var(--purple-lt)':'var(--accent-lt)';
+    var clrProx=esITVProx?'var(--purple)':'var(--accent)';
+    proxHTML='<div style="background:'+bgProx+';border:1px solid '+brProx+';border-radius:10px;padding:10px 14px;margin-bottom:14px;"><div style="font-size:10px;font-weight:800;color:'+clrProx+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">'+lblProx+'</div><div style="font-size:14px;font-weight:700;color:var(--text);">'+fmtDT(eventoRange(proxEv).ini)+' · '+proxEv.dias+'d'+(proxEv.lugar?' · '+esc(proxEv.lugar):'')+'</div></div>';
+  }
+  const evHTML=evs.length?evs.slice(0,5).map(function(ev){const rng=eventoRange(ev);const isPast=rng.fin<ahora;const itvBadge=ev.tipoEvento==='ITV'?'<span style="font-size:9px;font-weight:900;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-lt);border-radius:4px;padding:1px 5px;margin-right:5px;letter-spacing:.04em;">ITV</span>':'';return'<div style="padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;opacity:'+(isPast?'.55':'1')+'" onclick="openEvento('+"'"+ev.id+"'"+')"><span style="font-size:13px;font-weight:600;cursor:pointer">'+itvBadge+fmtDate(rng.ini)+' → '+fmtDate(rng.fin)+(ev.lugar?' · '+esc(ev.lugar):'')+'</span><span class="badge badge-'+ev.estado.toLowerCase()+'">'+ev.estado+'</span></div>';}).join(''):'<p style="font-size:13px;color:var(--muted);padding:12px 0;font-weight:500">Sin eventos registrados</p>';
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;font-family:\'Inter\',sans-serif;outline:none;flex:1;';
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">${esc(mat)}</div>
@@ -2544,6 +2821,7 @@ function openVehiculo(mat){
     ${evHTML}
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
+      <button class="btn btn-sm" style="background:var(--purple-bg);color:var(--purple);border:1.5px solid var(--purple-lt);font-weight:800;" onclick="abrirNuevaITV('${esc(mat)}')">+ Crear ITV</button>
       <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;" onclick="eliminarMatricula('${esc(mat)}')">Eliminar matrícula</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
@@ -2552,6 +2830,93 @@ function guardarUbicacionVeh(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
   v.ubicacion=document.getElementById('veh-ubicacion').value.trim();
   saveState();showToast('Ubicación guardada','success');renderFlota();
+}
+
+// ── ITV ───────────────────────────────────────────────────────────────────
+function abrirNuevaITV(mat){
+  const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v){showToast('Matrícula no encontrada','error');return;}
+  const hoy=new Date();const yyyy=hoy.getFullYear();const mm=String(hoy.getMonth()+1).padStart(2,'0');const dd=String(hoy.getDate()).padStart(2,'0');
+  const fechaHoy=`${yyyy}-${mm}-${dd}`;
+  const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:15px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--purple-bg);color:var(--purple);font-size:14px;font-weight:900;">ITV</span>
+      Programar ITV
+    </div>
+    <div style="background:var(--purple-bg);border:1px solid var(--purple-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Vehículo</div>
+      <div style="font-size:15px;font-weight:800;color:var(--text);font-family:monospace;letter-spacing:.03em;">${esc(mat)}</div>
+      <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Cat. ${esc(v.cat)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Fecha</div>
+        <input type="date" id="itv-fecha" value="${fechaHoy}" style="${inputStyle}">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Hora</div>
+          <input type="time" id="itv-hora" value="09:00" style="${inputStyle}">
+        </div>
+        <div style="width:100px;">
+          <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Días</div>
+          <input type="number" id="itv-dias" value="1" min="1" max="10" style="${inputStyle}">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Estación / Lugar</div>
+        <input type="text" id="itv-lugar" placeholder="ITV Málaga, ITV Torremolinos..." style="${inputStyle}">
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Notas (opcional)</div>
+        <input type="text" id="itv-info" placeholder="Cita previa, nº de expediente..." style="${inputStyle}">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal()" style="flex:1;">Cancelar</button>
+        <button class="btn btn-sm" style="flex:1;background:var(--purple);color:#fff;border:1.5px solid var(--purple);font-weight:800;" onclick="guardarNuevaITV('${esc(mat)}')">Programar ITV</button>
+      </div>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>{const el=document.getElementById('itv-fecha');if(el)el.focus();},80);
+}
+
+function guardarNuevaITV(mat){
+  const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v){showToast('Matrícula no encontrada','error');return;}
+  const fecha=document.getElementById('itv-fecha').value;
+  const hora=document.getElementById('itv-hora').value||'09:00';
+  const dias=parseInt(document.getElementById('itv-dias').value)||1;
+  const lugar=document.getElementById('itv-lugar').value.trim();
+  const info=document.getElementById('itv-info').value.trim();
+  if(!fecha){showToast('Selecciona una fecha','error');return;}
+  if(dias<1){showToast('Mínimo 1 día','error');return;}
+  // Validar conflicto con otras reservas / ITVs sobre el mismo coche
+  const conflicto=validarConflicto(mat,v.cat,fecha+'T'+hora,dias);
+  if(conflicto){showToast('Conflicto: '+conflicto,'error');return;}
+  const evId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const ev={
+    id:evId,
+    fechaIni:fecha+'T'+hora,
+    dias,
+    cat:v.cat,
+    matricula:mat,
+    lugar:lugar||'ITV',
+    info,
+    extras:'',
+    estado:'Pendiente',
+    tipoEvento:'ITV'
+  };
+  STATE.eventos.unshift(ev);
+  _misReservasLocales.add(String(ev.id));
+  _eventosConocidos.add(String(ev.id));
+  pedirPermisoNotif();
+  notifReserva(ev,'local');
+  saveState();
+  closeModal();
+  showToast('ITV programada para '+mat,'success');
+  // Refrescar lo que esté visible
+  if(typeof renderFlota==='function')renderFlota();
+  if(typeof renderAgenda==='function')renderAgenda();
+  if(typeof actualizarSlots==='function')actualizarSlots();
 }
 // ── ALTA / BAJA DE MATRÍCULAS ─────────────────────────────────────────────
 function abrirNuevaMatricula(){
@@ -2906,6 +3271,7 @@ function seleccionarHoraCat(cat, hora){
   document.getElementById('nev-lugar').value='';
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
+  resetLugarDevolucion();
 
   // Resumen visible
   document.getElementById('resumen-sel').innerHTML=
@@ -3371,6 +3737,7 @@ function renderHistorial(){
   const cerrados=q?cerradosAll.filter(e=>
     (e.matricula||'').toLowerCase().includes(q)||
     (e.lugar||'').toLowerCase().includes(q)||
+    (e.lugarDevol||'').toLowerCase().includes(q)||
     (e.info||'').toLowerCase().includes(q)||
     (e.cat||'').toLowerCase().includes(q)
   ):cerradosAll;
