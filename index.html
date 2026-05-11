@@ -791,11 +791,11 @@ input::placeholder, textarea::placeholder {
 .ev2.tipo-recogida .ev2-time-val { color:var(--blue); }
 .ev2.tipo-recogida .ev2-time-lbl { color:var(--blue); }
 /* ITV */
-.ev2.tipo-itv { border-left:3px solid var(--purple); }
-.ev2.tipo-itv .ev2-time { background:var(--purple-bg); }
-.ev2.tipo-itv .ev2-time-val { color:var(--purple); }
-.ev2.tipo-itv .ev2-time-lbl { color:var(--purple); }
-.ev2-tag-itv { color:var(--purple); background:var(--purple-bg); border-color:var(--purple-lt); font-weight:800; letter-spacing:.04em; }
+.ev2.tipo-itv { border-left:3px solid var(--red); background:linear-gradient(90deg,rgba(192,48,42,.06) 0%,var(--neu-bg-white) 35%); }
+.ev2.tipo-itv .ev2-time { background:var(--red-bg); }
+.ev2.tipo-itv .ev2-time-val { color:var(--red); }
+.ev2.tipo-itv .ev2-time-lbl { color:var(--red); font-weight:900; }
+.ev2-tag-itv { color:#fff; background:var(--red); border-color:var(--red); font-weight:900; letter-spacing:.06em; }
 
 /* ── FLOTA CARDS NEU ─────────────────────────────────────── */
 .veh2 {
@@ -1030,9 +1030,39 @@ input::placeholder, textarea::placeholder {
           <input type="checkbox" id="modo-aero" onchange="toggleModoAero()" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
           Modo aeropuerto — hora libre fuera de horario
         </label>
+        <!-- Modo ITV -->
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);margin-top:6px;">
+          <input type="checkbox" id="modo-itv" onchange="toggleModoITV()" style="width:16px;height:16px;accent-color:var(--red);cursor:pointer;">
+          <span style="display:inline-flex;align-items:center;gap:6px;"><span style="background:var(--red);color:#fff;font-size:9px;font-weight:900;letter-spacing:.06em;padding:2px 6px;border-radius:4px;">ITV</span> Programar ITV en lugar de reserva</span>
+        </label>
         <!-- Input hora aeropuerto (oculto por defecto) -->
         <input type="time" id="disp-hora-aero" value="10:00" style="display:none;margin-top:10px;background:var(--accent-bg);border:2px solid var(--accent);border-radius:10px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:15px;font-weight:600;outline:none;width:100%;">
         <button id="btn-buscar-aero" onclick="buscarDisponibilidad()" style="display:none;margin-top:10px;width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--navy-500),var(--navy-400));color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;">Buscar disponibilidad</button>
+        <!-- Panel ITV (oculto por defecto) -->
+        <div id="panel-itv" style="display:none;margin-top:12px;background:var(--red-bg);border:2px solid var(--red);border-radius:12px;padding:14px;">
+          <div style="font-size:11px;font-weight:900;color:var(--red);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Programar ITV</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Hora</div>
+              <input type="time" id="itv-hora-libre" value="09:00" style="background:#fff;border:1.5px solid var(--red);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:15px;font-weight:700;outline:none;width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Matrícula</div>
+              <select id="itv-mat-libre" style="background:#fff;border:1.5px solid var(--red);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;outline:none;width:100%;box-sizing:border-box;">
+                <option value="">— Selecciona un vehículo —</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Estación / Lugar</div>
+              <input type="text" id="itv-lugar-libre" placeholder="ITV Málaga, ITV Torremolinos..." style="background:#fff;border:1.5px solid var(--red);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Notas (opcional)</div>
+              <input type="text" id="itv-info-libre" placeholder="Cita previa, nº expediente..." style="background:#fff;border:1.5px solid var(--red);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
+            </div>
+            <button onclick="guardarITVDesdeNueva()" style="margin-top:4px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--red);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.03em;">Programar ITV</button>
+          </div>
+        </div>
         <!-- Input oculto hora normal (para compatibilidad) -->
         <select id="disp-hora" style="display:none;">
           <option value="">—</option>
@@ -1229,7 +1259,7 @@ const CATS=["1","2","3","A","AXL","MB7","MB9"];
 const TARIFAS=[{cat:"1",nombre:"Fiat Panda or similar",precios:[50,95,135,170,205,235,265]},{cat:"2",nombre:"Seat Ibiza or similar",precios:[60,110,155,200,240,275,310]},{cat:"3",nombre:"Citroën C4 or similar",precios:[75,135,190,240,285,325,365]},{cat:"A/AXL",nombre:"Automáticos / AXL",precios:[80,140,195,245,295,340,380]},{cat:"MB7/MB9",nombre:"Minibus 7/9 plazas",precios:[130,250,360,460,560,655,745]}];
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────
-const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponible"}));
+const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponible",limpio:false}));
 let STATE={vehiculos:VEHICULOS_INIT,eventos:[],corchoLimpio:{},theme:localStorage.getItem('flotaapp_theme')||'light'};
 let firebaseReady=false;
 let db=null;
@@ -1824,8 +1854,12 @@ function renderDispGrid(){
       const ubi=veh?.ubicacion?`<div style="font-size:9.5px;font-weight:700;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${veh.ubicacion}</div>`:'';
       const dispClass=i.disp==='reservado'?'ocupado':i.disp;
       const dispLabel=i.disp==='libre'?'Libre':i.disp==='reservado'?'Reservado':i.disp==='ocupado'?'Ocupado':'Taller';
+      // Indicador de limpieza solo para coches libres
+      const limpiezaBadge=(i.disp==='libre'&&veh)
+        ? `<span style="display:inline-block;background:${veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${veh.limpio?'LIMPIO':'SUCIO'}</span>`
+        : '';
       return`<div class="avail-item ${dispClass} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
-        `<div class="avail-mat">${i.mat}</div>`+ubi+
+        `<div class="avail-mat">${i.mat}</div>`+ubi+limpiezaBadge+
         `<div class="avail-status">${dispLabel}</div></div>`;
     }).join('');
 
@@ -2127,13 +2161,13 @@ function renderAgenda(){
     // ── TARJETA ITV ──────────────────────────────────────────────
     if(esITV){
       const lblTime=isRec?'↩ vuelta':'→ ITV';
+      const lugarTxt=ev.lugar?esc(ev.lugar):'Estación ITV';
       return`<div class="ev2 tipo-itv" onclick="openEvento('${ev.id}')">
         <div class="ev2-time"><div class="ev2-time-lbl">${lblTime}</div><div class="ev2-time-val">${hora}</div></div>
         <div class="ev2-body">
-          <div class="ev2-lugar">${ev.lugar?esc(ev.lugar):'<span style="color:var(--muted);font-style:italic">ITV</span>'}</div>
+          <div class="ev2-lugar"><span style="color:var(--red);font-weight:900;letter-spacing:.04em;">ITV</span> · ${lugarTxt}</div>
           ${ev.info?`<div class="ev2-info">${esc(ev.info)}</div>`:''}
           <div class="ev2-tags">
-            <span class="ev2-tag ev2-tag-itv">ITV</span>
             <span class="ev2-tag ev2-tag-mat">${esc(ev.matricula)||'Sin matrícula'}</span>
             <span class="ev2-tag ev2-tag-dias">${ev.dias}d → ${fmtDate(fin)}</span>
           </div>
@@ -2345,6 +2379,11 @@ function completarEntrega(id){
   const lugar=ev.lugar?'\n'+ev.lugar:'';
   if(!confirm('¿Confirmar entrega al cliente?\n\n'+quien+lugar+'\n\nEl coche quedará como "En ruta".'))return;
   ev.estado='Activo';
+  // El coche sale del parking → cuando vuelva estará sucio
+  if(ev.matricula){
+    const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+    if(v)v.limpio=false;
+  }
   saveState();closeModal();renderAgenda();showToast('Entrega confirmada','success');
 }
 
@@ -2355,17 +2394,17 @@ function openEventoITV(id){
   let bannerHTML='';
   let accionHTML='';
   if(ev.estado==='Cerrado'){
-    bannerHTML=`<div class="completar-banner" style="background:var(--purple-bg);border-color:var(--purple-lt);color:var(--purple);">ITV completada — coche disponible</div>`;
+    bannerHTML=`<div class="completar-banner" style="background:var(--red-bg);border-color:var(--red-lt);color:var(--red);">ITV completada — coche disponible</div>`;
   }else if(ev.estado==='Activo'){
-    bannerHTML=`<div class="completar-banner" style="background:var(--purple-bg);border-color:var(--purple-lt);color:var(--purple);">Coche en la ITV</div>`;
-    accionHTML=`<button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px;background:var(--purple);">Marcar ITV completada</button>
+    bannerHTML=`<div class="completar-banner" style="background:var(--red-bg);border-color:var(--red-lt);color:var(--red);">Coche en la ITV</div>`;
+    accionHTML=`<button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px;background:var(--red);">Marcar ITV completada</button>
     <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;width:100%;margin-bottom:6px;" onclick="deshacerEntrega('${id}')">Volver a Pendiente</button>`;
   }else{
-    accionHTML=`<button class="btn btn-complete" onclick="completarEntregaITV('${id}')" style="margin-bottom:10px;background:var(--purple);">Marcar coche llevado a ITV</button>`;
+    accionHTML=`<button class="btn btn-complete" onclick="completarEntregaITV('${id}')" style="margin-bottom:10px;background:var(--red);">Marcar coche llevado a ITV</button>`;
   }
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
-      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--purple-bg);color:var(--purple);font-size:13px;font-weight:900;">ITV</span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--red);color:#fff;font-size:13px;font-weight:900;">ITV</span>
       ${ev.estado==='Cerrado'?'ITV completada':ev.estado==='Activo'?'En la ITV':'ITV programada'} · ${esc(ev.matricula)}
     </div>
     <div class="modal-row"><span class="modal-key">Matrícula</span><span class="modal-val" style="font-family:monospace;font-weight:700;">${esc(ev.matricula)}</span></div>
@@ -2407,10 +2446,10 @@ function editarITV(id){
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:15px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;';
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
-      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--purple-bg);color:var(--purple);font-size:14px;font-weight:900;">ITV</span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--red);color:#fff;font-size:14px;font-weight:900;">ITV</span>
       Editar ITV
     </div>
-    <div style="background:var(--purple-bg);border:1px solid var(--purple-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+    <div style="background:var(--red-bg);border:1px solid var(--red-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
       <div style="font-size:15px;font-weight:800;color:var(--text);font-family:monospace;letter-spacing:.03em;">${esc(ev.matricula)}</div>
       <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Cat. ${esc(ev.cat)}</div>
     </div>
@@ -2439,7 +2478,7 @@ function editarITV(id){
       </div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')" style="flex:1;">Cancelar</button>
-        <button class="btn btn-sm" style="flex:1;background:var(--purple);color:#fff;border:1.5px solid var(--purple);font-weight:800;" onclick="guardarEdicionITV('${id}')">Guardar</button>
+        <button class="btn btn-sm" style="flex:1;background:var(--red);color:#fff;border:1.5px solid var(--red);font-weight:800;" onclick="guardarEdicionITV('${id}')">Guardar</button>
       </div>
     </div>`;
 }
@@ -2470,9 +2509,17 @@ function guardarEdicionITV(id){
 
 function completarRecogida(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  const esITV=ev.tipoEvento==='ITV';
   ev.estado='Cerrado'; // devuelto, coche libre
-  if(ev.matricula){const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);if(v)v.estado='Disponible';}
-  saveState();closeModal();renderAgenda();showToast('Recogida completada','success');
+  if(ev.matricula){
+    const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+    if(v){
+      v.estado='Disponible';
+      // ITV: el coche vuelve limpio del taller. Alquiler: vuelve sucio del cliente.
+      v.limpio=esITV?true:false;
+    }
+  }
+  saveState();closeModal();renderAgenda();showToast(esITV?'ITV completada':'Recogida completada','success');
 }
 function deshacerEntrega(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
@@ -2775,11 +2822,16 @@ function renderFlotaList(){
     html+=`<div class="section-label">${groupLabels[estado]} <span style="font-weight:600;opacity:.7">(${list.length})</span></div>`;
     html+=list.map(v=>{
       const ubiHtml=v.ubicacion?`<div class="veh2-ubi">${esc(v.ubicacion)}</div>`:'';
+      // Solo mostramos el indicador limpio/sucio si el coche está disponible (no en ruta/taller/LT)
+      const showLimpieza=(v.estado==='Disponible'||v.estado==='Reservado');
+      const limpiezaHtml=showLimpieza
+        ? `<span class="veh2-limpieza" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:9px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;">${v.limpio?'LIMPIO':'SUCIO'}</span>`
+        : '';
       return`<div class="veh2" onclick="openVehiculo('${v.mat}')">
         <div class="veh2-stripe" style="background:${k.stripe}"></div>
         <div class="veh2-body">
           <div><div class="veh2-mat">${esc(v.mat)}</div><div class="veh2-cat">Cat. ${esc(v.cat)}</div>${ubiHtml}</div>
-          <span class="veh2-badge ${k.badge}">${k.label}</span>
+          <span style="display:flex;align-items:center;">${limpiezaHtml}<span class="veh2-badge ${k.badge}">${k.label}</span></span>
         </div>
       </div>`;
     }).join('');
@@ -2795,12 +2847,12 @@ function openVehiculo(mat){
   if(proxEv){
     var esITVProx=proxEv.tipoEvento==='ITV';
     var lblProx=esITVProx?'Próxima ITV':'Próxima reserva';
-    var bgProx=esITVProx?'var(--purple-bg)':'var(--accent-bg)';
-    var brProx=esITVProx?'var(--purple-lt)':'var(--accent-lt)';
-    var clrProx=esITVProx?'var(--purple)':'var(--accent)';
+    var bgProx=esITVProx?'var(--red-bg)':'var(--accent-bg)';
+    var brProx=esITVProx?'var(--red-lt)':'var(--accent-lt)';
+    var clrProx=esITVProx?'var(--red)':'var(--accent)';
     proxHTML='<div style="background:'+bgProx+';border:1px solid '+brProx+';border-radius:10px;padding:10px 14px;margin-bottom:14px;"><div style="font-size:10px;font-weight:800;color:'+clrProx+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">'+lblProx+'</div><div style="font-size:14px;font-weight:700;color:var(--text);">'+fmtDT(eventoRange(proxEv).ini)+' · '+proxEv.dias+'d'+(proxEv.lugar?' · '+esc(proxEv.lugar):'')+'</div></div>';
   }
-  const evHTML=evs.length?evs.slice(0,5).map(function(ev){const rng=eventoRange(ev);const isPast=rng.fin<ahora;const itvBadge=ev.tipoEvento==='ITV'?'<span style="font-size:9px;font-weight:900;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-lt);border-radius:4px;padding:1px 5px;margin-right:5px;letter-spacing:.04em;">ITV</span>':'';return'<div style="padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;opacity:'+(isPast?'.55':'1')+'" onclick="openEvento('+"'"+ev.id+"'"+')"><span style="font-size:13px;font-weight:600;cursor:pointer">'+itvBadge+fmtDate(rng.ini)+' → '+fmtDate(rng.fin)+(ev.lugar?' · '+esc(ev.lugar):'')+'</span><span class="badge badge-'+ev.estado.toLowerCase()+'">'+ev.estado+'</span></div>';}).join(''):'<p style="font-size:13px;color:var(--muted);padding:12px 0;font-weight:500">Sin eventos registrados</p>';
+  const evHTML=evs.length?evs.slice(0,5).map(function(ev){const rng=eventoRange(ev);const isPast=rng.fin<ahora;const itvBadge=ev.tipoEvento==='ITV'?'<span style="font-size:9px;font-weight:900;background:var(--red);color:#fff;border:1px solid var(--red);border-radius:4px;padding:1px 5px;margin-right:5px;letter-spacing:.04em;">ITV</span>':'';return'<div style="padding:9px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;opacity:'+(isPast?'.55':'1')+'" onclick="openEvento('+"'"+ev.id+"'"+')"><span style="font-size:13px;font-weight:600;cursor:pointer">'+itvBadge+fmtDate(rng.ini)+' → '+fmtDate(rng.fin)+(ev.lugar?' · '+esc(ev.lugar):'')+'</span><span class="badge badge-'+ev.estado.toLowerCase()+'">'+ev.estado+'</span></div>';}).join(''):'<p style="font-size:13px;color:var(--muted);padding:12px 0;font-weight:500">Sin eventos registrados</p>';
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:14px;font-family:\'Inter\',sans-serif;outline:none;flex:1;';
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">${esc(mat)}</div>
@@ -2817,11 +2869,17 @@ function openVehiculo(mat){
         <button onclick="guardarUbicacionVeh('${mat}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Guardar</button>
       </span>
     </div>
+    <div class="modal-row">
+      <span class="modal-key">Limpieza</span>
+      <button onclick="toggleLimpioVeh('${mat}')" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:900;letter-spacing:.08em;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.15);">
+        ${v.limpio?'✓ LIMPIO':'✕ SUCIO'}
+      </button>
+    </div>
     <div class="section-label" style="margin-top:14px">Últimos eventos</div>
     ${evHTML}
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
-      <button class="btn btn-sm" style="background:var(--purple-bg);color:var(--purple);border:1.5px solid var(--purple-lt);font-weight:800;" onclick="abrirNuevaITV('${esc(mat)}')">+ Crear ITV</button>
+      <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1.5px solid var(--red-lt);font-weight:800;" onclick="abrirNuevaITV('${esc(mat)}')">+ Crear ITV</button>
       <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;" onclick="eliminarMatricula('${esc(mat)}')">Eliminar matrícula</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
@@ -2830,6 +2888,14 @@ function guardarUbicacionVeh(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
   v.ubicacion=document.getElementById('veh-ubicacion').value.trim();
   saveState();showToast('Ubicación guardada','success');renderFlota();
+}
+function toggleLimpioVeh(mat){
+  const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
+  v.limpio=!v.limpio;
+  saveState();
+  showToast(mat+(v.limpio?' marcado LIMPIO ✓':' marcado SUCIO'),v.limpio?'success':'info');
+  openVehiculo(mat);
+  renderFlota();
 }
 
 // ── ITV ───────────────────────────────────────────────────────────────────
@@ -2840,11 +2906,11 @@ function abrirNuevaITV(mat){
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:15px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;';
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
-      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--purple-bg);color:var(--purple);font-size:14px;font-weight:900;">ITV</span>
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--red);color:#fff;font-size:14px;font-weight:900;">ITV</span>
       Programar ITV
     </div>
-    <div style="background:var(--purple-bg);border:1px solid var(--purple-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Vehículo</div>
+    <div style="background:var(--red-bg);border:1px solid var(--red-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Vehículo</div>
       <div style="font-size:15px;font-weight:800;color:var(--text);font-family:monospace;letter-spacing:.03em;">${esc(mat)}</div>
       <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;">Cat. ${esc(v.cat)}</div>
     </div>
@@ -2873,7 +2939,7 @@ function abrirNuevaITV(mat){
       </div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <button class="btn btn-secondary btn-sm" onclick="closeModal()" style="flex:1;">Cancelar</button>
-        <button class="btn btn-sm" style="flex:1;background:var(--purple);color:#fff;border:1.5px solid var(--purple);font-weight:800;" onclick="guardarNuevaITV('${esc(mat)}')">Programar ITV</button>
+        <button class="btn btn-sm" style="flex:1;background:var(--red);color:#fff;border:1.5px solid var(--red);font-weight:800;" onclick="guardarNuevaITV('${esc(mat)}')">Programar ITV</button>
       </div>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
@@ -2954,7 +3020,7 @@ function guardarNuevaMatricula(){
   if(STATE.vehiculos.some(v=>norm(v.mat)===norm(mat))){
     showToast('Esa matrícula ya existe','error');return;
   }
-  STATE.vehiculos.push({mat:mat,cat:cat,estado:'Disponible'});
+  STATE.vehiculos.push({mat:mat,cat:cat,estado:'Disponible',limpio:false});
   saveState();
   closeModal();
   showToast('Matrícula '+mat+' añadida','success');
@@ -3041,11 +3107,100 @@ function toggleModoAero(){
   horaAero.style.display=aero?'block':'none';
   if(btnAero)btnAero.style.display=aero?'block':'none';
   if(aero){
+    // Si activas aeropuerto, desactiva ITV
+    const itvChk=document.getElementById('modo-itv');
+    if(itvChk&&itvChk.checked){itvChk.checked=false;toggleModoITV();}
     document.getElementById('disp-rapido').style.display='none';
     limpiarResultado();
   } else {
     buscarDisponibilidadRapida();
   }
+}
+
+function toggleModoITV(){
+  const itvChk=document.getElementById('modo-itv');
+  const itvOn=itvChk&&itvChk.checked;
+  const panel=document.getElementById('panel-itv');
+  if(itvOn){
+    // Si activas ITV, desactiva aeropuerto
+    const aeroChk=document.getElementById('modo-aero');
+    if(aeroChk&&aeroChk.checked){aeroChk.checked=false;toggleModoAero();}
+    // Ocultar pasos de reserva normal
+    document.getElementById('disp-rapido').style.display='none';
+    limpiarResultado();
+    // Rellenar selector de matrículas
+    const sel=document.getElementById('itv-mat-libre');
+    if(sel){
+      const fecha=document.getElementById('disp-fecha').value;
+      const dias=parseInt(document.getElementById('disp-dias').value)||1;
+      const hora=document.getElementById('itv-hora-libre').value||'09:00';
+      const sI=fecha?new Date(fecha+'T'+hora):null;
+      const sF=sI?new Date(sI.getTime()+dias*86400000):null;
+      const opciones=STATE.vehiculos
+        .slice()
+        .sort((a,b)=>{
+          // Categoría asc, luego matrícula
+          if(a.cat!==b.cat) return String(a.cat).localeCompare(String(b.cat));
+          return a.mat.localeCompare(b.mat);
+        })
+        .map(v=>{
+          const ocupado=sI&&sF?isBusy(v.mat,sI,sF):false;
+          const lbl=v.mat+' (Cat. '+v.cat+')'+(ocupado?' — OCUPADO':'');
+          return `<option value="${esc(v.mat)}" ${ocupado?'disabled':''}>${esc(lbl)}</option>`;
+        }).join('');
+      sel.innerHTML='<option value="">— Selecciona un vehículo —</option>'+opciones;
+    }
+    if(panel)panel.style.display='block';
+  }else{
+    if(panel)panel.style.display='none';
+    buscarDisponibilidadRapida();
+  }
+}
+
+function guardarITVDesdeNueva(){
+  const fecha=document.getElementById('disp-fecha').value;
+  const dias=parseInt(document.getElementById('disp-dias').value)||1;
+  const hora=document.getElementById('itv-hora-libre').value||'09:00';
+  const mat=document.getElementById('itv-mat-libre').value;
+  const lugar=document.getElementById('itv-lugar-libre').value.trim();
+  const info=document.getElementById('itv-info-libre').value.trim();
+  if(!fecha){showToast('Selecciona una fecha','error');return;}
+  if(!dias||dias<1){showToast('Introduce días','error');return;}
+  if(!mat){showToast('Selecciona una matrícula','error');return;}
+  const v=STATE.vehiculos.find(x=>x.mat===mat);
+  if(!v){showToast('Matrícula no encontrada','error');return;}
+  // Validar conflicto
+  const conflicto=validarConflicto(mat,v.cat,fecha+'T'+hora,dias);
+  if(conflicto){showToast('Conflicto: '+conflicto,'error');return;}
+  const evId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const ev={
+    id:evId,
+    fechaIni:fecha+'T'+hora,
+    dias,
+    cat:v.cat,
+    matricula:mat,
+    lugar:lugar||'ITV',
+    info,
+    extras:'',
+    estado:'Pendiente',
+    tipoEvento:'ITV'
+  };
+  STATE.eventos.unshift(ev);
+  _misReservasLocales.add(String(ev.id));
+  _eventosConocidos.add(String(ev.id));
+  pedirPermisoNotif();
+  notifReserva(ev,'local');
+  saveState();
+  showToast('ITV programada para '+mat,'success');
+  // Limpiar campos y desactivar modo
+  document.getElementById('itv-lugar-libre').value='';
+  document.getElementById('itv-info-libre').value='';
+  document.getElementById('itv-mat-libre').value='';
+  const chk=document.getElementById('modo-itv');
+  if(chk){chk.checked=false;toggleModoITV();}
+  if(typeof renderFlota==='function')renderFlota();
+  if(typeof renderAgenda==='function')renderAgenda();
+  if(typeof actualizarSlots==='function')actualizarSlots();
 }
 
 function getHoraSeleccionada(){
@@ -3322,9 +3477,12 @@ function abrirGridMatriculas(){
       const dispClass=i.disp==='libre'?'libre':'ocupado';
       const dispLabel=i.disp==='libre'?'Libre':i.disp==='taller'?'Taller':'Ocupado';
       const matSel=document.getElementById('nev-mat-sel').value;
+      const limpieza=i.disp==='libre'
+        ?`<div style="display:inline-block;background:${i.veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${i.veh.limpio?'LIMPIO':'SUCIO'}</div>`
+        :'';
       return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}"
         onclick="${i.disp==='libre'?`seleccionarCocheForm('${i.mat}','${cat}')`:''}" >
-        <div class="avail-mat">${i.mat}</div>${ubi}
+        <div class="avail-mat">${i.mat}</div>${ubi}${limpieza}
         <div class="avail-status">${dispLabel}</div>
       </div>`;
     }).join('')}
@@ -3416,6 +3574,12 @@ function toggleLimpieza(id, ev){
   const limpio=!(STATE.corchoLimpio&&STATE.corchoLimpio[id]);
   if(!STATE.corchoLimpio) STATE.corchoLimpio={};
   STATE.corchoLimpio[id]=limpio;
+  // Sincronizar con flag de la matrícula
+  const evObj=STATE.eventos.find(e=>String(e.id)===String(id));
+  if(evObj&&evObj.matricula){
+    const v=STATE.vehiculos.find(x=>x.mat===evObj.matricula);
+    if(v)v.limpio=limpio;
+  }
   saveState();
   const badge=document.getElementById('limpio-badge-'+id);
   if(badge){
@@ -3488,9 +3652,21 @@ function renderCorcho(){
     return d.getTime()===diaBase.getTime();
   }).sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
 
+  // Helper: un evento se considera LIMPIO si:
+  //   - el corcho lo marca limpio, O
+  //   - la matrícula asignada está marcada como limpia en flota
+  function evtLimpio(ev){
+    if(STATE.corchoLimpio&&STATE.corchoLimpio[ev.id]) return true;
+    if(ev.matricula){
+      const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+      if(v&&v.limpio) return true;
+    }
+    return false;
+  }
+
   // Separar: SUCIO (pendiente de limpiar) vs LIMPIO (ya preparado)
-  const sucios=entregasHoy.filter(e=>!(STATE.corchoLimpio&&STATE.corchoLimpio[e.id]));
-  const listos=entregasHoy.filter(e=>!!(STATE.corchoLimpio&&STATE.corchoLimpio[e.id]));
+  const sucios=entregasHoy.filter(e=>!evtLimpio(e));
+  const listos=entregasHoy.filter(e=>evtLimpio(e));
 
   // Update totals
   const totalEl=document.getElementById('corcho-total');
@@ -3504,7 +3680,7 @@ function renderCorcho(){
   function buildWodCard(ev){
     const{ini}=eventoRange(ev);
     const hora=ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-    const limpio=STATE.corchoLimpio&&STATE.corchoLimpio[ev.id];
+    const limpio=evtLimpio(ev);
     const cardBg=limpio?'rgba(26,158,74,.12)':'rgba(255,255,255,.06)';
     const cardBorder=limpio?'1px solid rgba(26,158,74,.3)':'1px solid rgba(255,255,255,.1)';
     const badgeBg=limpio?'#1a9e4a':'#c0392b';
