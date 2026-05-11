@@ -1060,6 +1060,10 @@ input::placeholder, textarea::placeholder {
               <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Notas (opcional)</div>
               <input type="text" id="itv-info-libre" placeholder="Cita previa, nº expediente..." style="background:#fff;border:1.5px solid var(--red);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px;outline:none;width:100%;box-sizing:border-box;">
             </div>
+            <div style="background:rgba(255,255,255,.7);border:1px solid var(--red-lt);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:14px;">⏱</span>
+              <span style="font-size:11px;color:var(--text);font-weight:600;line-height:1.4;">Duración fija: <b>1 día</b>. Se puede prolongar después si la ITV se alarga.</span>
+            </div>
             <button onclick="guardarITVDesdeNueva()" style="margin-top:4px;width:100%;padding:13px;border-radius:10px;border:none;background:var(--red);color:#fff;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.03em;">Programar ITV</button>
           </div>
         </div>
@@ -1112,8 +1116,16 @@ input::placeholder, textarea::placeholder {
             <input type="text" id="nev-lugar-devol" placeholder="Si difiere del lugar de entrega...">
           </div>
           <button type="button" id="btn-add-devol" onclick="mostrarLugarDevolucion()" style="background:none;border:1.5px dashed var(--border);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;width:100%;margin-bottom:10px;">+ Lugar de devolución diferente</button>
-          <div class="field"><label>Info cliente</label><input type="text" id="nev-info" placeholder="Nombre y teléfono del cliente..."></div>
+          <div class="field"><label>Info cliente</label><input type="text" id="nev-info" placeholder="Nombre del cliente..."></div>
+          <div class="field"><label>Teléfono</label><input type="tel" id="nev-tel" placeholder="612 345 678 (opcional)" inputmode="tel"></div>
           <div class="field"><label>Extras</label><input type="text" id="nev-extras" placeholder="GPS, silla bebé..."></div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--accent-bg);border:1.5px solid var(--accent-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+            <input type="checkbox" id="nev-web" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);">
+              <span style="background:var(--accent);color:#fff;font-size:9px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:5px;">WEB</span>
+              Reserva realizada desde la web
+            </span>
+          </label>
           <input type="hidden" id="nev-mat-sel">
           <input type="hidden" id="nev-cat-sel">
           <button class="btn btn-primary" onclick="crearEvento()">Guardar reserva</button>
@@ -1930,6 +1942,8 @@ function seleccionarCategoria(cat){
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
+  const telR=document.getElementById('nev-tel');if(telR)telR.value='';
+  const webR=document.getElementById('nev-web');if(webR)webR.checked=false;
   document.getElementById('form-nuevo').style.display='block';
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
@@ -1945,6 +1959,8 @@ function seleccionarSinCoche(){
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
+  const telR=document.getElementById('nev-tel');if(telR)telR.value='';
+  const webR=document.getElementById('nev-web');if(webR)webR.checked=false;
   document.getElementById('form-nuevo').style.display='block';
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
 }
@@ -1958,6 +1974,8 @@ function seleccionarCoche(mat){
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
+  const telR=document.getElementById('nev-tel');if(telR)telR.value='';
+  const webR=document.getElementById('nev-web');if(webR)webR.checked=false;
   document.getElementById('form-nuevo').style.display='block';
   renderDispGrid();
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
@@ -1972,6 +1990,8 @@ function mostrarLugarDevolucion(){
 }
 function quitarLugarDevolucion(){
   resetLugarDevolucion();
+  const telR=document.getElementById('nev-tel');if(telR)telR.value='';
+  const webR=document.getElementById('nev-web');if(webR)webR.checked=false;
 }
 function resetLugarDevolucion(){
   const wrap=document.getElementById('nev-devol-wrap');
@@ -1992,7 +2012,11 @@ function crearEvento(){
   const lugarDevolEl=document.getElementById('nev-lugar-devol');
   const lugarDevol=lugarDevolEl?lugarDevolEl.value.trim():'';
   const info=document.getElementById('nev-info').value.trim();
+  const telEl=document.getElementById('nev-tel');
+  const tel=telEl?telEl.value.trim():'';
   const extras=document.getElementById('nev-extras').value.trim();
+  const webEl=document.getElementById('nev-web');
+  const esWeb=!!(webEl&&webEl.checked);
   if(!fecha){showToast('Selecciona una fecha','error');return;}
   if(!hora){showToast('Selecciona una hora de entrega','error');return;}
   if(!dias||dias<1){showToast('Introduce el número de días','error');return;}
@@ -2004,8 +2028,10 @@ function crearEvento(){
   // si dos dispositivos crean reservas en el mismo milisegundo.
   const evId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const ev={id:evId,fechaIni:fecha+'T'+hora,dias,cat:catFinal,matricula:mat||'',lugar,info,extras,estado:'Pendiente'};
-  // Solo guardar lugarDevol si difiere y no está vacío
+  // Campos opcionales: solo se guardan si tienen valor
   if(lugarDevol&&lugarDevol!==lugar)ev.lugarDevol=lugarDevol;
+  if(tel)ev.tel=tel;
+  if(esWeb)ev.web=true;
   STATE.eventos.unshift(ev);
   // Registrar como creada localmente y notificar
   _misReservasLocales.add(String(ev.id));
@@ -2193,8 +2219,10 @@ function renderAgenda(){
         <div class="ev2-body">
           <div class="ev2-lugar">${ev.lugar?esc(ev.lugar):'<span style="color:var(--muted);font-style:italic">Sin lugar</span>'}</div>
           ${ev.info?`<div class="ev2-info">${esc(ev.info)}</div>`:''}
+          ${ev.tel?`<div class="ev2-info" style="display:flex;align-items:center;gap:6px;"><span style="font-size:11px;">📞</span><a href="tel:${esc(ev.tel)}" onclick="event.stopPropagation()" style="color:var(--accent);font-weight:700;text-decoration:none;font-family:monospace;font-size:13px;">${esc(ev.tel)}</a></div>`:''}
           <div class="ev2-tags">
             ${matTag}
+            ${ev.web?`<span class="ev2-tag" style="background:var(--accent);color:#fff;border-color:var(--accent);font-weight:900;letter-spacing:.06em;">WEB</span>`:''}
             <span class="ev2-tag ev2-tag-dias">${ev.dias}d → ${fmtDate(fin)}</span>
             ${ev.extras?`<span class="ev2-tag ev2-tag-extras">+ ${esc(ev.extras)}</span>`:''}
           </div>
@@ -2357,7 +2385,9 @@ function openEvento(id){
       </span>
     </div>
     ${ev.info ?`<div class="modal-row"><span class="modal-key">Info cliente</span><span class="modal-val">${esc(ev.info)}</span></div>`:''}
+    ${ev.tel  ?`<div class="modal-row"><span class="modal-key">Teléfono</span><span class="modal-val"><a href="tel:${esc(ev.tel)}" style="color:var(--accent);font-weight:700;text-decoration:none;font-family:monospace;">${esc(ev.tel)}</a></span></div>`:''}
     ${ev.extras?`<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val">${esc(ev.extras)}</span></div>`:''}
+    ${ev.web  ?`<div class="modal-row"><span class="modal-key">Origen</span><span class="modal-val"><span style="background:var(--accent);color:#fff;font-size:10px;font-weight:900;letter-spacing:.06em;padding:3px 8px;border-radius:5px;">WEB</span></span></div>`:''}
     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
     ${completarHTML}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -2607,8 +2637,16 @@ function editarEvento(id){
     </div>
     <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel + hab., apto + dirección, aeropuerto + vuelo..." style="${inputStyle}"></div>
     <div class="field"><label>Lugar de devolución <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional)</span></label><input type="text" id="edit-lugar-devol" value="${ev.lugarDevol||''}" placeholder="Si difiere del lugar de entrega..." style="${inputStyle}"></div>
-    <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Nombre y teléfono..." style="${inputStyle}"></div>
+    <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Nombre del cliente..." style="${inputStyle}"></div>
+    <div class="field"><label>Teléfono</label><input type="tel" id="edit-tel" value="${ev.tel||''}" placeholder="612 345 678 (opcional)" inputmode="tel" style="${inputStyle}"></div>
     <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${ev.extras||''}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--accent-bg);border:1.5px solid var(--accent-lt);border-radius:10px;padding:9px 12px;margin-bottom:14px;">
+      <input type="checkbox" id="edit-web" ${ev.web?'checked':''} style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
+      <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text);">
+        <span style="background:var(--accent);color:#fff;font-size:9px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:5px;">WEB</span>
+        Reserva realizada desde la web
+      </span>
+    </label>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
       <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion('${id}')">Guardar cambios</button>
@@ -2666,6 +2704,13 @@ function guardarEdicion(id){
   }
   ev.info=info;
   ev.extras=extras;
+  // Tel: solo se guarda si tiene valor
+  const telEdE=document.getElementById('edit-tel');
+  const telEd=telEdE?telEdE.value.trim():'';
+  if(telEd){ev.tel=telEd;}else{delete ev.tel;}
+  // Web: checkbox
+  const webEdE=document.getElementById('edit-web');
+  if(webEdE&&webEdE.checked){ev.web=true;}else{delete ev.web;}
   saveState();
   showToast('Actualizado ✓','success');
   openEvento(id);
@@ -2825,7 +2870,7 @@ function renderFlotaList(){
       // Solo mostramos el indicador limpio/sucio si el coche está disponible (no en ruta/taller/LT)
       const showLimpieza=(v.estado==='Disponible'||v.estado==='Reservado');
       const limpiezaHtml=showLimpieza
-        ? `<span class="veh2-limpieza" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:9px;font-weight:900;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;">${v.limpio?'LIMPIO':'SUCIO'}</span>`
+        ? `<button onclick="event.stopPropagation();toggleLimpioFlota('${v.mat}')" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:9px;font-weight:900;letter-spacing:.06em;padding:3px 9px;border-radius:10px;margin-right:6px;border:none;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .1s;" onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">${v.limpio?'LIMPIO':'SUCIO'}</button>`
         : '';
       return`<div class="veh2" onclick="openVehiculo('${v.mat}')">
         <div class="veh2-stripe" style="background:${k.stripe}"></div>
@@ -2897,6 +2942,13 @@ function toggleLimpioVeh(mat){
   openVehiculo(mat);
   renderFlota();
 }
+function toggleLimpioFlota(mat){
+  const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
+  v.limpio=!v.limpio;
+  saveState();
+  showToast(mat+(v.limpio?' ✓ LIMPIO':' SUCIO'),v.limpio?'success':'info');
+  renderFlota();
+}
 
 // ── ITV ───────────────────────────────────────────────────────────────────
 function abrirNuevaITV(mat){
@@ -2919,15 +2971,14 @@ function abrirNuevaITV(mat){
         <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Fecha</div>
         <input type="date" id="itv-fecha" value="${fechaHoy}" style="${inputStyle}">
       </div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Hora</div>
-          <input type="time" id="itv-hora" value="09:00" style="${inputStyle}">
-        </div>
-        <div style="width:100px;">
-          <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Días</div>
-          <input type="number" id="itv-dias" value="1" min="1" max="10" style="${inputStyle}">
-        </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Hora</div>
+        <input type="time" id="itv-hora" value="09:00" style="${inputStyle}">
+      </div>
+      <input type="hidden" id="itv-dias" value="1">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;">⏱</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:600;line-height:1.4;">Duración fija: <b style="color:var(--text);">1 día</b>. Puedes prolongarla después si fuera necesario.</span>
       </div>
       <div>
         <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Estación / Lugar</div>
@@ -2950,11 +3001,10 @@ function guardarNuevaITV(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v){showToast('Matrícula no encontrada','error');return;}
   const fecha=document.getElementById('itv-fecha').value;
   const hora=document.getElementById('itv-hora').value||'09:00';
-  const dias=parseInt(document.getElementById('itv-dias').value)||1;
+  const dias=1; // ITV siempre 1 día (se puede prolongar luego)
   const lugar=document.getElementById('itv-lugar').value.trim();
   const info=document.getElementById('itv-info').value.trim();
   if(!fecha){showToast('Selecciona una fecha','error');return;}
-  if(dias<1){showToast('Mínimo 1 día','error');return;}
   // Validar conflicto con otras reservas / ITVs sobre el mismo coche
   const conflicto=validarConflicto(mat,v.cat,fecha+'T'+hora,dias);
   if(conflicto){showToast('Conflicto: '+conflicto,'error');return;}
@@ -3159,13 +3209,12 @@ function toggleModoITV(){
 
 function guardarITVDesdeNueva(){
   const fecha=document.getElementById('disp-fecha').value;
-  const dias=parseInt(document.getElementById('disp-dias').value)||1;
+  const dias=1; // ITV siempre 1 día (se puede prolongar luego)
   const hora=document.getElementById('itv-hora-libre').value||'09:00';
   const mat=document.getElementById('itv-mat-libre').value;
   const lugar=document.getElementById('itv-lugar-libre').value.trim();
   const info=document.getElementById('itv-info-libre').value.trim();
   if(!fecha){showToast('Selecciona una fecha','error');return;}
-  if(!dias||dias<1){showToast('Introduce días','error');return;}
   if(!mat){showToast('Selecciona una matrícula','error');return;}
   const v=STATE.vehiculos.find(x=>x.mat===mat);
   if(!v){showToast('Matrícula no encontrada','error');return;}
@@ -3307,11 +3356,12 @@ function buscarDisponibilidadRapida(){
       // Buscar el primer slot de todo el día en que este coche concreto está libre
       const primerSlotCoche = slotsConLibres.find(({sI,sF}) => cocheDisponible(v, sI, sF));
       const desdeHora = primerSlotCoche ? primerSlotCoche.slot : primerSlotLabel;
+      const limpiezaBadge = `<div style="display:inline-block;background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:2px 7px;border-radius:8px;margin-top:4px;">${v.limpio?'LIMPIO':'SUCIO'}</div>`;
       return `<div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
         border-radius:8px;padding:8px 10px;">
         <div style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;">${esc(v.mat)}</div>
         <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">desde ${desdeHora}</div>
-        ${ubi}
+        ${ubi}${limpiezaBadge}
       </div>`;
     }).join('');
 
@@ -3427,6 +3477,8 @@ function seleccionarHoraCat(cat, hora){
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
+  const telR=document.getElementById('nev-tel');if(telR)telR.value='';
+  const webR=document.getElementById('nev-web');if(webR)webR.checked=false;
 
   // Resumen visible
   document.getElementById('resumen-sel').innerHTML=
@@ -3915,25 +3967,85 @@ function renderHistorial(){
     (e.lugar||'').toLowerCase().includes(q)||
     (e.lugarDevol||'').toLowerCase().includes(q)||
     (e.info||'').toLowerCase().includes(q)||
+    (e.tel||'').toLowerCase().includes(q)||
     (e.cat||'').toLowerCase().includes(q)
   ):cerradosAll;
   const subEl=document.getElementById('hist-sub');
   if(subEl)subEl.textContent=`${cerradosAll.length} reservas · ${cerradosAll.filter(e=>e.estado==='Cerrado').length} completadas`;
-  // Resumen mes actual
-  var now=new Date();
-  var mesKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  var esteMes=cerradosAll.filter(function(e){
-    return e.fechaIni.substring(0,7)===mesKey&&e.estado==='Cerrado';
+  // ── Resumen año + mes ─────────────────────────────────────────
+  // Solo cuentan RESERVAS reales (no ITVs ni canceladas) para el contador anual
+  var reservasCompletadas=cerradosAll.filter(function(e){
+    return e.estado==='Cerrado'&&e.tipoEvento!=='ITV';
   });
-  var resumenHtml=esteMes.length?('<div style="background:var(--accent-bg);border:1px solid var(--accent-lt);'
-    +'border-radius:12px;padding:16px 18px;margin-bottom:16px;">'
-    +'<div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'
-    +now.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).replace(/^./,function(c){return c.toUpperCase();})
-    +'</div>'
-    +'<div style="display:flex;gap:24px;flex-wrap:wrap;">'
-    +'<div><div style="font-size:30px;font-weight:900;color:var(--text);">'+esteMes.length+'</div>'
-    +'<div style="font-size:11px;color:var(--muted);font-weight:700;">Reservas totales</div></div>'
-    +'</div></div>'):'';
+  var now=new Date();
+  var yearActual=now.getFullYear();
+  var mesKey=yearActual+'-'+String(now.getMonth()+1).padStart(2,'0');
+  // Cerrados este año
+  var esteAnio=reservasCompletadas.filter(function(e){
+    return e.fechaIni.substring(0,4)===String(yearActual);
+  });
+  var esteAnioWeb=esteAnio.filter(function(e){return e.web;});
+  // Cerrados este mes
+  var esteMes=esteAnio.filter(function(e){
+    return e.fechaIni.substring(0,7)===mesKey;
+  });
+  var esteMesWeb=esteMes.filter(function(e){return e.web;});
+
+  // Detectar años anteriores con cierre y crear bloque comparativo
+  var aniosAnteriores={};
+  reservasCompletadas.forEach(function(e){
+    var a=e.fechaIni.substring(0,4);
+    if(a===String(yearActual))return;
+    if(!aniosAnteriores[a])aniosAnteriores[a]={total:0,web:0};
+    aniosAnteriores[a].total++;
+    if(e.web)aniosAnteriores[a].web++;
+  });
+  var aniosOrdenados=Object.keys(aniosAnteriores).sort().reverse();
+
+  var nombreMes=now.toLocaleDateString('es-ES',{month:'long',year:'numeric'}).replace(/^./,function(c){return c.toUpperCase();});
+
+  var resumenHtml='';
+  // Bloque año actual (siempre se muestra)
+  resumenHtml+='<div style="background:var(--accent-bg);border:1px solid var(--accent-lt);'
+    +'border-radius:12px;padding:16px 18px;margin-bottom:12px;">'
+    +'<div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;">'
+    +'Año '+yearActual+'</div>'
+    +'<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;">'
+    +'<div><div style="font-size:32px;font-weight:900;color:var(--text);line-height:1;">'+esteAnio.length+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:4px;">Reservas completadas</div></div>'
+    +'<div><div style="font-size:24px;font-weight:900;color:var(--accent);line-height:1;">'+esteAnioWeb.length+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:4px;display:flex;align-items:center;gap:6px;"><span style="background:var(--accent);color:#fff;font-size:8px;font-weight:900;letter-spacing:.06em;padding:2px 5px;border-radius:4px;">WEB</span> '+(esteAnio.length?Math.round(esteAnioWeb.length/esteAnio.length*100):0)+'% del total</div></div>'
+    +'</div></div>';
+  // Bloque mes actual
+  if(esteMes.length){
+    resumenHtml+='<div style="background:var(--surface);border:1px solid var(--border);'
+      +'border-radius:12px;padding:14px 18px;margin-bottom:16px;">'
+      +'<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'
+      +nombreMes+'</div>'
+      +'<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;">'
+      +'<div><div style="font-size:24px;font-weight:900;color:var(--text);line-height:1;">'+esteMes.length+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);font-weight:700;margin-top:3px;">Este mes</div></div>'
+      +'<div><div style="font-size:20px;font-weight:900;color:var(--accent);line-height:1;">'+esteMesWeb.length+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);font-weight:700;margin-top:3px;display:flex;align-items:center;gap:5px;"><span style="background:var(--accent);color:#fff;font-size:8px;font-weight:900;letter-spacing:.06em;padding:1px 4px;border-radius:3px;">WEB</span> este mes</div></div>'
+      +'</div></div>';
+  }
+  // Bloque años anteriores (si existen)
+  if(aniosOrdenados.length){
+    resumenHtml+='<div style="background:var(--surface);border:1px dashed var(--border);'
+      +'border-radius:12px;padding:14px 18px;margin-bottom:16px;">'
+      +'<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">'
+      +'Años anteriores</div>';
+    aniosOrdenados.forEach(function(a){
+      var d=aniosAnteriores[a];
+      resumenHtml+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border);">'
+        +'<span style="font-size:14px;font-weight:800;color:var(--text);">'+a+'</span>'
+        +'<span style="display:flex;gap:14px;align-items:center;">'
+        +'<span style="font-size:13px;font-weight:700;color:var(--text);">'+d.total+' reservas</span>'
+        +'<span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--accent);"><span style="background:var(--accent);color:#fff;font-size:8px;font-weight:900;letter-spacing:.06em;padding:1px 4px;border-radius:3px;">WEB</span> '+d.web+'</span>'
+        +'</span></div>';
+    });
+    resumenHtml+='</div>';
+  }
   if(!cerrados.length){
     list.innerHTML=resumenHtml+`<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg></div><p>${q?'Sin resultados para \"'+q+'\"':'Sin reservas finalizadas'}</p></div>`;
     return;
@@ -3971,7 +4083,7 @@ function renderHistorial(){
                 <div style="font-size:11px;font-weight:600;color:var(--muted);">→${fmtDate(fin)}</div>
               </div>
               <div style="flex:1;padding:10px 12px;">
-                <div style="font-family:monospace;font-size:14px;font-weight:800;color:var(--text);">${esc(ev.matricula)||'Cat.'+esc(ev.cat)}</div>
+                <div style="font-family:monospace;font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${esc(ev.matricula)||'Cat.'+esc(ev.cat)}${ev.web?'<span style="background:var(--accent);color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.06em;padding:2px 6px;border-radius:4px;">WEB</span>':''}</div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px;">Cat. ${esc(ev.cat)} · ${ev.dias}d${ev.lugar?' · '+esc(ev.lugar):''}</div>
               </div>
               <div style="padding:10px 12px;display:flex;align-items:center;">
