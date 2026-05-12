@@ -1861,7 +1861,12 @@ function renderDispGrid(){
       ?`<button class="cat-btn-reservar" onclick="event.stopPropagation();seleccionarCategoria('${cat}')">Reservar →</button>`
       :'';
 
-    const cochesHtml=items.sort((a,b)=>({libre:0,reservado:1,ocupado:2,taller:3}[a.disp]||2)-({libre:0,reservado:1,ocupado:2,taller:3}[b.disp]||2)).map(i=>{
+    const cochesHtml=items.sort((a,b)=>{
+      const da=({libre:0,reservado:1,ocupado:2,taller:3})[a.disp]||2;
+      const db=({libre:0,reservado:1,ocupado:2,taller:3})[b.disp]||2;
+      if(da!==db)return da-db;
+      return a.mat.localeCompare(b.mat,'es',{numeric:true});
+    }).map(i=>{
       const veh=STATE.vehiculos.find(v=>v.mat===i.mat);
       const ubi=veh?.ubicacion?`<div style="font-size:9.5px;font-weight:700;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${veh.ubicacion}</div>`:'';
       const dispClass=i.disp==='reservado'?'ocupado':i.disp;
@@ -2347,10 +2352,13 @@ function openEvento(id){
       const{ini:e2i,buf:e2b}=eventoRange(e2);
       return e2i<sF&&e2b>sI;
     });
-  });
+  }).sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}));
 
   const matOpts=`<option value="">— Sin asignar —</option>`+
-    cochesDisponibles.map(v=>`<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} (Cat.${v.cat})</option>`).join('');
+    cochesDisponibles.map(v=>{
+      const indicador=v.limpio?'✓ LIMPIO':'✕ SUCIO';
+      return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} (Cat.${v.cat}) · ${indicador}</option>`;
+    }).join('');
 
   const matHTML=`<div class="modal-row"><span class="modal-key">Matrícula</span>
     <select onchange="asignarMatricula('${id}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:inherit;max-width:200px">
@@ -2387,7 +2395,14 @@ function openEvento(id){
     ${ev.info ?`<div class="modal-row"><span class="modal-key">Info cliente</span><span class="modal-val">${esc(ev.info)}</span></div>`:''}
     ${ev.tel  ?`<div class="modal-row"><span class="modal-key">Teléfono</span><span class="modal-val"><a href="tel:${esc(ev.tel)}" style="color:var(--accent);font-weight:700;text-decoration:none;font-family:monospace;">${esc(ev.tel)}</a></span></div>`:''}
     ${ev.extras?`<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val">${esc(ev.extras)}</span></div>`:''}
-    ${ev.web  ?`<div class="modal-row"><span class="modal-key">Origen</span><span class="modal-val"><span style="background:var(--accent);color:#fff;font-size:10px;font-weight:900;letter-spacing:.06em;padding:3px 8px;border-radius:5px;">WEB</span></span></div>`:''}
+    <div class="modal-row"><span class="modal-key">Origen</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        ${ev.web
+          ?'<span style="background:var(--accent);color:#fff;font-size:10px;font-weight:900;letter-spacing:.06em;padding:3px 8px;border-radius:5px;">WEB</span>'
+          :'<span class="modal-val" style="color:var(--muted);font-style:italic">Oficina</span>'}
+        <button onclick="toggleWeb('${id}')" style="background:${ev.web?'var(--surface2)':'var(--accent)'};color:${ev.web?'var(--muted)':'#fff'};border:1px solid ${ev.web?'var(--border)':'var(--accent)'};border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.04em;">${ev.web?'Quitar WEB':'+ WEB'}</button>
+      </span>
+    </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
     ${completarHTML}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -2618,7 +2633,8 @@ function editarEvento(id){
   // Opciones de matrícula filtradas por categoría seleccionada (se actualizan al cambiar cat)
   const matOpts=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===ev.cat)
-    .map(v=>`<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat}</option>`).join('');
+    .sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}))
+    .map(v=>`<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${v.limpio?'✓ LIMPIO':'✕ SUCIO'}</option>`).join('');
 
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">Editar evento</div>
@@ -2659,7 +2675,8 @@ function actualizarMatriculasEdit(id){
   const sel=document.getElementById('edit-mat');
   sel.innerHTML=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===cat)
-    .map(v=>`<option value="${v.mat}">${v.mat}</option>`).join('');
+    .sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}))
+    .map(v=>`<option value="${v.mat}">${v.mat} · ${v.limpio?'✓ LIMPIO':'✕ SUCIO'}</option>`).join('');
 }
 
 function guardarEdicion(id){
@@ -2862,7 +2879,7 @@ function renderFlotaList(){
   let html='';
   Object.entries(groups).forEach(([estado,list])=>{
     if(!list.length) return;
-    list.sort((a,b)=>a.mat.localeCompare(b.mat));
+    list.sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}));
     const k=cfg[estado]||cfg['Disponible'];
     html+=`<div class="section-label">${groupLabels[estado]} <span style="font-weight:600;opacity:.7">(${list.length})</span></div>`;
     html+=list.map(v=>{
@@ -2948,6 +2965,30 @@ function toggleLimpioFlota(mat){
   saveState();
   showToast(mat+(v.limpio?' ✓ LIMPIO':' SUCIO'),v.limpio?'success':'info');
   renderFlota();
+}
+
+// Alterna el flag WEB de una reserva sin abrir el formulario de edición completo.
+// Útil para marcar/desmarcar reservas históricas que se hicieron por la web.
+function toggleWeb(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  if(ev.web){delete ev.web;showToast('Marcado como Oficina','info');}
+  else{ev.web=true;showToast('Marcado como WEB ✓','success');}
+  saveState();
+  // Refrescar todas las vistas relevantes
+  openEvento(id);
+  if(typeof renderAgenda==='function')renderAgenda();
+  if(typeof renderHistorial==='function')renderHistorial();
+}
+// Variante para usar desde la tarjeta del historial — no reabre modal, solo refresca lista
+function toggleWebHist(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  if(ev.web){delete ev.web;showToast('Marcado como Oficina','info');}
+  else{ev.web=true;showToast('Marcado como WEB ✓','success');}
+  saveState();
+  // Mantener los meses que estaban expandidos antes del re-render
+  const abiertos=Array.from(document.querySelectorAll('[id^="his-"]')).filter(el=>el.style.display==='block').map(el=>el.id);
+  renderHistorial();
+  abiertos.forEach(id=>{const el=document.getElementById(id);if(el){el.style.display='block';const arr=document.getElementById('arr-'+id);if(arr)arr.textContent='▲';}});
 }
 
 // ── ITV ───────────────────────────────────────────────────────────────────
@@ -3190,12 +3231,13 @@ function toggleModoITV(){
         .slice()
         .sort((a,b)=>{
           // Categoría asc, luego matrícula
-          if(a.cat!==b.cat) return String(a.cat).localeCompare(String(b.cat));
-          return a.mat.localeCompare(b.mat);
+          if(a.cat!==b.cat) return String(a.cat).localeCompare(String(b.cat),'es',{numeric:true});
+          return a.mat.localeCompare(b.mat,'es',{numeric:true});
         })
         .map(v=>{
           const ocupado=sI&&sF?isBusy(v.mat,sI,sF):false;
-          const lbl=v.mat+' (Cat. '+v.cat+')'+(ocupado?' — OCUPADO':'');
+          const indicador=v.limpio?' · ✓ LIMPIO':' · ✕ SUCIO';
+          const lbl=v.mat+' (Cat. '+v.cat+')'+(ocupado?' — OCUPADO':indicador);
           return `<option value="${esc(v.mat)}" ${ocupado?'disabled':''}>${esc(lbl)}</option>`;
         }).join('');
       sel.innerHTML='<option value="">— Selecciona un vehículo —</option>'+opciones;
@@ -3521,7 +3563,12 @@ function abrirGridMatriculas(){
       else d=isBusy(v.mat,sI,sF)?'ocupado':'libre';
       return{mat:v.mat,disp:d,veh:v};
     })
-    .sort((a,b)=>({libre:0,ocupado:1,taller:2}[a.disp]||1)-({libre:0,ocupado:1,taller:2}[b.disp]||1));
+    .sort((a,b)=>{
+      const da=({libre:0,ocupado:1,taller:2})[a.disp]||1;
+      const db=({libre:0,ocupado:1,taller:2})[b.disp]||1;
+      if(da!==db)return da-db;
+      return a.mat.localeCompare(b.mat,'es',{numeric:true});
+    });
 
   gridDiv.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
     ${items.map(i=>{
@@ -4083,11 +4130,12 @@ function renderHistorial(){
                 <div style="font-size:11px;font-weight:600;color:var(--muted);">→${fmtDate(fin)}</div>
               </div>
               <div style="flex:1;padding:10px 12px;">
-                <div style="font-family:monospace;font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${esc(ev.matricula)||'Cat.'+esc(ev.cat)}${ev.web?'<span style="background:var(--accent);color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.06em;padding:2px 6px;border-radius:4px;">WEB</span>':''}</div>
+                <div style="font-family:monospace;font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${esc(ev.matricula)||'Cat.'+esc(ev.cat)}</div>
                 <div style="font-size:11px;color:var(--muted);margin-top:2px;">Cat. ${esc(ev.cat)} · ${ev.dias}d${ev.lugar?' · '+esc(ev.lugar):''}</div>
               </div>
-              <div style="padding:10px 12px;display:flex;align-items:center;">
+              <div style="padding:10px 8px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:5px;">
                 <span class="badge badge-${sc}">${ev.estado}</span>
+                ${ev.estado==='Cerrado'?`<button onclick="event.stopPropagation();toggleWebHist('${ev.id}')" style="background:${ev.web?'var(--accent)':'transparent'};color:${ev.web?'#fff':'var(--muted)'};border:1.5px solid ${ev.web?'var(--accent)':'var(--border)'};border-radius:5px;padding:2px 7px;font-size:9px;font-weight:900;letter-spacing:.06em;cursor:pointer;font-family:inherit;transition:all .12s;" title="${ev.web?'Quitar WEB':'Marcar como WEB'}">${ev.web?'WEB ✓':'+ WEB'}</button>`:''}
               </div>
             </div>
           </div>`;
