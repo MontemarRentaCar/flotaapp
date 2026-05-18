@@ -511,6 +511,20 @@ input::placeholder, textarea::placeholder {
     inset 2px 2px 6px rgba(21,46,120,.4);
 }
 
+/* ── LUGAR TIPO BUTTONS ──────────────────────────────────── */
+.lugar-tipo-btn {
+  padding:9px 4px; border-radius:10px; border:1.5px solid var(--border);
+  background:var(--surface); color:var(--text);
+  font-size:11px; font-weight:800; cursor:pointer;
+  font-family:inherit; letter-spacing:.04em;
+  transition:all .15s;
+}
+.lugar-tipo-btn:hover { border-color:var(--accent-lt); }
+.lugar-tipo-btn.active {
+  background:var(--blue); color:#fff; border-color:var(--blue);
+  box-shadow:inset 2px 2px 6px rgba(21,46,120,.35);
+}
+
 /* ── BADGES ──────────────────────────────────────────────── */
 .badge { font-size:9px; font-weight:800; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.07em; white-space:nowrap; }
 .badge-activo    { background:var(--blue-frost); color:var(--blue);   border:1px solid var(--blue-wash); }
@@ -763,8 +777,8 @@ input::placeholder, textarea::placeholder {
   display:flex; flex-direction:column; gap:6px;
   border-left:1px solid rgba(162,186,230,.3);
 }
-.ev2-lugar { font-size:18px; font-weight:800; color:var(--text); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-.015em; }
-.ev2-info  { font-size:14px; color:var(--text2); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ev2-lugar { font-size:18px; font-weight:800; color:var(--text); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-.015em; text-transform:uppercase; }
+.ev2-info  { font-size:14px; color:var(--text2); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase; }
 .ev2-tags  { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; }
 .ev2-tag   {
   font-family:'DM Mono',monospace; font-size:12.5px; font-weight:700;
@@ -1108,18 +1122,31 @@ input::placeholder, textarea::placeholder {
           </div>
           <!-- Grid matrículas (colapsado por defecto) -->
           <div id="avail-grid-form" style="display:none;margin-bottom:12px;"></div>
-          <div class="field"><label>Lugar de entrega</label><input type="text" id="nev-lugar" placeholder="Hotel + habitación, apto + dirección, aeropuerto + nº vuelo..."></div>
+          <div class="field">
+            <label>Lugar de entrega</label>
+            <div id="nev-lugar-tipos" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;">
+              <button type="button" class="lugar-tipo-btn" data-tipo="OFICINA" onclick="selectLugarTipo(this)">OFICINA</button>
+              <button type="button" class="lugar-tipo-btn" data-tipo="HOTEL" onclick="selectLugarTipo(this)">HOTEL</button>
+              <button type="button" class="lugar-tipo-btn" data-tipo="APTO" onclick="selectLugarTipo(this)">APTO</button>
+              <button type="button" class="lugar-tipo-btn" data-tipo="CASA" onclick="selectLugarTipo(this)">CASA</button>
+              <button type="button" class="lugar-tipo-btn" data-tipo="AERO" onclick="selectLugarTipo(this)">AERO</button>
+            </div>
+            <input type="text" id="nev-lugar-detalle" placeholder="" style="display:none;text-transform:uppercase;">
+            <input type="hidden" id="nev-lugar-tipo" value="">
+            <!-- Campo legacy oculto que sigue siendo leído por crearReserva -->
+            <input type="hidden" id="nev-lugar" value="">
+          </div>
           <div class="field" style="display:none;" id="nev-devol-wrap">
             <label style="display:flex;align-items:center;justify-content:space-between;">
               <span>Lugar de devolución</span>
               <button type="button" onclick="quitarLugarDevolucion()" style="background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.04em;">Quitar</button>
             </label>
-            <input type="text" id="nev-lugar-devol" placeholder="Si difiere del lugar de entrega...">
+            <input type="text" id="nev-lugar-devol" placeholder="SI DIFIERE DEL LUGAR DE ENTREGA..." style="text-transform:uppercase;">
           </div>
           <button type="button" id="btn-add-devol" onclick="mostrarLugarDevolucion()" style="background:none;border:1.5px dashed var(--border);border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;width:100%;margin-bottom:10px;">+ Lugar de devolución diferente</button>
-          <div class="field"><label>Info cliente</label><input type="text" id="nev-info" placeholder="Nombre del cliente..."></div>
+          <div class="field"><label>Info cliente</label><input type="text" id="nev-info" placeholder="NOMBRE DEL CLIENTE..." style="text-transform:uppercase;"></div>
           <div class="field"><label>Teléfono</label><input type="tel" id="nev-tel" placeholder="612 345 678 (opcional)" inputmode="tel"></div>
-          <div class="field"><label>Extras</label><input type="text" id="nev-extras" placeholder="GPS, silla bebé..."></div>
+          <div class="field"><label>Extras</label><input type="text" id="nev-extras" placeholder="GPS, SILLA BEBÉ..." style="text-transform:uppercase;"></div>
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--accent-bg);border:1.5px solid var(--accent-lt);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
             <input type="checkbox" id="nev-web" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
             <span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);">
@@ -1889,7 +1916,7 @@ function seleccionarCategoria(cat){
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
     `<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula</span>`;
   document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span><span style="margin-left:8px;font-size:13px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula asignada</span>`;
-  document.getElementById('nev-lugar').value='';
+  document.getElementById('nev-lugar').value='';resetLugarTipo();
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
@@ -1906,7 +1933,7 @@ function seleccionarSinCoche(){
   document.getElementById('nev-mat-sel').value='';
   document.getElementById('nev-cat-sel').value=catActiva;
   document.getElementById('form-mat-label').innerHTML='<span style="font-family:monospace;font-weight:700;color:var(--muted);font-size:12px;background:var(--surface2);padding:2px 8px;border-radius:4px;border:1px solid var(--border);">Sin cat.</span><span style="margin-left:8px;font-size:13px;font-weight:600;color:var(--muted);">Se asignará el día de la entrega</span>';
-  document.getElementById('nev-lugar').value='';
+  document.getElementById('nev-lugar').value='';resetLugarTipo();
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
@@ -1921,7 +1948,7 @@ function seleccionarCoche(mat){
   document.getElementById('nev-mat-sel').value=mat;
   document.getElementById('nev-cat-sel').value=cat;
   document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
-  document.getElementById('nev-lugar').value='';
+  document.getElementById('nev-lugar').value='';resetLugarTipo();
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
@@ -1952,6 +1979,36 @@ function resetLugarDevolucion(){
   if(wrap)wrap.style.display='none';
   if(btn)btn.style.display='block';
 }
+function resetLugarTipo(){
+  const tipo=document.getElementById('nev-lugar-tipo');
+  const detalle=document.getElementById('nev-lugar-detalle');
+  const legacy=document.getElementById('nev-lugar');
+  if(tipo)tipo.value='';
+  if(detalle){detalle.value='';detalle.style.display='none';detalle.placeholder='';}
+  if(legacy)legacy.value='';
+  document.querySelectorAll('#nev-lugar-tipos .lugar-tipo-btn').forEach(b=>b.classList.remove('active'));
+}
+function selectLugarTipo(btn){
+  const tipo=btn.dataset.tipo;
+  document.querySelectorAll('#nev-lugar-tipos .lugar-tipo-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('nev-lugar-tipo').value=tipo;
+  const detalle=document.getElementById('nev-lugar-detalle');
+  if(tipo==='OFICINA'){
+    detalle.style.display='none';
+    detalle.value='';
+  }else{
+    const placeholders={
+      HOTEL:'NOMBRE DEL HOTEL + HABITACIÓN',
+      APTO:'DIRECCIÓN DEL APARTAMENTO',
+      CASA:'CALLE Y NÚMERO',
+      AERO:'AEROPUERTO + Nº DE VUELO',
+    };
+    detalle.placeholder=placeholders[tipo]||'';
+    detalle.style.display='block';
+    setTimeout(()=>detalle.focus(),50);
+  }
+}
 
 function crearEvento(){
   const fecha=document.getElementById('disp-fecha').value;
@@ -1959,13 +2016,20 @@ function crearEvento(){
   const dias=parseInt(document.getElementById('disp-dias').value);
   const mat=document.getElementById('nev-mat-sel').value;
   const cat=document.getElementById('nev-cat-sel').value;
-  const lugar=document.getElementById('nev-lugar').value.trim();
+  // Construir 'lugar' desde botón tipo + detalle
+  const lugarTipo=(document.getElementById('nev-lugar-tipo')?.value||'').trim();
+  const lugarDetalle=(document.getElementById('nev-lugar-detalle')?.value||'').trim().toUpperCase();
+  let lugar='';
+  if(lugarTipo==='OFICINA'){lugar='OFICINA';}
+  else if(lugarTipo){lugar=lugarDetalle?(lugarTipo+' '+lugarDetalle):lugarTipo;}
+  // Fallback: si por algún motivo el formulario legacy aún tiene valor en nev-lugar, úsalo
+  if(!lugar){lugar=(document.getElementById('nev-lugar')?.value||'').trim().toUpperCase();}
   const lugarDevolEl=document.getElementById('nev-lugar-devol');
-  const lugarDevol=lugarDevolEl?lugarDevolEl.value.trim():'';
-  const info=document.getElementById('nev-info').value.trim();
+  const lugarDevol=lugarDevolEl?lugarDevolEl.value.trim().toUpperCase():'';
+  const info=document.getElementById('nev-info').value.trim().toUpperCase();
   const telEl=document.getElementById('nev-tel');
   const tel=telEl?telEl.value.trim():'';
-  const extras=document.getElementById('nev-extras').value.trim();
+  const extras=document.getElementById('nev-extras').value.trim().toUpperCase();
   const webEl=document.getElementById('nev-web');
   const esWeb=!!(webEl&&webEl.checked);
   if(!fecha){showToast('Selecciona una fecha','error');return;}
@@ -2183,7 +2247,17 @@ function renderAgenda(){
       })();
       const volvBadge=(()=>{
         if(!ev.volverseConId)return '';
-        const rec=STATE.eventos.find(e=>String(e.id)===String(ev.volverseConId));
+        const link=String(ev.volverseConId);
+        // Coche aparcado (formato veh:MATRICULA)
+        if(link.startsWith('veh:')){
+          const mat=link.slice(4);
+          const v=STATE.vehiculos.find(x=>x.mat===mat);
+          if(!v) return '';
+          return `<div class="ev2-volverse">↩ <span style="font-family:monospace;font-weight:900">${esc(mat)}</span> · 🅿️ ${esc(v.ubicacion||'')}</div>`;
+        }
+        // Recogida (formato ev:ID o ID antiguo)
+        const recId=link.replace(/^ev:/,'');
+        const rec=STATE.eventos.find(e=>String(e.id)===recId);
         if(!rec)return '';
         const rFin=eventoRange(rec).fin;
         const rMat=rec.matricula?rec.matricula:('Cat.'+rec.cat);
@@ -2357,12 +2431,20 @@ function openEvento(id){
     <div class="modal-row"><span class="modal-key">Disponible desde</span><span class="modal-val" style="color:var(--green);font-weight:700">${fmtDT(buf)}</span></div>
     ${(()=>{
       if(!ev.volverseConId)return '';
-      const rec=STATE.eventos.find(e=>String(e.id)===String(ev.volverseConId));
+      const link=String(ev.volverseConId);
+      if(link.startsWith('veh:')){
+        const mat=link.slice(4);
+        const v=STATE.vehiculos.find(x=>x.mat===mat);
+        if(!v) return '';
+        return `<div class="modal-row"><span class="modal-key">Volverse con</span><span class="modal-val" style="color:var(--green);font-weight:700;display:flex;align-items:center;gap:6px;"><span style="font-family:monospace;font-weight:900;">${esc(mat)}</span><span style="opacity:.6;">·</span>🅿️ ${esc(v.ubicacion||'')} <button onclick="quitarVolverseCon('${id}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:4px;">×</button></span></div>`;
+      }
+      const recId=link.replace(/^ev:/,'');
+      const rec=STATE.eventos.find(e=>String(e.id)===recId);
       if(!rec)return '';
       const{fin:recFin}=eventoRange(rec);
       const rMatModal=rec.matricula?rec.matricula:('Cat.'+rec.cat);
       return `<div class="modal-row"><span class="modal-key">Volverse con</span><span class="modal-val" style="color:var(--green);font-weight:700;display:flex;align-items:center;gap:6px;"><span style="font-family:monospace;font-weight:900;">${esc(rMatModal)}</span><span style="opacity:.6;">·</span>${recFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}${rec.lugar?' · '+esc(rec.lugar):''} <button onclick="quitarVolverseCon('${id}')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-left:4px;">×</button></span></div>`;
-    })()} 
+    })()}
     ${ev.lugar?`<div class="modal-row"><span class="modal-key">Lugar entrega</span><span class="modal-val">${esc(ev.lugar)}</span></div>`:''}
     <div class="modal-row"><span class="modal-key">Lugar devolución</span>
       <span style="display:flex;align-items:center;gap:8px;">
@@ -2840,6 +2922,9 @@ function renderFlota(){
   const tabs=document.getElementById('flota-cat-tabs');
   tabs.innerHTML=`<div class="cat-tab ${flotaCat==='todos'?'active':''}" onclick="setFlotaCat('todos',this)">Todos</div>`+CATS.map(c=>`<div class="cat-tab ${flotaCat===c?'active':''}" onclick="setFlotaCat('${c}',this)">Cat. ${c}</div>`).join('');
   renderFlotaList();
+  // Refrescar panel "Coches aparcados" si está visible (para que los cambios se reflejen sin tener que cerrar y abrir)
+  const panelUbi=document.getElementById('panel-ubicaciones');
+  if(panelUbi && panelUbi.style.display!=='none') renderListaUbicaciones();
 }
 function setFlotaCat(cat,el){flotaCat=cat;document.querySelectorAll('#flota-cat-tabs .cat-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderFlotaList();}
 function renderFlotaList(){
@@ -3133,41 +3218,58 @@ function toggleUbicaciones(){
     btn.textContent='Ver coches aparcados';
     return;
   }
-  // Construir lista de coches con ubicación
-  const conUbi=STATE.vehiculos.filter(v=>v.ubicacion&&v.ubicacion.trim()!=='');
-  const lista=document.getElementById('lista-ubicaciones');
-  if(!conUbi.length){
-    lista.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;font-weight:600;">Ningún coche tiene ubicación guardada</div>`;
-  }else{
-    // Agrupar por ubicación
-    const grupos={};
-    conUbi.forEach(v=>{
-      const ubi=v.ubicacion.trim();
-      if(!grupos[ubi])grupos[ubi]=[];
-      grupos[ubi].push(v);
-    });
-    lista.innerHTML=Object.entries(grupos).map(([ubi,vehs])=>`
-      <div style="margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${ubi}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${vehs.map(v=>{
-            const cfg={
-              'Disponible':{c:'var(--green)',bg:'var(--green-bg)',b:'var(--green-lt)'},
-              'En alquiler':{c:'var(--red)',bg:'var(--red-bg)',b:'var(--red-lt)'},
-              'Taller':{c:'var(--amber)',bg:'var(--amber-bg)',b:'var(--amber-lt)'},
-              'Alq. L/T':{c:'var(--purple)',bg:'var(--purple-bg)',b:'var(--purple-lt)'},
-            };
-            const k=cfg[v.estado]||cfg['Disponible'];
-            return`<div onclick="openVehiculo('${v.mat}')" style="background:${k.bg};border:1.5px solid ${k.b};border-radius:8px;padding:7px 12px;cursor:pointer;">
-              <div style="font-family:monospace;font-size:13px;font-weight:700;color:${k.c};">${esc(v.mat)}</div>
-              <div style="font-size:10px;font-weight:700;color:${k.c};opacity:.8;">${esc(v.estado)}</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`).join('');
-  }
+  renderListaUbicaciones();
   panel.style.display='block';
   btn.textContent='Ocultar coches aparcados';
+}
+function renderListaUbicaciones(){
+  const lista=document.getElementById('lista-ubicaciones');
+  if(!lista) return;
+  // Construir lista de coches con ubicación
+  const conUbi=STATE.vehiculos.filter(v=>v.ubicacion&&v.ubicacion.trim()!=='');
+  if(!conUbi.length){
+    lista.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;font-weight:600;">Ningún coche tiene ubicación guardada</div>`;
+    return;
+  }
+  // Agrupar por ubicación
+  const grupos={};
+  conUbi.forEach(v=>{
+    const ubi=v.ubicacion.trim();
+    if(!grupos[ubi])grupos[ubi]=[];
+    grupos[ubi].push(v);
+  });
+  // Orden por prioridad de estado predominante
+  const prioridad=(estados)=>{
+    if(estados.includes('Disponible'))return 1;
+    if(estados.includes('Taller'))return 2;
+    if(estados.includes('Alq. L/T'))return 4;
+    return 3;
+  };
+  const entradasOrd=Object.entries(grupos).sort(([uA,vsA],[uB,vsB])=>{
+    const pA=prioridad(vsA.map(v=>v.estado));
+    const pB=prioridad(vsB.map(v=>v.estado));
+    if(pA!==pB)return pA-pB;
+    return uA.localeCompare(uB,'es',{sensitivity:'base'});
+  });
+  lista.innerHTML=entradasOrd.map(([ubi,vehs])=>`
+    <div style="margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${ubi}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${vehs.map(v=>{
+          const cfg={
+            'Disponible':{c:'var(--green)',bg:'var(--green-bg)',b:'var(--green-lt)'},
+            'En alquiler':{c:'var(--red)',bg:'var(--red-bg)',b:'var(--red-lt)'},
+            'Taller':{c:'var(--amber)',bg:'var(--amber-bg)',b:'var(--amber-lt)'},
+            'Alq. L/T':{c:'var(--purple)',bg:'var(--purple-bg)',b:'var(--purple-lt)'},
+          };
+          const k=cfg[v.estado]||cfg['Disponible'];
+          return`<div onclick="openVehiculo('${v.mat}')" style="background:${k.bg};border:1.5px solid ${k.b};border-radius:8px;padding:7px 12px;cursor:pointer;">
+            <div style="font-family:monospace;font-size:13px;font-weight:700;color:${k.c};">${esc(v.mat)}</div>
+            <div style="font-size:10px;font-weight:700;color:${k.c};opacity:.8;">${esc(v.estado)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
 }
 
 function cambiarEstadoVeh(mat,estado){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v){v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');}}
@@ -3504,7 +3606,7 @@ function seleccionarHoraCat(cat, hora){
   const info=CAT_INFO[cat]||{nombre:'Cat.'+cat,emoji:'<span style="font-size:18px;opacity:.7">&#9632;</span>'};
   document.getElementById('nev-cat-sel').value=cat;
   document.getElementById('nev-mat-sel').value='';
-  document.getElementById('nev-lugar').value='';
+  document.getElementById('nev-lugar').value='';resetLugarTipo();
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
   resetLugarDevolucion();
@@ -3658,45 +3760,50 @@ function abrirVolverseCon(id){
   if(!ev)return;
   const{ini}=eventoRange(ev);
   const fechaStr=ev.fechaIni.split('T')[0];
-  const horaEnt=ini.getHours()*60+ini.getMinutes(); // minutos desde medianoche
 
-  // Buscar recogidas ese mismo día (o día siguiente hasta +4h)
-  // Coches ya enlazados en otras entregas ese día (no mostrarlos como opción)
+  // Recogidas del mismo día — coches que volverán antes de mi entrega
   const matsYaEnlazadas=new Set(
     STATE.eventos
       .filter(e=>String(e.id)!==String(id) && e.volverseConId && e.estado!=='Cerrado' && e.estado!=='Cancelado')
-      .map(e=>{
-        const rec=STATE.eventos.find(r=>String(r.id)===String(e.volverseConId));
-        return rec?String(rec.id):null;
-      })
+      .map(e=>String(e.volverseConId).replace(/^(ev|veh):/,''))
       .filter(Boolean)
   );
-  // También excluir el que ya tiene asignado este evento (para poder reasignar)
   const miEnlaceActual=ev.volverseConId?String(ev.volverseConId):null;
+  const miEnlaceRaw=miEnlaceActual?miEnlaceActual.replace(/^(ev|veh):/,''):null;
 
-  const candidatos=STATE.eventos.filter(e=>{
+  const recogidas=STATE.eventos.filter(e=>{
     if(String(e.id)===String(id)) return false;
     if(e.estado==='Cerrado'||e.estado==='Cancelado') return false;
-    // Excluir coches ya enlazados por otras entregas (salvo el que ya tengo yo)
-    if(matsYaEnlazadas.has(String(e.id)) && String(e.id)!==miEnlaceActual) return false;
+    if(matsYaEnlazadas.has(String(e.id)) && String(e.id)!==miEnlaceRaw) return false;
     const{fin}=eventoRange(e);
     const finStr=fin.toISOString().split('T')[0];
     return finStr===fechaStr;
   }).sort((a,b)=>eventoRange(a).fin-eventoRange(b).fin);
 
-  if(!candidatos.length){
-    showToast('No hay recogidas ese día para enlazar','info');
+  // Coches DISPONIBLES con ubicación — están aparcados listos para recoger
+  // Excluir los ya enlazados por otras entregas
+  const vehsDisponibles=STATE.vehiculos.filter(v=>{
+    if(v.estado!=='Disponible') return false;
+    if(!v.ubicacion || !v.ubicacion.trim()) return false;
+    if(matsYaEnlazadas.has(v.mat) && v.mat!==miEnlaceRaw) return false;
+    return true;
+  }).sort((a,b)=>a.ubicacion.localeCompare(b.ubicacion,'es',{sensitivity:'base'}));
+
+  if(!recogidas.length && !vehsDisponibles.length){
+    showToast('No hay coches disponibles para enlazar','info');
     return;
   }
 
-  const filas=candidatos.map(c=>{
+  // Filas de RECOGIDAS
+  const filasRec=recogidas.map(c=>{
     const{fin}=eventoRange(c);
     const hora=fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
     const diffMin=Math.round((fin.getTime()-ini.getTime())/60000);
     const diffStr=Math.abs(diffMin)<60
       ?(diffMin>=0?'+':'−')+Math.abs(diffMin)+'min'
       :(diffMin>=0?'+':'−')+Math.abs(Math.round(diffMin/60))+'h';
-    const isLinked=String(ev.volverseConId)===String(c.id);
+    const linkId='ev:'+c.id;
+    const isLinked=String(ev.volverseConId)===linkId || String(ev.volverseConId)===String(c.id);
     const veh=c.matricula?STATE.vehiculos.find(v=>v.mat===c.matricula):null;
     const ubi=veh?.ubicacion||'';
     const bg=isLinked?'var(--green-bg)':'var(--neu-bg-white)';
@@ -3707,11 +3814,11 @@ function abrirVolverseCon(id){
       :`<span style="font-size:11px;font-weight:700;color:var(--muted);background:var(--surface2);padding:1px 7px;border-radius:4px;border:1px solid var(--border);">Cat.${c.cat}</span>`;
     const ubiTag=ubi
       ?`<span style="font-size:11px;font-weight:600;color:var(--blue-mid);margin-left:5px;">${ubi}</span>`:'';
-    return `<div onclick="setVolverseCon('${id}','${c.id}')"
+    return `<div onclick="setVolverseCon('${id}','${linkId}')"
       style="display:flex;align-items:center;gap:12px;padding:12px 14px;
         background:${bg};border:${brd};border-radius:12px;
         cursor:pointer;margin-bottom:8px;transition:all .15s;
-        box-shadow:3px 3px 8px var(--neu-shadow-d),-3px -3px 8px var(--neu-shadow-l);">
+        box-shadow:3px 3px 8px rgba(0,0,0,.08);">
       <div style="text-align:center;min-width:48px;">
         <div style="font-family:monospace;font-size:18px;font-weight:900;color:${col};line-height:1;">${hora}</div>
         <div style="font-size:10px;font-weight:700;color:var(--muted);margin-top:2px;">${diffStr}</div>
@@ -3727,12 +3834,47 @@ function abrirVolverseCon(id){
     </div>`;
   }).join('');
 
+  // Filas de COCHES YA APARCADOS (disponibles con ubicación)
+  const filasVeh=vehsDisponibles.map(v=>{
+    const linkId='veh:'+v.mat;
+    const isLinked=String(ev.volverseConId)===linkId;
+    const bg=isLinked?'var(--green-bg)':'var(--neu-bg-white)';
+    const brd=isLinked?'2px solid var(--green)':'1.5px solid var(--border)';
+    const col=isLinked?'var(--green)':'var(--text)';
+    return `<div onclick="setVolverseCon('${id}','${linkId}')"
+      style="display:flex;align-items:center;gap:12px;padding:12px 14px;
+        background:${bg};border:${brd};border-radius:12px;
+        cursor:pointer;margin-bottom:8px;transition:all .15s;
+        box-shadow:3px 3px 8px rgba(0,0,0,.08);">
+      <div style="text-align:center;min-width:48px;">
+        <div style="font-size:18px;line-height:1;">🅿️</div>
+        <div style="font-size:9px;font-weight:800;color:var(--green);margin-top:2px;letter-spacing:.04em;">YA AQUÍ</div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:800;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(v.ubicacion)}</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-family:monospace;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-frost);padding:1px 7px;border-radius:4px;border:1px solid var(--blue-wash);">${esc(v.mat)}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--green);background:var(--green-bg);padding:1px 7px;border-radius:4px;border:1px solid var(--green-lt);">Disponible</span>
+        </div>
+      </div>
+      ${isLinked?`<span style="font-size:11px;font-weight:800;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:20px;border:1px solid var(--green-lt);white-space:nowrap;">Enlazado</span>`:''}
+    </div>`;
+  }).join('');
+
+  const seccionRec=filasRec?`
+    <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:6px 0 8px;">Recogidas del día</div>
+    ${filasRec}`:'';
+  const seccionVeh=filasVeh?`
+    <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;">Coches ya aparcados (disponibles)</div>
+    ${filasVeh}`:'';
+
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">Volverse con…</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:16px;font-weight:500;">
-      Selecciona la recogida que coincide con esta entrega para optimizar el viaje.
+      Elige una recogida del día o un coche ya aparcado con el que volver tras la entrega.
     </p>
-    ${filas}
+    ${seccionRec}
+    ${seccionVeh}
     ${ev.volverseConId?`<button class="btn btn-secondary btn-sm" style="margin-top:4px;" onclick="quitarVolverseCon('${id}')">✕ Quitar enlace</button>`:''}
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="openEvento('${id}')">← Volver</button>
   `;
