@@ -780,15 +780,16 @@ input::placeholder, textarea::placeholder {
 .ev2-lugar { font-size:18px; font-weight:800; color:var(--text); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-.015em; text-transform:uppercase; }
 .ev2-info  { font-size:14px; color:var(--text2); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:uppercase; }
 .ev2-tags  { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; }
+.ev2-tags-row2 { margin-top:6px; }
 .ev2-tag   {
   font-family:'DM Mono',monospace; font-size:12.5px; font-weight:700;
   padding:3px 10px; border-radius:7px; border:1.5px solid; white-space:nowrap;
   box-shadow:1px 1px 3px rgba(0,0,0,.08);
   letter-spacing:.01em;
 }
-.ev2-tag-mat   { color:var(--blue);   background:var(--blue-frost); border-color:var(--blue-wash); font-weight:900; font-size:15px; padding:4px 12px; letter-spacing:.04em; }
+.ev2-tag-mat   { color:#0a1635;   background:#fff; border-color:var(--blue); border-width:2px; font-weight:900; font-size:18px; padding:5px 14px; letter-spacing:.05em; }
 .ev2-tag-cat   { color:var(--text2);  background:var(--neu-bg);     border-color:rgba(162,186,230,.5); }
-.ev2-tag-dias  { color:var(--text2);  background:var(--neu-bg);     border-color:rgba(162,186,230,.5); font-weight:900; font-size:15px; padding:4px 12px; letter-spacing:.02em; }
+.ev2-tag-dias  { color:#0a1635;  background:#fff; border-color:var(--text2); border-width:2px; font-weight:900; font-size:18px; padding:5px 14px; letter-spacing:.02em; }
 .ev2-tag-extras{ color:var(--amber);  background:var(--amber-bg);   border-color:var(--amber-lt); }
 .ev2-volverse  {
   display:inline-flex; align-items:center; gap:6px; margin-top:3px;
@@ -2218,7 +2219,7 @@ function renderAgenda(){
           ${ev.info?`<div class="ev2-info">${esc(ev.info)}</div>`:''}
           <div class="ev2-tags">
             <span class="ev2-tag ev2-tag-mat">${esc(ev.matricula)||'Sin matrícula'}</span>
-            <span class="ev2-tag ev2-tag-dias">× ${ev.dias} (${fmtDateShort(fin)})</span>
+            <span class="ev2-tag ev2-tag-dias">× ${ev.dias}</span>
           </div>
         </div>
       </div>`;
@@ -2279,9 +2280,11 @@ function renderAgenda(){
           ${ev.tel?`<div class="ev2-info" style="display:flex;align-items:center;gap:7px;"><span style="font-size:14px;">📞</span><a href="tel:${esc(ev.tel)}" onclick="event.stopPropagation()" style="color:var(--accent);font-weight:800;text-decoration:none;font-family:'DM Mono',monospace;font-size:15px;letter-spacing:.01em;">${esc(ev.tel)}</a></div>`:''}
           <div class="ev2-tags">
             ${matTag}
+            <span class="ev2-tag ev2-tag-dias">× ${ev.dias}</span>
+          </div>
+          <div class="ev2-tags ev2-tags-row2">
             ${limpioBadge}
             ${ev.web?`<span class="ev2-tag" style="background:var(--accent);color:#fff;border-color:var(--accent);font-weight:900;letter-spacing:.06em;">WEB</span>`:''}
-            <span class="ev2-tag ev2-tag-dias">× ${ev.dias} (${fmtDateShort(fin)})</span>
             ${ev.extras?`<span class="ev2-tag ev2-tag-extras">+ ${esc(ev.extras)}</span>`:''}
           </div>
           ${volvBadge}
