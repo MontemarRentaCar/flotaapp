@@ -786,9 +786,9 @@ input::placeholder, textarea::placeholder {
   box-shadow:1px 1px 3px rgba(0,0,0,.08);
   letter-spacing:.01em;
 }
-.ev2-tag-mat   { color:var(--blue);   background:var(--blue-frost); border-color:var(--blue-wash); font-weight:800; }
+.ev2-tag-mat   { color:var(--blue);   background:var(--blue-frost); border-color:var(--blue-wash); font-weight:900; font-size:15px; padding:4px 12px; letter-spacing:.04em; }
 .ev2-tag-cat   { color:var(--text2);  background:var(--neu-bg);     border-color:rgba(162,186,230,.5); }
-.ev2-tag-dias  { color:var(--text2);  background:var(--neu-bg);     border-color:rgba(162,186,230,.5); }
+.ev2-tag-dias  { color:var(--text2);  background:var(--neu-bg);     border-color:rgba(162,186,230,.5); font-weight:900; font-size:15px; padding:4px 12px; letter-spacing:.02em; }
 .ev2-tag-extras{ color:var(--amber);  background:var(--amber-bg);   border-color:var(--amber-lt); }
 .ev2-volverse  {
   display:inline-flex; align-items:center; gap:6px; margin-top:3px;
@@ -796,11 +796,11 @@ input::placeholder, textarea::placeholder {
   background:var(--green-bg); border:1.5px solid var(--green-lt);
   border-radius:7px; padding:3px 10px;
 }
-/* Entrega (amber) */
-.ev2.tipo-entrega { border-left-color:var(--amber); background:linear-gradient(90deg,#fff7e6 0%,var(--neu-bg-white) 28%); }
-.ev2.tipo-entrega .ev2-time { background:#fde9c4; }
-.ev2.tipo-entrega .ev2-time-val { color:#7a3e00; }
-.ev2.tipo-entrega .ev2-time-lbl { color:#7a3e00; }
+/* Entrega (verde) */
+.ev2.tipo-entrega { border-left-color:#1a9e4a; background:linear-gradient(90deg,#e8f7ec 0%,var(--neu-bg-white) 28%); }
+.ev2.tipo-entrega .ev2-time { background:#c8eed1; }
+.ev2.tipo-entrega .ev2-time-val { color:#0a0a0a; }
+.ev2.tipo-entrega .ev2-time-lbl { color:#0a0a0a; }
 /* Recogida (azul) */
 .ev2.tipo-recogida { border-left-color:var(--blue); background:linear-gradient(90deg,#e3edfc 0%,var(--neu-bg-white) 28%); }
 .ev2.tipo-recogida .ev2-time { background:#c5d8f7; }
@@ -1730,6 +1730,7 @@ function validarConflicto(mat, cat, fechaIni, dias, idExcluir=null, devolucionCu
 
 
 function fmtDate(dt){return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function fmtDateShort(dt){return dt.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});}
 function fmtDT(dt){return fmtDate(dt)+' '+dt.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});}
 
 // ── DISPONIBILIDAD + NUEVO EVENTO ─────────────────────────────────────────
@@ -2125,7 +2126,14 @@ function _updateAgendaCounts(){
   const vivos=STATE.eventos.filter(e=>e.estado!=='Cerrado'&&e.estado!=='Cancelado');
   const todayStr=new Date().toISOString().split('T')[0];
   const nEnt=vivos.filter(e=>e.estado==='Pendiente'&&e.fechaIni.split('T')[0]===todayStr).length;
-  const nRec=vivos.filter(e=>e.estado==='Activo'||(e.estado==='Pendiente'&&new Date(e.fechaIni)<now)).length;
+  // Recogidas: activos/pendientes-vencidos cuya FECHA DE FIN sea hoy
+  const nRec=vivos.filter(e=>{
+    const esActivo=e.estado==='Activo';
+    const esPendVencida=e.estado==='Pendiente'&&new Date(e.fechaIni)<now;
+    if(!esActivo && !esPendVencida) return false;
+    const{fin}=eventoRange(e);
+    return fin.toISOString().split('T')[0]===todayStr;
+  }).length;
   const tabEnt=document.getElementById('tab-entregas');
   const tabRec=document.getElementById('tab-recogidas');
   if(tabEnt)tabEnt.textContent='Entregas'+(nEnt?` (${nEnt})`:'');
@@ -2210,7 +2218,7 @@ function renderAgenda(){
           ${ev.info?`<div class="ev2-info">${esc(ev.info)}</div>`:''}
           <div class="ev2-tags">
             <span class="ev2-tag ev2-tag-mat">${esc(ev.matricula)||'Sin matrícula'}</span>
-            <span class="ev2-tag ev2-tag-dias">${ev.dias}d → ${fmtDate(fin)}</span>
+            <span class="ev2-tag ev2-tag-dias">× ${ev.dias} (${fmtDateShort(fin)})</span>
           </div>
         </div>
       </div>`;
@@ -2243,7 +2251,7 @@ function renderAgenda(){
         const onclick=hayEntregaAntes
           ?`onclick="event.stopPropagation();avisoLimpioBloqueado('${esc(ev.matricula)}')"`
           :`onclick="event.stopPropagation();toggleLimpioAgenda('${esc(ev.matricula)}')"`;
-        return `<button ${onclick} style="background:${bg};color:#fff;font-size:10.5px;font-weight:900;letter-spacing:.06em;padding:3px 10px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;box-shadow:0 2px 4px rgba(0,0,0,.18);transition:transform .1s;" onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">${txt}</button>`;
+        return `<button ${onclick} style="background:${bg};color:#fff;font-size:13px;font-weight:900;letter-spacing:.06em;padding:4px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;box-shadow:0 2px 4px rgba(0,0,0,.18);transition:transform .1s;" onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">${txt}</button>`;
       })();
       const volvBadge=(()=>{
         if(!ev.volverseConId)return '';
@@ -2273,7 +2281,7 @@ function renderAgenda(){
             ${matTag}
             ${limpioBadge}
             ${ev.web?`<span class="ev2-tag" style="background:var(--accent);color:#fff;border-color:var(--accent);font-weight:900;letter-spacing:.06em;">WEB</span>`:''}
-            <span class="ev2-tag ev2-tag-dias">${ev.dias}d → ${fmtDate(fin)}</span>
+            <span class="ev2-tag ev2-tag-dias">× ${ev.dias} (${fmtDateShort(fin)})</span>
             ${ev.extras?`<span class="ev2-tag ev2-tag-extras">+ ${esc(ev.extras)}</span>`:''}
           </div>
           ${volvBadge}
