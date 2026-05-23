@@ -1174,7 +1174,7 @@ input::placeholder, textarea::placeholder {
 
     <!-- FLOTA -->
     <div class="screen" id="screen-flota">
-      <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;"><div><div class="page-title">Flota</div><div class="page-sub" id="flota-sub">52 vehículos</div></div><div style="display:flex;gap:6px;"><button onclick="abrirNuevaMatricula()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1;" title="Añadir matrícula">+</button><button onclick="ejecutarAuditoria()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;" title="Audita incoherencias entre estados y eventos">🔍 Auditar</button><button onclick="sincronizarFlotaManual()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">⟳ Sync</button></div></div>
+      <div class="page-header-bar" style="display:flex;align-items:center;justify-content:space-between;"><div><div class="page-title">Flota</div><div class="page-sub" id="flota-sub">52 vehículos</div></div><div style="display:flex;gap:6px;"><button onclick="abrirNuevaMatricula()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1;" title="Añadir matrícula">+</button><button onclick="sincronizarFlotaManual()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">⟳ Sync</button></div></div>
       <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
         <div class="stat-box stat-green"><div class="stat-num" id="stat-libre">—</div><div class="stat-label">Libres</div></div>
         <div class="stat-box stat-red">  <div class="stat-num" id="stat-alq">—</div>  <div class="stat-label">En ruta</div></div>
@@ -1440,15 +1440,6 @@ function _arrancarFirebase(){
     else{db.ref('estado').set({vehiculos:VEHICULOS_INIT,eventos:[]});}
     // Sincronizar estado de vehículos automáticamente basado en eventos
     sincronizarEstadoVehiculos();
-    // Auditoría silenciosa: corrige incoherencias al arrancar y persiste
-    try{
-      const _probs=auditarFlota();
-      if(_probs.length){
-        _probs.forEach(p=>{const v=STATE.vehiculos.find(x=>x.mat===p.mat);if(v)v.estado=p.deberia;});
-        saveState();
-        console.warn('[Auditoría arranque] '+_probs.length+' vehículo/s corregido/s:',_probs);
-      }
-    }catch(e){console.error('Auditoría error:',e);}
     // Actualizar backup local
     try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
     refreshUI();
@@ -2064,8 +2055,7 @@ function crearEvento(){
   _eventosConocidos.add(String(ev.id));
   pedirPermisoNotif();
   notifReserva(ev,'local');
-  // Recalcular estado del vehículo según eventos (NO marcar a ciegas como 'En alquiler')
-  if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v&&v.estado!=='Taller'&&v.estado!=='Alq. L/T')v.estado=calcularEstadoVehiculo(mat);}
+  if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
   saveState();
   // Refrescar slots para reflejar la nueva reserva
   actualizarSlots();
@@ -2652,10 +2642,10 @@ function deshacerEntrega(id){
   const quien=ev.matricula||('Cat.'+ev.cat);
   if(!confirm('¿Deshacer la entrega de '+quien+'?\n\nVolverá a aparecer en ENTREGAS como Pendiente.'))return;
   ev.estado='Pendiente';
-  // El coche se recalcula según eventos (puede ser Reservado o En alquiler según fechas)
+  // El coche vuelve a estar reservado (no libre)
   if(ev.matricula){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
-    if(v&&v.estado!=='Taller'&&v.estado!=='Alq. L/T') v.estado=calcularEstadoVehiculo(ev.matricula);
+    if(v&&v.estado!=='Taller'&&v.estado!=='Alq. L/T') v.estado='En alquiler';
   }
   saveState();closeModal();renderAgenda();showToast('Entrega deshecha — vuelve a Pendiente','info');
 }
@@ -2986,6 +2976,11 @@ function renderFlotaList(){
 }
 function openVehiculo(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
+  // Recalcular estado real según eventos antes de mostrar la ficha
+  if(v.estado!=='Alq. L/T'&&v.estado!=='Taller'){
+    const estadoReal=calcularEstadoVehiculo(mat);
+    if(v.estado!==estadoReal){v.estado=estadoReal;saveState();}
+  }
   const evs=STATE.eventos.filter(e=>e.matricula===mat).sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
   var ahora=new Date();
   var proxEv=evs.find(function(e){return e.estado==='Pendiente'||e.estado==='Activo';});
@@ -3296,51 +3291,19 @@ function renderListaUbicaciones(){
 function cambiarEstadoVeh(mat,estado){
   const v=STATE.vehiculos.find(x=>x.mat===mat);
   if(!v)return;
-  // Si el usuario fuerza un estado pero los eventos dicen otra cosa, mostrar el real y avisar
-  if(estado==='Disponible'||estado==='Reservado'||estado==='En alquiler'){
-    const calculado=calcularEstadoVehiculo(mat);
-    if(calculado!==estado&&calculado!=='Taller'){
-      v.estado=calculado;
-      saveState();
-      renderFlota();
-      const evs=STATE.eventos.filter(e=>e.matricula===mat&&e.estado!=='Cerrado'&&e.estado!=='Cancelado');
-      showToast('Estado real: '+calculado+' ('+evs.length+' evento/s activo/s). Revisa eventos.','error');
-      return;
-    }
+  // Taller y L/T son manuales, se respetan tal cual
+  if(estado==='Taller'||estado==='Alq. L/T'){
+    v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');return;
   }
-  v.estado=estado;
-  saveState();
-  renderFlota();
-  showToast('Estado actualizado','success');
-}
-// AUDITORÍA: detecta vehículos con estado incoherente respecto a sus eventos
-function auditarFlota(){
-  const problemas=[];
-  STATE.vehiculos.forEach(v=>{
-    if(v.estado==='Alq. L/T') return; // L/T es manual
-    if(v.estado==='Taller') return;   // Taller es manual o por ITV
-    const calculado=calcularEstadoVehiculo(v.mat);
-    if(calculado!==v.estado){
-      const evsAbiertos=STATE.eventos.filter(e=>e.matricula===v.mat&&e.estado!=='Cerrado'&&e.estado!=='Cancelado');
-      problemas.push({mat:v.mat,actual:v.estado,deberia:calculado,eventos:evsAbiertos.length});
-    }
-  });
-  return problemas;
-}
-function ejecutarAuditoria(){
-  const problemas=auditarFlota();
-  if(!problemas.length){
-    showToast('✓ Flota OK · sin incoherencias','success');
-    return;
+  // Para Disponible/Reservado/En alquiler, el estado real lo mandan los eventos
+  const estadoReal=calcularEstadoVehiculo(mat);
+  if(estadoReal===estado){
+    v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');
+  }else{
+    // Incoherencia: el usuario quiere X pero los eventos dicen Y
+    v.estado=estadoReal;saveState();renderFlota();
+    showToast('Hay reservas activas. Estado real: '+estadoReal,'error');
   }
-  problemas.forEach(p=>{
-    const v=STATE.vehiculos.find(x=>x.mat===p.mat);
-    if(v)v.estado=p.deberia;
-  });
-  saveState();
-  renderFlota();
-  const lineas=problemas.map(p=>`• ${p.mat}: era "${p.actual}" → ahora "${p.deberia}" (${p.eventos} evento/s)`).join('\n');
-  alert('Auditoría completada. Se corrigieron '+problemas.length+' vehículo/s:\n\n'+lineas);
 }
 function sincronizarFlotaManual(){
   sincronizarEstadoVehiculos();
