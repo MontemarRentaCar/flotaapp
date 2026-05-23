@@ -3300,10 +3300,43 @@ function cambiarEstadoVeh(mat,estado){
   if(estadoReal===estado){
     v.estado=estado;saveState();renderFlota();showToast('Estado actualizado','success');
   }else{
-    // Incoherencia: el usuario quiere X pero los eventos dicen Y
-    v.estado=estadoReal;saveState();renderFlota();
-    showToast('Hay reservas activas. Estado real: '+estadoReal,'error');
+    // Incoherencia: el usuario quiere X pero los eventos dicen Y → mostrar modal con eventos
+    v.estado=estadoReal;saveState();
+    mostrarEventosBloqueando(mat,estadoReal);
   }
+}
+// Muestra un modal con los eventos activos del coche para poder abrirlos y revisarlos/cancelarlos
+function mostrarEventosBloqueando(mat,estadoReal){
+  const ahora=new Date();
+  const evs=STATE.eventos.filter(e=>e.matricula===mat&&e.estado!=='Cerrado'&&e.estado!=='Cancelado')
+    .sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
+  const filas=evs.map(e=>{
+    const{ini,fin,buf}=eventoRange(e);
+    const enCurso=ini<=ahora&&buf>ahora;
+    const futuro=ini>ahora;
+    const marca=enCurso?'<span style="background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;">EN CURSO</span>':(futuro?'<span style="background:var(--accent-bg);color:var(--accent);font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;border:1px solid var(--accent-lt);">FUTURO</span>':'');
+    const fIni=ini.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+ini.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    const fFin=fin.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    const lugar=esc(e.lugar||'Sin lugar');
+    const tipo=e.tipoEvento==='ITV'?'ITV · ':'';
+    return `<div onclick="closeModal();setTimeout(()=>openEvento('${e.id}'),100);" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:800;color:var(--text);">${tipo}${fIni} → ${fFin}</div>
+        ${marca}
+      </div>
+      <div style="font-size:12px;color:var(--muted);font-weight:600;">${lugar} · ${esc(e.estado)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Eventos activos · ${esc(mat)}</div>
+    <div style="background:var(--red-bg);border:1.5px solid var(--red-lt);border-radius:10px;padding:10px 12px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:3px;">Estado real: ${estadoReal}</div>
+      <div style="font-size:12px;color:var(--text);font-weight:600;">Toca un evento para abrirlo y cancelarlo o cerrarlo.</div>
+    </div>
+    ${filas||'<div style="text-align:center;padding:20px;color:var(--muted);">Sin eventos</div>'}
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%;" onclick="closeModal()">Cerrar</button>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
 }
 function sincronizarFlotaManual(){
   sincronizarEstadoVehiculos();
