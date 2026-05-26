@@ -3511,12 +3511,14 @@ function buscarDisponibilidadRapida(){
     const maxLibres = Math.max(...slotsConLibres.map(x => x.libres));
     const stockColor = maxLibres === 1 ? '#f39c12' : maxLibres <= 3 ? '#e67e22' : '#27ae60';
 
-    // Matrículas libres para el PRIMER slot disponible del día
-    // (cuando el usuario pulse un slot concreto, el formulario mostrará las reales)
+    // Matrículas libres: TODOS los coches de la cat. que estén libres en ALGÚN slot del día
+    // Para cada uno calculamos desde qué slot exacto están disponibles (con buffer de 30 min)
     const primerSlot = slotsConLibres[0];
-    const cochesVeh = primerSlot
-      ? STATE.vehiculos.filter(v => v.cat === cat && cocheDisponible(v, primerSlot.sI, primerSlot.sF))
-      : [];
+    const cochesVeh = STATE.vehiculos.filter(v => {
+      if(v.cat !== cat) return false;
+      // Libre si está disponible en al menos un slot del día
+      return slotsConLibres.some(({sI,sF}) => cocheDisponible(v, sI, sF));
+    });
 
     // Slot buttons
     const todosUltimo = slotsConLibres.every(x => x.libres === 1);
@@ -3546,20 +3548,31 @@ function buscarDisponibilidadRapida(){
       </button>`;
     }).join('');
 
-    // Matrículas libres para el primer slot — con indicación de desde qué hora
+    // Matrículas libres — cada coche con su hora real de disponibilidad
     const primerSlotLabel = primerSlot ? primerSlot.slot : '';
     const matsExpandido = cochesVeh.map(v => {
       const ubi = v.ubicacion
         ? `<div style="font-size:10px;color:rgba(255,255,255,.7);">${esc(v.ubicacion)}</div>` : '';
-      // Buscar el primer slot de todo el día en que este coche concreto está libre
+      // Buscar el primer slot del día en que este coche concreto está libre
       const primerSlotCoche = slotsConLibres.find(({sI,sF}) => cocheDisponible(v, sI, sF));
       const desdeHora = primerSlotCoche ? primerSlotCoche.slot : primerSlotLabel;
+      // ¿Tiene devolución previa el mismo día? → necesita preparación
+      const devolucionPrevia = STATE.eventos.find(e => {
+        if(e.matricula !== v.mat) return false;
+        if(e.estado === 'Cerrado' || e.estado === 'Cancelado') return false;
+        const {fin} = eventoRange(e);
+        // Devolución hoy y antes del slot de disponibilidad
+        const fechaFin = fin.toISOString().split('T')[0];
+        return fechaFin === fecha;
+      });
+      const avisoPrep = devolucionPrevia ? `
+        <div style="display:inline-block;background:#e67e22;color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:2px 7px;border-radius:8px;margin-top:4px;margin-left:4px;" title="Devolución previa — preparar coche">⚠ PREPARAR</div>` : '';
       const limpiezaBadge = `<div style="display:inline-block;background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:2px 7px;border-radius:8px;margin-top:4px;">${v.limpio?'LIMPIO':'SUCIO'}</div>`;
       return `<div style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
         border-radius:8px;padding:8px 10px;">
         <div style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;">${esc(v.mat)}</div>
         <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">desde ${desdeHora}</div>
-        ${ubi}${limpiezaBadge}
+        ${ubi}${limpiezaBadge}${avisoPrep}
       </div>`;
     }).join('');
 
