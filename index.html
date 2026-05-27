@@ -1746,11 +1746,7 @@ function _updateReservaBadge(){
   var nRec=vivos.filter(function(e){return e.estado==='Activo'||(e.estado==='Pendiente'&&new Date(e.fechaIni)<nowD);}).length;
   var badge=document.getElementById('reserva-hoy-badge');
   if(!badge)return;
-  if(nEnt+nRec>0){
-    badge.style.display='block';
-    badge.innerHTML=(nEnt?'<div style="color:rgba(255,255,255,.9);font-weight:800">'+nEnt+' hoy</div>':'')+
-      (nRec?'<div style="color:rgba(255,255,255,.9);font-weight:800">'+nRec+' pend.</div>':'');
-  }else{badge.style.display='none';}
+  badge.style.display='none';
 }
 function limpiarResultado(){
   const r=document.getElementById('disp-resultado');
@@ -2296,7 +2292,12 @@ function renderAgenda(){
     const matTagRec=ev.matricula
       ?`<span class="ev2-tag ev2-tag-mat">${esc(ev.matricula)}</span>`
       :`<span class="ev2-tag ev2-tag-cat">Cat. ${esc(ev.cat)}</span>`;
-    const lugarRec=ev.lugarDevol||ev.lugar;
+    // Si lugarDevol es solo un tipo genérico (HOTEL, APTO, CASA, AERO, OFICINA)
+    // sin detalle, usar el lugar de entrega completo en su lugar
+    const tiposGenericos=['HOTEL','APTO','CASA','AERO','OFICINA'];
+    const lugarRec=(ev.lugarDevol && !tiposGenericos.includes(ev.lugarDevol.trim().toUpperCase()))
+      ? ev.lugarDevol
+      : ev.lugar;
     return`<div class="ev2 tipo-recogida" onclick="openEvento('${ev.id}')">
       <div class="ev2-time"><div class="ev2-time-lbl">↓ recog.</div><div class="ev2-time-val">${hora}</div></div>
       <div class="ev2-body">
@@ -2328,7 +2329,7 @@ function renderAgenda(){
       const nItv=evsDia.filter(e=>e.tipoEvento==='ITV').length;
       const nEnt=evsDia.length-nItv;
       const partes=[];
-      if(nEnt) partes.push(nEnt+' Entrega'+(nEnt>1?'s':''));
+      if(nEnt) partes.push(nEnt+' '+(agendaTab==='recogidas'?'Recogida':'Entrega')+(nEnt>1?'s':''));
       if(nItv) partes.push(nItv+' ITV');
       const resumen=partes.join(' · ');
       return`<div class="day-group"><div class="day-header">${labelDia(dStr)}<span class="day-count">${resumen}</span></div>${cards}</div>`;
