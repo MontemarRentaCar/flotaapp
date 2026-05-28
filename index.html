@@ -4310,6 +4310,40 @@ document.addEventListener('keydown',function(e){
     if(document.getElementById('modal-overlay').classList.contains('open'))closeModal();
   }
 });
+
+// ── FIX iOS 12: los onclick en <div> no disparan en Safari viejo ───────────
+// Delegación de toque para tarjetas. Distingue toque real de scroll.
+(function(){
+  var startX=0,startY=0,startT=0,moved=false;
+  document.addEventListener('touchstart',function(e){
+    var t=e.touches&&e.touches[0];
+    if(!t)return;
+    startX=t.clientX;startY=t.clientY;startT=Date.now();moved=false;
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    var t=e.touches&&e.touches[0];
+    if(!t)return;
+    if(Math.abs(t.clientX-startX)>10||Math.abs(t.clientY-startY)>10)moved=true;
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(moved)return;                       // fue un scroll, no un toque
+    if(Date.now()-startT>700)return;       // pulsación demasiado larga
+    var el=e.target;
+    // Subir hasta encontrar una tarjeta clicable
+    var card=null;
+    while(el&&el!==document.body){
+      if(el.classList&&(el.classList.contains('ev2')||el.classList.contains('evento-card'))){card=el;break;}
+      // Si toca un botón/enlace propio, dejar que lo gestione él
+      if(el.tagName==='BUTTON'||el.tagName==='A'||el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA')return;
+      el=el.parentNode;
+    }
+    if(card&&typeof card.onclick==='function'){
+      e.preventDefault();
+      card.onclick(e);
+    }
+  },{passive:false});
+})();
+
 </script>
 </body>
 </html>
