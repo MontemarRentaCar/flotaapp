@@ -151,7 +151,7 @@ input::placeholder, textarea::placeholder {
 ::-webkit-scrollbar-thumb { background:var(--blue-wash); border-radius:3px; }
 
 /* ── APP SHELL ───────────────────────────────────────────── */
-#app { display:flex; flex-direction:column; height:100dvh; }
+#app { display:flex; flex-direction:column; height:100vh; height:100dvh; }
 #main {
   flex:1; overflow-y:auto; overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
@@ -584,7 +584,7 @@ input::placeholder, textarea::placeholder {
   background:var(--neu-bg-white);
   border-radius:var(--r5) var(--r5) 0 0;
   padding:18px 18px max(22px,env(safe-area-inset-bottom));
-  width:100%; max-width:520px; max-height:92dvh; overflow-y:auto;
+  width:100%; max-width:520px; max-height:92vh; max-height:92dvh; overflow-y:auto;
   animation:slideUp .24s cubic-bezier(.22,1,.36,1);
   box-shadow:
     0 -8px 40px rgba(30,77,183,.15),
@@ -896,7 +896,7 @@ input::placeholder, textarea::placeholder {
   .avail-grid { flex-direction:column; }
 }
 @media (min-width:600px) and (max-width:1179px) {
-  #app  { max-width:none; width:100%; margin:0; box-shadow:none; }
+  #app  { max-width:none; width:100%; margin:0; box-shadow:none; display:flex; flex-direction:column; height:100vh; height:100dvh; }
   body  { background:var(--bg); }
 }
 
