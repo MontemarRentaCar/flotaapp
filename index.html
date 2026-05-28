@@ -4329,17 +4329,18 @@ document.addEventListener('keydown',function(e){
     if(moved)return;                       // fue un scroll, no un toque
     if(Date.now()-startT>700)return;       // pulsación demasiado larga
     var el=e.target;
-    // Subir hasta encontrar una tarjeta clicable
-    var card=null;
-    while(el&&el!==document.body){
-      if(el.classList&&(el.classList.contains('ev2')||el.classList.contains('evento-card'))){card=el;break;}
-      // Si toca un botón/enlace propio, dejar que lo gestione él
-      if(el.tagName==='BUTTON'||el.tagName==='A'||el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA')return;
+    // Subir buscando el primer elemento con onclick propio.
+    // Los botones/enlaces/campos nativos ya disparan solos: no los tocamos.
+    var clickable=null;
+    while(el&&el!==document.body&&el!==document){
+      var tag=el.tagName;
+      if(tag==='BUTTON'||tag==='A'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||tag==='LABEL')return;
+      if(typeof el.onclick==='function'){clickable=el;break;}
       el=el.parentNode;
     }
-    if(card&&typeof card.onclick==='function'){
+    if(clickable){
       e.preventDefault();
-      card.onclick(e);
+      clickable.onclick(e);
     }
   },{passive:false});
 })();
