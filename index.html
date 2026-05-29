@@ -4312,64 +4312,38 @@ document.addEventListener('keydown',function(e){
 });
 
 // ── FIX iOS 12: los onclick en <div> no disparan en Safari viejo ───────────
+// Delegación de toque para tarjetas. Distingue toque real de scroll.
 (function(){
-  if(!('ontouchstart' in window))return;
-  var startX=0,startY=0,startT=0,moved=false,targetEl=null;
-  var bloquearClickHasta=0;
-
-  function findClickable(el){
-    while(el&&el!==document.body&&el!==document){
-      var tag=el.tagName;
-      if(tag==='BUTTON'||tag==='A'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||tag==='LABEL')return null;
-      if(typeof el.onclick==='function')return el;
-      el=el.parentNode;
-    }
-    return null;
-  }
-
+  var startX=0,startY=0,startT=0,moved=false;
   document.addEventListener('touchstart',function(e){
     var t=e.touches&&e.touches[0];
     if(!t)return;
     startX=t.clientX;startY=t.clientY;startT=Date.now();moved=false;
-    targetEl=e.target;
-  },true);
-
+  },{passive:true});
   document.addEventListener('touchmove',function(e){
     var t=e.touches&&e.touches[0];
     if(!t)return;
     if(Math.abs(t.clientX-startX)>10||Math.abs(t.clientY-startY)>10)moved=true;
-  },true);
-
+  },{passive:true});
   document.addEventListener('touchend',function(e){
-    if(moved)return;
-    if(Date.now()-startT>900)return;
-    var clickable=findClickable(targetEl||e.target);
+    if(moved)return;                       // fue un scroll, no un toque
+    if(Date.now()-startT>700)return;       // pulsación demasiado larga
+    var el=e.target;
+    // Subir buscando el primer elemento con onclick propio.
+    // Los botones/enlaces/campos nativos ya disparan solos: no los tocamos.
+    var clickable=null;
+    while(el&&el!==document.body&&el!==document){
+      var tag=el.tagName;
+      if(tag==='BUTTON'||tag==='A'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||tag==='LABEL')return;
+      if(typeof el.onclick==='function'){clickable=el;break;}
+      el=el.parentNode;
+    }
     if(clickable){
-      try{e.preventDefault();}catch(_){}
-      // Bloquear cualquier click sintético en los próximos 700ms
-      bloquearClickHasta=Date.now()+700;
-      setTimeout(function(){try{clickable.onclick(e);}catch(_){}},0);
-    }
-  },true);
-
-  // Capturar y descartar el click sintético que iOS dispara después del touch
-  document.addEventListener('click',function(e){
-    if(Date.now()<bloquearClickHasta){
-      e.stopPropagation();
       e.preventDefault();
+      clickable.onclick(e);
     }
-  },true);
+  },{passive:false});
 })();
-
-// Marca de versión
-(function(){
-  var v=document.createElement('div');
-  v.textContent='v.iOS12-fix-5';
-  v.style.cssText='position:fixed;bottom:2px;right:4px;font-size:9px;color:rgba(0,0,0,.3);z-index:9999;pointer-events:none;font-family:monospace;';
-  document.body.appendChild(v);
-})();
-
-
 
 </script>
 </body>
