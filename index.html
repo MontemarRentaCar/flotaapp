@@ -4325,31 +4325,114 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-// ── FIX iOS Safari: activar clicks nativos en divs con cursor:pointer ─────
-// El truco: registrar un listener 'click' vacío en body hace que iOS Safari
-// procese clicks en TODOS los descendientes div (no solo botones/enlaces).
+// ── FIX iOS Safari: activar clicks en divs con onclick ──────────────────
+// iOS Safari no dispara click events en <div> que solo tienen onclick="" como
+// atributo HTML. Pero SÍ los dispara si tienen un addEventListener('click')
+// registrado directamente. Esta función añade un listener real a cada uno.
 (function(){
-  function activarClicks(){
-    if(!document.body)return;
-    document.body.addEventListener('click',function(){},false);
-    // Aplicar cursor:pointer si falta a cualquier elemento con onclick
-    // (algunos elementos generados dinámicamente lo necesitan)
-    document.body.style.cursor=document.body.style.cursor||'auto';
+  function activarClick(el){
+    if(!el||el._iosClickFix)return;
+    el._iosClickFix=true;
+    // Listener vacío: solo sirve para que iOS reconozca el elemento como clicable
+    el.addEventListener('click',function(){},false);
+    // Asegurar cursor pointer (algunos elementos generados sin él)
+    if(el.style&&!el.style.cursor){
+      try{el.style.cursor='pointer';}catch(_){}
+    }
   }
-  if(document.body)activarClicks();
-  else document.addEventListener('DOMContentLoaded',activarClicks);
+  function buscar(root){
+    if(!root||!root.querySelectorAll)return;
+    var els=root.querySelectorAll('[onclick]');
+    for(var i=0;i<els.length;i++){
+      var el=els[i];
+      var tag=el.tagName;
+      if(tag==='BUTTON'||tag==='A'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||tag==='LABEL')continue;
+      activarClick(el);
+    }
+  }
+  function init(){
+    if(!document.body){setTimeout(init,80);return;}
+    buscar(document.body);
+    if(window.MutationObserver){
+      var obs=new MutationObserver(function(muts){
+        for(var i=0;i<muts.length;i++){
+          var added=muts[i].addedNodes;
+          for(var j=0;j<added.length;j++){
+            var n=added[j];
+            if(!n||n.nodeType!==1)continue;
+            if(n.hasAttribute&&n.hasAttribute('onclick')){
+              var tag=n.tagName;
+              if(tag!=='BUTTON'&&tag!=='A'&&tag!=='INPUT'&&tag!=='SELECT'&&tag!=='TEXTAREA'&&tag!=='LABEL'){
+                activarClick(n);
+              }
+            }
+            buscar(n);
+          }
+        }
+      });
+      obs.observe(document.body,{childList:true,subtree:true});
+    }
+  }
+  init();
 })();
 
 // Marca versión
 (function(){
   function addMark(){
     var v=document.createElement('div');
-    v.textContent='v.iOS12-fix-7';
+    v.textContent='v.iOS12-fix-9-DIAG';
     v.style.cssText='position:fixed;bottom:2px;right:4px;font:9px monospace;color:rgba(0,0,0,.3);z-index:9999;pointer-events:none;';
     document.body.appendChild(v);
   }
   if(document.body)addMark();
   else document.addEventListener('DOMContentLoaded',addMark);
+})();
+
+// ── DIAGNÓSTICO: envolver openEvento y closeModal para ver el flujo ──────
+(function(){
+  function setupDiag(){
+    if(typeof openEvento==='undefined'||typeof closeModal==='undefined'){
+      setTimeout(setupDiag,200);return;
+    }
+    // Caja de log persistente arriba
+    var log=document.createElement('div');
+    log.style.cssText='position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,.92);color:#0f0;font:11px monospace;padding:6px 10px;z-index:99999;pointer-events:none;white-space:pre-wrap;line-height:1.4;max-height:40%;overflow:hidden;';
+    log.textContent='[diag] toca una tarjeta…';
+    document.body.appendChild(log);
+    var lines=[];
+    function add(msg){
+      lines.push('['+new Date().toISOString().slice(11,19)+'] '+msg);
+      if(lines.length>8)lines.shift();
+      log.textContent=lines.join('\n');
+    }
+
+    var origOE=window.openEvento;
+    window.openEvento=function(id){
+      add('openEvento('+id+')');
+      try{
+        var r=origOE.apply(this,arguments);
+        setTimeout(function(){
+          var ov=document.getElementById('modal-overlay');
+          add('+100ms modal='+(ov&&ov.classList.contains('open')?'OPEN':'closed'));
+        },100);
+        setTimeout(function(){
+          var ov=document.getElementById('modal-overlay');
+          add('+500ms modal='+(ov&&ov.classList.contains('open')?'OPEN':'closed'));
+        },500);
+        return r;
+      }catch(e){add('ERR openEvento: '+e.message);}
+    };
+
+    var origCM=window.closeModal;
+    window.closeModal=function(e){
+      var tgt=e&&e.target?(e.target.tagName+'.'+(e.target.className||'').slice(0,30)):'no-event';
+      add('closeModal target='+tgt);
+      return origCM.apply(this,arguments);
+    };
+    add('diag listo');
+  }
+  if(document.body)setupDiag();
+  else document.addEventListener('DOMContentLoaded',setupDiag);
 })();
 
 
