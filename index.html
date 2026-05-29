@@ -1670,14 +1670,28 @@ function goTo(id,btn){
 //  7. Eventos Cerrado/Cancelado no cuentan nunca
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Parseo de fecha ISO local: en Safari iOS 12, "YYYY-MM-DDTHH:mm" sin zona
+// se interpreta como UTC (bug). Esta función lo parsea SIEMPRE como hora local
+// en cualquier navegador, garantizando consistencia entre dispositivos.
+function parseFechaLocal(s){
+  if(!s)return new Date(NaN);
+  if(s instanceof Date)return s;
+  if(typeof s!=='string')return new Date(s);
+  // Si trae Z o ±HH:MM (zona explícita), respetarla
+  if(/[Zz]|[+-]\d{2}:?\d{2}$/.test(s))return new Date(s);
+  var m=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if(!m)return new Date(s);
+  return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+}
+
 function eventoRange(ev){
-  const ini=new Date(ev.fechaIni);
+  const ini=parseFechaLocal(ev.fechaIni);
   let fin;
   if(ev.devolucionCustom){
-    fin=new Date(ev.devolucionCustom);
+    fin=parseFechaLocal(ev.devolucionCustom);
   }else{
     // Usar setDate para respetar DST (no sumar ms)
-    fin=new Date(ev.fechaIni);
+    fin=parseFechaLocal(ev.fechaIni);
     fin.setDate(fin.getDate()+Number(ev.dias));
   }
   // buf = 30 min después de la devolución real
@@ -1792,12 +1806,12 @@ function validarConflicto(mat, cat, fechaIni, dias, idExcluir=null, devolucionCu
   // Devuelve null si ok, o string con descripción del conflicto.
   // Si se pasa devolucionCustom (ISO string), se usa ese fin en vez de fechaIni+dias.
   if(!mat) return null; // sin matrícula no hay conflicto de coche concreto
-  const sI=new Date(fechaIni);
+  const sI=parseFechaLocal(fechaIni);
   let sF;
   if(devolucionCustom){
-    sF=new Date(devolucionCustom);
+    sF=parseFechaLocal(devolucionCustom);
   }else{
-    sF=new Date(fechaIni); sF.setDate(sF.getDate()+Number(dias));
+    sF=parseFechaLocal(fechaIni); sF.setDate(sF.getDate()+Number(dias));
   }
   const conflicto=STATE.eventos.find(ev=>{
     if(ev.matricula!==mat) return false;
@@ -1827,7 +1841,7 @@ function _updateReservaBadge(){
   var vivos=STATE.eventos.filter(function(e){return e.estado!=='Cerrado'&&e.estado!=='Cancelado';});
   var nEnt=vivos.filter(function(e){return e.estado==='Pendiente'&&e.fechaIni.split('T')[0]===todayStr;}).length;
   var nowD=new Date();nowD.setHours(0,0,0,0);
-  var nRec=vivos.filter(function(e){return e.estado==='Activo'||(e.estado==='Pendiente'&&new Date(e.fechaIni)<nowD);}).length;
+  var nRec=vivos.filter(function(e){return e.estado==='Activo'||(e.estado==='Pendiente'&&parseFechaLocal(e.fechaIni)<nowD);}).length;
   var badge=document.getElementById('reserva-hoy-badge');
   if(!badge)return;
   badge.style.display='none';
@@ -1849,7 +1863,7 @@ function buscarDisponibilidad(){
   const hora=horaRaw||'10:00';
   const dias=parseInt(document.getElementById('disp-dias').value)||1;
   if(!fecha){showToast('Selecciona una fecha','error');return;}
-  const sI=new Date(fecha+'T'+hora);const sF=new Date(fecha+'T'+hora);sF.setDate(sF.getDate()+dias);
+  const sI=parseFechaLocal(fecha+'T'+hora);const sF=parseFechaLocal(fecha+'T'+hora);sF.setDate(sF.getDate()+dias);
   dispRes={};CATS.forEach(c=>dispRes[c]=[]);
   // reservasSinMat calculadas por libresEnCat() — centralizado en el motor
   STATE.vehiculos.forEach(v=>{
@@ -2210,7 +2224,7 @@ function _updateAgendaCounts(){
   // Recogidas: activos/pendientes-vencidos cuya FECHA DE FIN sea hoy
   const nRec=vivos.filter(e=>{
     const esActivo=e.estado==='Activo';
-    const esPendVencida=e.estado==='Pendiente'&&new Date(e.fechaIni)<now;
+    const esPendVencida=e.estado==='Pendiente'&&parseFechaLocal(e.fechaIni)<now;
     if(!esActivo && !esPendVencida) return false;
     const{fin}=eventoRange(e);
     return fin.toISOString().split('T')[0]===todayStr;
@@ -2238,7 +2252,7 @@ function renderAgenda(){
     // Entregas: Pendientes de hoy (aunque la hora haya pasado) y días futuros
     todos=todosVivos.filter(e=>{
       if(e.estado!=='Pendiente') return false;
-      const d=new Date(e.fechaIni); d.setHours(0,0,0,0);
+      const d=parseFechaLocal(e.fechaIni); d.setHours(0,0,0,0);
       return d.getTime()>=now.getTime(); // todo el día de hoy y en adelante
     });
   }else{
@@ -2247,7 +2261,7 @@ function renderAgenda(){
     todos=todosVivos.filter(e=>{
       if(e.estado==='Activo') return true;
       if(e.estado==='Pendiente'){
-        const d=new Date(e.fechaIni); d.setHours(0,0,0,0);
+        const d=parseFechaLocal(e.fechaIni); d.setHours(0,0,0,0);
         return d.getTime()<now.getTime(); // solo días anteriores a hoy
       }
       return false;
@@ -2256,7 +2270,7 @@ function renderAgenda(){
 
   let evs, evsPasados;
   if(agendaTab==='entregas'){
-    evs=todos.filter(e=>{const i=new Date(e.fechaIni);i.setHours(0,0,0,0);return i>=now;});
+    evs=todos.filter(e=>{const i=parseFechaLocal(e.fechaIni);i.setHours(0,0,0,0);return i>=now;});
     evs.sort((a,b)=>new Date(a.fechaIni)-new Date(b.fechaIni));
     evsPasados=[];  // no mostrar pasados en Entregas
   }else{
@@ -2317,7 +2331,7 @@ function renderAgenda(){
         // ¿Hay otra entrega de este mismo coche ANTES de esta? Si la hay,
         // el coche se va a ensuciar en ese alquiler intermedio → forzar SUCIO.
         const hoy=new Date(); hoy.setHours(0,0,0,0);
-        const miIni=new Date(ev.fechaIni); miIni.setHours(0,0,0,0);
+        const miIni=parseFechaLocal(ev.fechaIni); miIni.setHours(0,0,0,0);
         const hayEntregaAntes=STATE.eventos.some(otro=>{
           if(String(otro.id)===String(ev.id))return false;
           if(otro.matricula!==ev.matricula)return false;
@@ -2404,7 +2418,7 @@ function renderAgenda(){
   if(evs.length){
     const grupos={};
     evs.forEach(ev=>{
-      const dStr=agendaTab==='recogidas'?eventoRange(ev).buf.toDateString():new Date(ev.fechaIni).toDateString();
+      const dStr=agendaTab==='recogidas'?eventoRange(ev).buf.toDateString():parseFechaLocal(ev.fechaIni).toDateString();
       if(!grupos[dStr])grupos[dStr]=[];
       grupos[dStr].push(ev);
     });
@@ -2948,7 +2962,7 @@ function guardarProlongacion(id){
   }
   ev.devolucionCustom=nuevaDevISO;
   // Recalcular días desde inicio hasta nueva devolución (DST-safe)
-  const iniMs=new Date(ev.fechaIni).getTime();
+  const iniMs=parseFechaLocal(ev.fechaIni).getTime();
   ev.dias=Math.round((nuevaFin.getTime()-iniMs)/(86400000));
   saveState({path:'eventos/'+ev.id});showToast('+'+diasExtra+' día'+(diasExtra>1?'s':'')+' añadidos ✓','success');openEvento(id);renderAgenda();
 }
@@ -3466,7 +3480,7 @@ function toggleModoITV(){
       const fecha=document.getElementById('disp-fecha').value;
       const dias=parseInt(document.getElementById('disp-dias').value)||1;
       const hora=document.getElementById('itv-hora-libre').value||'09:00';
-      const sI=fecha?new Date(fecha+'T'+hora):null;
+      const sI=fecha?parseFechaLocal(fecha+'T'+hora):null;
       const sF=sI?new Date(sI.getTime()+dias*86400000):null;
       const opciones=STATE.vehiculos
         .slice()
@@ -3728,7 +3742,7 @@ function buscarDisponibilidadRapida(){
     </div>`;
   }
 
-  const d = new Date(fecha+'T12:00');
+  const d = parseFechaLocal(fecha+'T12:00');
   document.getElementById('disp-rapido-label').textContent =
     d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}) + ' · ' + dias + ' día' + (dias>1?'s':'');
   catsDiv.innerHTML = html;
@@ -3807,7 +3821,7 @@ function abrirGridMatriculas(){
     return;
   }
 
-  const sI=new Date(fecha+'T'+hora);
+  const sI=parseFechaLocal(fecha+'T'+hora);
   const sF=new Date(sI); sF.setDate(sF.getDate()+dias);
   const items=STATE.vehiculos
     .filter(v=>v.cat===cat)
@@ -3857,7 +3871,7 @@ function seleccionarCocheForm(mat, cat){
 
 
 function getSlotsDelDia(fecha){
-  const d=new Date(fecha+'T12:00:00');
+  const d=parseFechaLocal(fecha+'T12:00:00');
   const dow=d.getDay(); // 0=domingo,6=sábado,1-5=lun-vie
   const slots=[];
   function addRange(hIni,mIni,hFin,mFin){
@@ -4173,7 +4187,7 @@ function renderHistorial(){
 
   const grupos={};
   cerrados.forEach(ev=>{
-    const d=new Date(ev.fechaIni);
+    const d=parseFechaLocal(ev.fechaIni);
     const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
     const label=d.toLocaleDateString('es-ES',{month:'long',year:'numeric'});
     if(!grupos[key])grupos[key]={label,evs:[]};
@@ -4311,39 +4325,34 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-// ── FIX iOS 12: los onclick en <div> no disparan en Safari viejo ───────────
-// Delegación de toque para tarjetas. Distingue toque real de scroll.
+// ── FIX iOS Safari: activar clicks nativos en divs con cursor:pointer ─────
+// El truco: registrar un listener 'click' vacío en body hace que iOS Safari
+// procese clicks en TODOS los descendientes div (no solo botones/enlaces).
 (function(){
-  var startX=0,startY=0,startT=0,moved=false;
-  document.addEventListener('touchstart',function(e){
-    var t=e.touches&&e.touches[0];
-    if(!t)return;
-    startX=t.clientX;startY=t.clientY;startT=Date.now();moved=false;
-  },{passive:true});
-  document.addEventListener('touchmove',function(e){
-    var t=e.touches&&e.touches[0];
-    if(!t)return;
-    if(Math.abs(t.clientX-startX)>10||Math.abs(t.clientY-startY)>10)moved=true;
-  },{passive:true});
-  document.addEventListener('touchend',function(e){
-    if(moved)return;                       // fue un scroll, no un toque
-    if(Date.now()-startT>700)return;       // pulsación demasiado larga
-    var el=e.target;
-    // Subir buscando el primer elemento con onclick propio.
-    // Los botones/enlaces/campos nativos ya disparan solos: no los tocamos.
-    var clickable=null;
-    while(el&&el!==document.body&&el!==document){
-      var tag=el.tagName;
-      if(tag==='BUTTON'||tag==='A'||tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||tag==='LABEL')return;
-      if(typeof el.onclick==='function'){clickable=el;break;}
-      el=el.parentNode;
-    }
-    if(clickable){
-      e.preventDefault();
-      clickable.onclick(e);
-    }
-  },{passive:false});
+  function activarClicks(){
+    if(!document.body)return;
+    document.body.addEventListener('click',function(){},false);
+    // Aplicar cursor:pointer si falta a cualquier elemento con onclick
+    // (algunos elementos generados dinámicamente lo necesitan)
+    document.body.style.cursor=document.body.style.cursor||'auto';
+  }
+  if(document.body)activarClicks();
+  else document.addEventListener('DOMContentLoaded',activarClicks);
 })();
+
+// Marca versión
+(function(){
+  function addMark(){
+    var v=document.createElement('div');
+    v.textContent='v.iOS12-fix-7';
+    v.style.cssText='position:fixed;bottom:2px;right:4px;font:9px monospace;color:rgba(0,0,0,.3);z-index:9999;pointer-events:none;';
+    document.body.appendChild(v);
+  }
+  if(document.body)addMark();
+  else document.addEventListener('DOMContentLoaded',addMark);
+})();
+
+
 
 </script>
 </body>
