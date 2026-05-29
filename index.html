@@ -574,9 +574,10 @@ input::placeholder, textarea::placeholder {
 
 /* ── MODAL ───────────────────────────────────────────────── */
 #modal-overlay {
-  display:none; position:fixed; inset:0;
+  display:none; position:fixed; top:0; right:0; bottom:0; left:0;
   background:rgba(10,25,80,.4); z-index:100;
   align-items:flex-end; justify-content:center;
+  -webkit-backdrop-filter:blur(12px) saturate(1.3);
   backdrop-filter:blur(12px) saturate(1.3);
 }
 #modal-overlay.open { display:flex; }
@@ -908,21 +909,21 @@ input::placeholder, textarea::placeholder {
 
 /* ── LOGIN NEU ───────────────────────────────────────────── */
 #login-overlay {
-  position:fixed; inset:0; z-index:9999;
+  position:fixed; top:0;right:0;bottom:0;left:0; z-index:9999;
   background:var(--neu-bg);
   display:flex; align-items:center; justify-content:center;
   transition:opacity .4s ease; overflow:hidden;
 }
 /* Fondo sutil con manchas */
 #login-overlay::before {
-  content:''; position:absolute; inset:0;
+  content:''; position:absolute; top:0;right:0;bottom:0;left:0;
   background:
     radial-gradient(ellipse 60% 50% at 20% 30%, rgba(30,77,183,.08), transparent 65%),
     radial-gradient(ellipse 40% 40% at 80% 70%, rgba(30,77,183,.06), transparent 55%);
   pointer-events:none;
 }
 #login-overlay::after {
-  content:''; position:absolute; inset:0;
+  content:''; position:absolute; top:0;right:0;bottom:0;left:0;
   background-image:radial-gradient(circle, rgba(30,77,183,.04) 1px, transparent 1px);
   background-size:26px 26px; pointer-events:none;
 }
@@ -4380,59 +4381,12 @@ document.addEventListener('keydown',function(e){
 (function(){
   function addMark(){
     var v=document.createElement('div');
-    v.textContent='v.iOS12-fix-9-DIAG';
+    v.textContent='v.iOS12-fix-10';
     v.style.cssText='position:fixed;bottom:2px;right:4px;font:9px monospace;color:rgba(0,0,0,.3);z-index:9999;pointer-events:none;';
     document.body.appendChild(v);
   }
   if(document.body)addMark();
   else document.addEventListener('DOMContentLoaded',addMark);
-})();
-
-// ── DIAGNÓSTICO: envolver openEvento y closeModal para ver el flujo ──────
-(function(){
-  function setupDiag(){
-    if(typeof openEvento==='undefined'||typeof closeModal==='undefined'){
-      setTimeout(setupDiag,200);return;
-    }
-    // Caja de log persistente arriba
-    var log=document.createElement('div');
-    log.style.cssText='position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,.92);color:#0f0;font:11px monospace;padding:6px 10px;z-index:99999;pointer-events:none;white-space:pre-wrap;line-height:1.4;max-height:40%;overflow:hidden;';
-    log.textContent='[diag] toca una tarjeta…';
-    document.body.appendChild(log);
-    var lines=[];
-    function add(msg){
-      lines.push('['+new Date().toISOString().slice(11,19)+'] '+msg);
-      if(lines.length>8)lines.shift();
-      log.textContent=lines.join('\n');
-    }
-
-    var origOE=window.openEvento;
-    window.openEvento=function(id){
-      add('openEvento('+id+')');
-      try{
-        var r=origOE.apply(this,arguments);
-        setTimeout(function(){
-          var ov=document.getElementById('modal-overlay');
-          add('+100ms modal='+(ov&&ov.classList.contains('open')?'OPEN':'closed'));
-        },100);
-        setTimeout(function(){
-          var ov=document.getElementById('modal-overlay');
-          add('+500ms modal='+(ov&&ov.classList.contains('open')?'OPEN':'closed'));
-        },500);
-        return r;
-      }catch(e){add('ERR openEvento: '+e.message);}
-    };
-
-    var origCM=window.closeModal;
-    window.closeModal=function(e){
-      var tgt=e&&e.target?(e.target.tagName+'.'+(e.target.className||'').slice(0,30)):'no-event';
-      add('closeModal target='+tgt);
-      return origCM.apply(this,arguments);
-    };
-    add('diag listo');
-  }
-  if(document.body)setupDiag();
-  else document.addEventListener('DOMContentLoaded',setupDiag);
 })();
 
 
