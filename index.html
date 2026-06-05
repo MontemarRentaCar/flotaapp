@@ -20,14 +20,14 @@
 
 :root {
   
-  --blue:       #2B5CE6;
+  --blue:       #3D4A5C;
   
-  --blue-deep:  #1A3BAA;
-  --blue-mid:   #3B6EF0;
-  --blue-light: #6B93F5;
-  --blue-pale:  #96B4F8;
-  --blue-wash:  #C4D5FB;
-  --blue-frost: #EEF3FE;
+  --blue-deep:  #1A2332;
+  --blue-mid:   #4A5A6E;
+  --blue-light: #6B7A8D;
+  --blue-pale:  #8C9AAA;
+  --blue-wash:  #C4CDD6;
+  --blue-frost: #EDF0F3;
   
 
   
@@ -62,12 +62,12 @@
   --surface:    #FFFFFF;
   --surface2:   #F2F5FB;
   
-  --border:     rgba(180,200,240,.5);
+  --border:     rgba(160,170,185,.35);
   
-  --text:       #0d1b3e;
-  --text2:      #1a2d5a;
-  --muted:      #5068a0;
-  --muted2:     #8098c8;
+  --text:       #141920;
+  --text2:      #2A3441;
+  --muted:      #5A6470;
+  --muted2:     #8A96A2;
   --accent:     var(--blue);
   --accent2:    var(--blue-mid);
   --accent-bg:  var(--blue-frost);
@@ -151,7 +151,7 @@ input::placeholder, textarea::placeholder {
   display:flex; align-items:center; justify-content:space-between;
   padding:0 18px; height:70px;
   padding-top:env(safe-area-inset-top);
-    background:linear-gradient(135deg, #1A3BAA 0%, #2B5CE6 100%);
+    background:linear-gradient(135deg, #1A2332 0%, #2C3A4A 100%);
   flex-shrink:0; position:relative; z-index:10;
   box-shadow:
     0 4px 20px rgba(21,46,120,.45),
@@ -219,40 +219,43 @@ input::placeholder, textarea::placeholder {
 #navbar {
   display:flex;
   background:var(--surface);
-  padding-bottom:max(10px,env(safe-area-inset-bottom));
+  padding:6px 8px max(14px,env(safe-area-inset-bottom));
   flex-shrink:0; position:relative;
-  border-top:1px solid var(--border);
-  box-shadow:0 -4px 20px rgba(30,60,140,.06);
+  border-top:1.5px solid var(--border);
+  box-shadow:0 -2px 16px rgba(0,0,0,.05);
+  gap:4px;
 }
 
 .nav-btn {
-  flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
-  padding:10px 4px 4px;
-  background:none; border:none; cursor:pointer;
-  color:var(--muted2);
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:8px 6px 9px;
+  background:var(--bg); border:1px solid var(--border); cursor:pointer;
+  color:var(--muted);
   font-family:inherit;
-  font-size:9px; font-weight:700;
-  letter-spacing:.07em; text-transform:uppercase;
-  transition:color .18s;
+  font-size:10px; font-weight:800;
+  letter-spacing:.04em; text-transform:uppercase;
+  transition:all .16s;
   position:relative;
+  border-radius:14px;
+  margin:0 2px;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
 }
 .nav-btn svg {
   width:22px; height:22px;
   stroke:currentColor; fill:none; stroke-width:1.7;
   stroke-linecap:round; stroke-linejoin:round;
-  transition:transform .22s cubic-bezier(.34,1.56,.64,1), stroke .18s, opacity .18s;
+  transition:stroke .16s, opacity .16s;
   opacity:.5;
 }
-.nav-btn:active { opacity:.7; }
-.nav-btn.active { color:var(--blue); }
-.nav-btn.active svg { stroke:var(--blue); opacity:1; transform:translateY(-1px); }
-
-.nav-btn.active::before {
-  content:''; position:absolute; top:4px; left:50%;
-  transform:translateX(-50%);
-  width:4px; height:4px; border-radius:50%;
-  background:var(--blue);
+.nav-btn:active { transform:scale(.91); box-shadow:none; }
+.nav-btn.active {
+  color:#fff;
+  background:#1A2332;
+  border-color:#1A2332;
+  box-shadow:0 3px 10px rgba(26,35,50,.3);
 }
+.nav-btn.active svg { stroke:#fff; opacity:1; }
+.nav-btn.active::before { display:none; }
 
 .screen { display:none; padding:18px; animation:fadeIn .18s ease; }
 .screen.active { display:block; }
@@ -365,7 +368,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .btn-primary {
-  background:var(--blue);
+  background:#2C3A4A;
   color:#fff;
   box-shadow:
     5px 5px 14px rgba(21,46,120,.5),
@@ -496,14 +499,14 @@ input::placeholder, textarea::placeholder {
   font-family:inherit; letter-spacing:.03em;
   transition:all .14s; text-align:center; line-height:1.3;
 }
-.lugar-tipo-btn:hover { border-color:var(--blue); background:var(--blue-frost); color:var(--blue); }
+.lugar-tipo-btn:hover { border-color:#3D4A5C; background:var(--blue-frost); color:#3D4A5C; }
 .lugar-tipo-btn.active {
-  background:var(--blue); color:#fff; border-color:var(--blue);
+  background:#2C3A4A; color:#fff; border-color:#2C3A4A;
   box-shadow:0 3px 10px rgba(26,79,199,.3);
 }
 
 .badge { font-size:9px; font-weight:800; padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:.07em; white-space:nowrap; }
-.badge-activo    { background:var(--blue-frost); color:var(--blue);   border:1px solid var(--blue-wash); }
+.badge-activo    { background:var(--blue-frost); color:#3D4A5C;   border:1px solid var(--blue-wash); }
 .badge-pendiente { background:var(--gold-bg);    color:#a07010;       border:1px solid var(--gold-lt); }
 .badge-cerrado   { background:var(--green-bg);   color:var(--green);  border:1px solid var(--green-lt); }
 .badge-cancelado { background:var(--red-bg);     color:var(--red);    border:1px solid var(--red-lt); }
@@ -525,17 +528,16 @@ input::placeholder, textarea::placeholder {
 }
 
 .day-header {
-  font-size:13px; font-weight:900; color:var(--blue-deep);
+  font-size:13px; font-weight:900; color:#1A2332;
   margin-bottom:12px; padding:11px 16px 11px 14px;
-  background:linear-gradient(90deg,#dde9fb 0%,var(--blue-frost) 100%);
+  background:linear-gradient(90deg,#E8EAEC 0%,#F0F2F4 100%);
   border-radius:var(--r2);
-  border:1.5px solid var(--blue-wash);
-  border-left:5px solid var(--blue);
+  border:1px solid #C4C9D0;
+  border-left:3px solid #3D4A5C;
   display:flex; align-items:center; justify-content:space-between;
   text-transform:uppercase; letter-spacing:.1em;
-  box-shadow:2px 2px 6px rgba(0,0,0,.08);
 }
-.day-header .day-count { font-size:12px; color:var(--blue); font-weight:700; text-transform:none; letter-spacing:0; }
+.day-header .day-count { font-size:12px; color:#3D4A5C; font-weight:700; text-transform:none; letter-spacing:0; }
 .day-group { margin-bottom:24px; }
 .section-label {
   font-size:10px; font-weight:800; color:var(--muted);
@@ -595,7 +597,7 @@ input::placeholder, textarea::placeholder {
   font-family:inherit;
 }
 .modal-val { font-size:15px; font-weight:700; text-align:right; color:var(--text); letter-spacing:-.01em; }
-.modal-val.mono { font-family:'DM Mono',monospace; color:var(--blue); font-size:15px; letter-spacing:.03em; }
+.modal-val.mono { font-family:'DM Mono',monospace; color:#3D4A5C; font-size:15px; letter-spacing:.03em; }
 .completar-banner {
   background:var(--green-bg); border:1px solid var(--green-lt);
   border-radius:var(--r2); padding:12px 14px;
@@ -720,7 +722,7 @@ input::placeholder, textarea::placeholder {
 .cat-grid-hint {
   padding:7px 14px; background:var(--blue-frost);
   border-bottom:1px solid var(--blue-wash);
-  font-size:10px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.06em;
+  font-size:10px; font-weight:700; color:#3D4A5C; text-transform:uppercase; letter-spacing:.06em;
 }
 .cat-grid-cars { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; padding:12px; }
 
@@ -769,7 +771,7 @@ input::placeholder, textarea::placeholder {
   box-shadow:1px 1px 3px rgba(0,0,0,.08);
   letter-spacing:.01em;
 }
-.ev2-tag-mat   { color:#0a1635;   background:#fff; border-color:var(--blue); border-width:2px; font-weight:900; font-size:18px; padding:5px 14px; letter-spacing:.05em; }
+.ev2-tag-mat   { color:#0a1635;   background:#fff; border-color:#3D4A5C; border-width:2px; font-weight:900; font-size:18px; padding:5px 14px; letter-spacing:.05em; }
 .ev2-tag-cat   { color:var(--text2);  background:var(--neu-bg);     border-color:rgba(162,186,230,.5); }
 .ev2-tag-dias  { color:#0a1635;  background:#fff; border-color:var(--text2); border-width:2px; font-weight:900; font-size:18px; padding:5px 14px; letter-spacing:.02em; }
 .ev2-tag-extras{ color:var(--amber);  background:var(--amber-bg);   border-color:var(--amber-lt); }
@@ -785,7 +787,7 @@ input::placeholder, textarea::placeholder {
 .ev2.tipo-entrega .ev2-time-val { color:#0a0a0a; }
 .ev2.tipo-entrega .ev2-time-lbl { color:#0a0a0a; }
 
-.ev2.tipo-recogida { border-left-color:var(--blue); background:linear-gradient(90deg,#e3edfc 0%,var(--neu-bg-white) 28%); }
+.ev2.tipo-recogida { border-left-color:#3D4A5C; background:linear-gradient(90deg,#e3edfc 0%,var(--neu-bg-white) 28%); }
 .ev2.tipo-recogida .ev2-time { background:#c5d8f7; }
 .ev2.tipo-recogida .ev2-time-val { color:var(--blue-deep); }
 .ev2.tipo-recogida .ev2-time-lbl { color:var(--blue-deep); }
@@ -815,7 +817,7 @@ input::placeholder, textarea::placeholder {
 .veh2-body    { flex:1; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .veh2-mat     { font-family:'DM Mono',monospace; font-size:17px; font-weight:700; color:var(--text); letter-spacing:.02em; }
 .veh2-cat     { font-size:12px; color:var(--text2); font-weight:800; text-transform:uppercase; letter-spacing:.07em; margin-top:3px; }
-.veh2-ubi     { font-size:13px; color:var(--blue); font-weight:700; margin-top:4px; letter-spacing:.005em; }
+.veh2-ubi     { font-size:13px; color:#3D4A5C; font-weight:700; margin-top:4px; letter-spacing:.005em; }
 .veh2-badge   {
   font-size:12px; font-weight:900; padding:5px 13px; border-radius:20px;
   border:1.5px solid; white-space:nowrap; letter-spacing:.02em;
@@ -823,7 +825,7 @@ input::placeholder, textarea::placeholder {
 }
 .veh2-libre { color:var(--green);   background:var(--green-bg);   border-color:var(--green-lt); }
 .veh2-alq   { color:var(--red);     background:var(--red-bg);     border-color:var(--red-lt); }
-.veh2-res   { color:var(--blue);    background:var(--blue-frost);  border-color:var(--blue-wash); }
+.veh2-res   { color:#3D4A5C;    background:var(--blue-frost);  border-color:var(--blue-wash); }
 .veh2-tall  { color:var(--amber);   background:var(--amber-bg);   border-color:var(--amber-lt); }
 .veh2-aver  { color:#8B2500; background:#FFE8D6; border-color:#FFAB85; }
 .veh2-lt    { color:var(--purple);  background:var(--purple-bg);  border-color:var(--purple-lt); }
@@ -859,10 +861,10 @@ input::placeholder, textarea::placeholder {
     box-shadow:
       inset 3px 3px 8px var(--neu-inset-d),
       inset -3px -3px 8px var(--neu-inset-l);
-    color:var(--blue);
+    color:#3D4A5C;
   }
   .nav-btn.active::after { display:none; }
-  .nav-btn.active svg { transform:none; filter:none; stroke:var(--blue); }
+  .nav-btn.active svg { transform:none; filter:none; stroke:#3D4A5C; }
   #sidebar-date {
     display:block; font-size:11px; color:var(--muted); font-weight:600;
     padding:7px 13px 12px;
@@ -927,7 +929,7 @@ input::placeholder, textarea::placeholder {
   border-radius:2px;
 }
 #login-box .lb-logo {
-  font-size:1.5rem; font-weight:900; color:var(--blue);
+  font-size:1.5rem; font-weight:900; color:#3D4A5C;
   letter-spacing:.08em; text-transform:uppercase;
   text-shadow:2px 2px 6px rgba(162,186,230,.5);
 }
@@ -1045,10 +1047,10 @@ input::placeholder, textarea::placeholder {
           <div class="field" style="margin-bottom:0;">
             <label>DÍAS</label>
             <div style="display:flex;align-items:stretch;background:var(--neu-bg);border-radius:12px;box-shadow:inset 3px 3px 8px var(--neu-inset-d),inset -3px -3px 8px var(--neu-inset-l);overflow:hidden;height:52px;">
-              <button type="button" onclick="diasMenos()" style="background:none;border:none;border-right:1.5px solid var(--border);flex:1;font-size:28px;font-weight:400;color:var(--blue);cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">−</button>
+              <button type="button" onclick="diasMenos()" style="background:none;border:none;border-right:1.5px solid var(--border);flex:1;font-size:28px;font-weight:400;color:#3D4A5C;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">−</button>
               <input type="number" id="disp-dias" min="1" max="60" placeholder="1" oninput="buscarDisponibilidadRapida()"
                 style="font-size:22px;font-weight:800;padding:0;background:transparent;border:none;color:var(--text);font-family:inherit;outline:none;flex:1.2;text-align:center;-moz-appearance:textfield;-webkit-appearance:none;min-width:0;">
-              <button type="button" onclick="diasMas()" style="background:none;border:none;border-left:1.5px solid var(--border);flex:1;font-size:28px;font-weight:400;color:var(--blue);cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">+</button>
+              <button type="button" onclick="diasMas()" style="background:none;border:none;border-left:1.5px solid var(--border);flex:1;font-size:28px;font-weight:400;color:#3D4A5C;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">+</button>
             </div>
           </div>
         </div>
@@ -1162,7 +1164,7 @@ input::placeholder, textarea::placeholder {
           <label style="display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:16px;margin-bottom:14px;padding:0;overflow:hidden;" id="label-nev-web" onclick="_updateWebLabel()">
             <input type="checkbox" id="nev-web" style="display:none;" onchange="_updateWebLabel()">
             <span id="nev-web-pill" style="display:flex;align-items:center;justify-content:center;width:100%;padding:14px 10px;border-radius:16px;border:1.5px solid var(--blue-wash);background:var(--blue-frost);transition:all .15s;">
-              <span style="background:var(--blue);color:#fff;font-size:16px;font-weight:900;letter-spacing:.12em;padding:6px 20px;border-radius:10px;">WEB</span>
+              <span style="background:#2C3A4A;color:#fff;font-size:16px;font-weight:900;letter-spacing:.12em;padding:6px 20px;border-radius:10px;">WEB</span>
             </span>
           </label>
           <input type="hidden" id="nev-mat-sel">
@@ -1232,20 +1234,20 @@ input::placeholder, textarea::placeholder {
   <nav id="navbar">
     <div id="sidebar-date" style="display:none">—</div>
     <button class="nav-btn active" onclick="goTo('nuevo',this)">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      Reserva
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      RESERVA
     </button>
     <button class="nav-btn" onclick="goTo('agenda',this)">
-      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
-      Agenda
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="7" y1="14" x2="10" y2="14"/><line x1="7" y1="17" x2="13" y2="17"/></svg>
+      AGENDA
     </button>
     <button class="nav-btn" onclick="goTo('flota',this)">
-      <svg viewBox="0 0 24 24"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><circle cx="6" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
-      Flota
+      <svg viewBox="0 0 24 24"><path d="M5 17H3v-5l2.5-5h11L19 12v5h-2"/><circle cx="7.5" cy="17" r="2" fill="currentColor" stroke="none"/><circle cx="16.5" cy="17" r="2" fill="currentColor" stroke="none"/><path d="M5 12h14"/><path d="M7.5 7.5h9"/><rect x="3" y="12" width="2" height="3" rx="1"/><rect x="19" y="12" width="2" height="3" rx="1"/></svg>
+      FLOTA
     </button>
     <button class="nav-btn" onclick="goTo('historial',this)">
-      <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-      Historial
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><polyline points="3 3 3 8 8 8"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="15" y2="15"/></svg>
+      HISTORIAL
     </button>
   </nav>
 </div>
@@ -1790,41 +1792,39 @@ function cocheDisponible(v, sI, sF){
 // NO usar para calcular disponibilidad — usar cocheDisponible()
 function calcularEstadoVehiculo(mat){
   // Devuelve: 'En alquiler' | 'Reservado' | 'Taller' | 'Disponible'
+  // REGLA: solo Activo (entrega confirmada) = En alquiler/En ruta
+  //        Pendiente = Reservado si tiene fecha futura, Disponible si no
   const ahora=new Date();
   const eventos=STATE.eventos.filter(ev=>{
     if(ev.matricula!==mat) return false;
     if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
     return true;
   });
-  // ITV en curso → Taller
+  // ITV activa → Taller
   const enITV=eventos.some(ev=>{
     if(ev.tipoEvento!=='ITV') return false;
-    if(ev.estado==='Activo') return true;
-    if(ev.estado==='Pendiente'){
-      const{ini,buf}=eventoRange(ev);
-      return ini<=ahora && buf>ahora;
-    }
-    return false;
+    return ev.estado==='Activo';
   });
   if(enITV) return 'Taller';
-  // En alquiler: tiene evento Activo (no ITV), o Pendiente cuya entrega ya fue (buf > ahora)
+  // En alquiler: SOLO si tiene evento Activo (entrega ya confirmada en agenda)
   const enAlquiler=eventos.some(ev=>{
     if(ev.tipoEvento==='ITV') return false;
-    if(ev.estado==='Activo') return true;
-    if(ev.estado==='Pendiente'){
-      const{ini,buf}=eventoRange(ev);
-      return ini<=ahora && buf>ahora;
-    }
-    return false;
+    return ev.estado==='Activo';
   });
   if(enAlquiler) return 'En alquiler';
-  // Reservado: tiene evento Pendiente con fecha futura (incluye ITV programada futura)
+  // Reservado: tiene evento Pendiente con cualquier fecha (pasada o futura)
+  // El coche sigue libre hasta que se confirme la entrega
   const reservado=eventos.some(ev=>{
-    if(ev.estado!=='Pendiente') return false;
-    const{ini}=eventoRange(ev);
-    return ini>ahora;
+    if(ev.tipoEvento==='ITV') return false;
+    return ev.estado==='Pendiente';
   });
   if(reservado) return 'Reservado';
+  // ITV programada futura → Taller
+  const itvPendiente=eventos.some(ev=>{
+    if(ev.tipoEvento!=='ITV') return false;
+    return ev.estado==='Pendiente';
+  });
+  if(itvPendiente) return 'Taller';
   return 'Disponible';
 }
 
@@ -2059,8 +2059,8 @@ function seleccionarCategoria(cat){
   document.getElementById('nev-cat-sel').value=cat;
   const infoSel=CAT_INFO[cat]||{emoji:'<span style="font-size:18px;opacity:.7">&#9632;</span>'};
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
-    `<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula</span>`;
-  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span><span style="margin-left:8px;font-size:13px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula asignada</span>`;
+    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula</span>`;
+  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span><span style="margin-left:8px;font-size:13px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula asignada</span>`;
   document.getElementById('nev-lugar').value='';resetLugarTipo();
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
@@ -2092,7 +2092,7 @@ function seleccionarCoche(mat){
   const _vc=STATE.vehiculos.find(v=>v.mat===mat);const cat=(_vc&&_vc.cat)||'';
   document.getElementById('nev-mat-sel').value=mat;
   document.getElementById('nev-cat-sel').value=cat;
-  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
+  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
   document.getElementById('nev-lugar').value='';resetLugarTipo();
   document.getElementById('nev-info').value='';
   document.getElementById('nev-extras').value='';
@@ -2203,7 +2203,7 @@ function crearEvento(){
   _eventosConocidos.add(String(ev.id));
   pedirPermisoNotif();
   notifReserva(ev,'local');
-  if(mat){const v=STATE.vehiculos.find(x=>x.mat===mat);if(v)v.estado='En alquiler';}
+  // No cambiar estado aquí — el motor lo calcula como 'Reservado' hasta confirmar entrega
   saveState();
   // Refrescar slots para reflejar la nueva reserva
   actualizarSlots();
@@ -2426,7 +2426,7 @@ function renderAgenda(){
             <span style="font-size:11px;font-weight:900;color:#0a6030;opacity:.75;text-transform:uppercase;letter-spacing:.12em;">ENTREGA</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
-            ${ev.web?`<span style="background:var(--blue);color:#fff;font-size:13px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:20px;">WEB</span>`:''}
+            ${ev.web?`<span style="background:#2C3A4A;color:#fff;font-size:13px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:20px;">WEB</span>`:''}
             ${limpioBadge}
           </div>
         </div>
@@ -2437,7 +2437,7 @@ function renderAgenda(){
             ${matTag}
             <span style="font-size:14px;font-weight:800;color:var(--muted2);background:var(--bg);padding:4px 12px;border-radius:20px;border:1px solid var(--border);">Cat. ${catLabel(ev.cat)}</span>
             <span class="ev2-tag ev2-tag-dias" style="font-size:15px;padding:5px 14px;">× ${ev.dias} día${ev.dias>1?'s':''}</span>
-            ${ev.tel?`<span style="font-size:15px;font-weight:800;color:var(--blue);font-family:'DM Mono',monospace;">📞 ${esc(ev.tel)}</span>`:''}
+            ${ev.tel?`<span style="font-size:15px;font-weight:800;color:#3D4A5C;font-family:'DM Mono',monospace;">📞 ${esc(ev.tel)}</span>`:''}
             ${ev.extras?`<span class="ev2-tag ev2-tag-extras" style="font-size:14px;padding:5px 12px;">+ ${esc(ev.extras)}</span>`:''}
           </div>
           ${volvBadge}
@@ -2462,7 +2462,7 @@ function renderAgenda(){
           <span style="font-size:11px;font-weight:900;color:var(--blue-deep);opacity:.75;text-transform:uppercase;letter-spacing:.12em;">RECOGIDA</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
-          ${ev.web?`<span style="background:var(--blue);color:#fff;font-size:13px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:20px;">WEB</span>`:''}
+          ${ev.web?`<span style="background:#2C3A4A;color:#fff;font-size:13px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:20px;">WEB</span>`:''}
         </div>
       </div>
       <div style="padding:12px 16px 16px;width:100%;box-sizing:border-box;">
@@ -2472,7 +2472,7 @@ function renderAgenda(){
           ${matTagRec}
           <span style="font-size:14px;font-weight:800;color:var(--muted2);background:var(--bg);padding:4px 12px;border-radius:20px;border:1px solid var(--border);">Cat. ${catLabel(ev.cat)}</span>
           <span class="ev2-tag ev2-tag-dias" style="font-size:15px;padding:5px 14px;">× ${ev.dias} día${ev.dias>1?'s':''}</span>
-          ${ev.tel?`<span style="font-size:15px;font-weight:800;color:var(--blue);font-family:'DM Mono',monospace;">📞 ${esc(ev.tel)}</span>`:''}
+          ${ev.tel?`<span style="font-size:15px;font-weight:800;color:#3D4A5C;font-family:'DM Mono',monospace;">📞 ${esc(ev.tel)}</span>`:''}
           ${ev.extras?`<span class="ev2-tag ev2-tag-extras" style="font-size:14px;padding:5px 12px;">+ ${esc(ev.extras)}</span>`:''}
         </div>
       </div>
@@ -2481,10 +2481,16 @@ function renderAgenda(){
 
   function labelDia(ds){
     const d=new Date(ds);
-    if(d.toDateString()===now.toDateString())    return'Hoy';
-    if(d.toDateString()===manana.toDateString()) return'Mañana';
-    if(d.toDateString()===pasado.toDateString()) return'Pasado mañana';
-    return''+d.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
+    const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const nomDia=dias[d.getDay()].toUpperCase();
+    const numDia=String(d.getDate()).padStart(2,'0');
+    const nomMes=meses[d.getMonth()].toUpperCase();
+    if(d.toDateString()===now.toDateString())
+      return`<span style="font-size:11px;opacity:.6;margin-right:6px;">HOY</span>${nomDia} ${numDia} ${nomMes}`;
+    if(d.toDateString()===manana.toDateString())
+      return`<span style="font-size:11px;opacity:.6;margin-right:6px;">MAÑANA</span>${nomDia} ${numDia} ${nomMes}`;
+    return`${nomDia} ${numDia} ${nomMes}`;
   }
 
   // Construir grupos de eventos futuros/hoy
@@ -2603,14 +2609,14 @@ function openEvento(id){
   // ── Origen: mostrar lugar de entrega o WEB ──────────────────────────────
   let origenHTML;
   if(ev.web){
-    origenHTML=`<span style="background:var(--blue);color:#fff;font-size:15px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:10px;">WEB</span>
+    origenHTML=`<span style="background:#2C3A4A;color:#fff;font-size:15px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:10px;">WEB</span>
       <button onclick="toggleWeb('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;">Quitar</button>`;
   } else {
     const lugarTipo=ev.lugarTipo||ev.lugar||'Oficina';
     const lugarNombre=(ev.lugarTipo&&ev.lugarTipo!=='OFICINA'&&ev.lugar)?ev.lugar:'';
     const origenLabel=lugarNombre?lugarTipo+' · '+lugarNombre:lugarTipo;
     origenHTML=`<span class="modal-val" style="font-weight:700;">${esc(origenLabel)}</span>
-      <button onclick="toggleWeb('${id}')" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.04em;">+ WEB</button>`;
+      <button onclick="toggleWeb('${id}')" style="background:#2C3A4A;color:#fff;border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.04em;">+ WEB</button>`;
   }
 
   document.getElementById('modal-content').innerHTML=`
@@ -2656,12 +2662,12 @@ function openEvento(id){
     ${ev.lugar?`<div class="modal-row"><span class="modal-key">Lugar entrega</span><span class="modal-val" style="font-weight:700;text-transform:uppercase;">${esc(ev.lugar)}</span></div>`:''}
     <div class="modal-row"><span class="modal-key">Lugar devolución</span>
       <span style="display:flex;align-items:center;gap:8px;">
-        <span class="modal-val" style="${ev.lugarDevol?'color:var(--blue);font-weight:700':'color:var(--muted);font-style:italic'}">${ev.lugarDevol?esc(ev.lugarDevol):(ev.lugar?'Mismo que entrega':'—')}</span>
+        <span class="modal-val" style="${ev.lugarDevol?'color:#3D4A5C;font-weight:700':'color:var(--muted);font-style:italic'}">${ev.lugarDevol?esc(ev.lugarDevol):(ev.lugar?'Mismo que entrega':'—')}</span>
         <button onclick="editarLugarDevolucion('${id}')" style="background:transparent;border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;letter-spacing:.04em;">Editar</button>
       </span>
     </div>
     ${ev.info ?`<div class="modal-row"><span class="modal-key">Info cliente</span><span class="modal-val">${esc(ev.info)}</span></div>`:''}
-    ${ev.tel  ?`<div class="modal-row"><span class="modal-key">Teléfono</span><span class="modal-val"><a href="tel:${esc(ev.tel)}" style="color:var(--blue);font-weight:700;text-decoration:none;font-family:monospace;">${esc(ev.tel)}</a></span></div>`:''}
+    ${ev.tel  ?`<div class="modal-row"><span class="modal-key">Teléfono</span><span class="modal-val"><a href="tel:${esc(ev.tel)}" style="color:#3D4A5C;font-weight:700;text-decoration:none;font-family:monospace;">${esc(ev.tel)}</a></span></div>`:''}
     ${ev.extras?`<div class="modal-row"><span class="modal-key">Extras</span><span class="modal-val" style="color:var(--amber);font-weight:700;">${esc(ev.extras)}</span></div>`:''}
     <div class="modal-row"><span class="modal-key">Origen</span>
       <span style="display:flex;align-items:center;gap:8px;">${origenHTML}</span>
@@ -2686,7 +2692,7 @@ function openEvento(id){
       <button style="padding:12px;border-radius:14px;border:1.5px solid var(--green-lt);background:var(--green-bg);color:var(--green);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;" onclick="abrirVolverseCon('${id}')">
         ↩ Volverse con
       </button>`:''}
-      <button style="padding:12px;border-radius:14px;border:1.5px solid var(--blue-wash);background:var(--blue-frost);color:var(--blue);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;" onclick="editarEvento('${id}')">
+      <button style="padding:12px;border-radius:14px;border:1.5px solid var(--blue-wash);background:var(--blue-frost);color:#3D4A5C;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;" onclick="editarEvento('${id}')">
         ✎ Editar
       </button>
       <button style="padding:12px;border-radius:14px;border:1.5px solid var(--amber-lt);background:var(--amber-bg);color:var(--amber);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;" onclick="cancelarEvento('${id}')">
@@ -2716,7 +2722,7 @@ function completarEntrega(id){
       <div style="font-family:monospace;font-size:18px;font-weight:900;color:var(--green);">${esc(quien)}</div>
       <div style="font-size:13px;color:var(--muted);margin-top:4px;font-weight:600;">${esc(lugar)}</div>
     </div>
-    <p style="font-size:15px;color:var(--text);text-align:center;margin-bottom:18px;font-weight:800;letter-spacing:.02em;">El coche queda <span style='color:var(--blue);'>EN RUTA</span>.</p>
+    <p style="font-size:15px;color:var(--text);text-align:center;margin-bottom:18px;font-weight:800;letter-spacing:.02em;">El coche queda <span style='color:#3D4A5C;'>EN RUTA</span>.</p>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="this.closest('#modal-overlay').classList.remove('open')">Cancelar</button>
       <button class="btn btn-complete" style="flex:1;" onclick="_confirmarEntregaOK('${id}')">✓ Confirmar</button>
@@ -2876,7 +2882,7 @@ function deshacerEntrega(id){
   // El coche vuelve a estar reservado (no libre)
   if(ev.matricula){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
-    if(v&&v.estado!=='Taller'&&v.estado!=='Alq. L/T'&&v.estado!=='Averiado') v.estado='En alquiler';
+    // Motor recalcula: Reservado hasta confirmar entrega
   }
   saveState();closeModal();renderAgenda();showToast('Entrega deshecha — vuelve a Pendiente','info');
 }
@@ -2893,7 +2899,7 @@ function asignarMatricula(id,mat){
   ev.matricula=mat||'';
   if(mat){
     const vNew=STATE.vehiculos.find(x=>x.mat===mat);
-    if(vNew&&vNew.estado!=='Taller'&&vNew.estado!=='Alq. L/T')vNew.estado='En alquiler';
+    // Motor recalcula: Reservado hasta confirmar entrega
   }
   saveState();
   showToast(mat?mat+' asignado ✓':'Matrícula eliminada','success');
@@ -3005,7 +3011,7 @@ function guardarEdicion(id){
   }
   if(mat&&mat!==ev.matricula){
     const vNew=STATE.vehiculos.find(x=>x.mat===mat);
-    if(vNew&&vNew.estado!=='Taller'&&vNew.estado!=='Alq. L/T')vNew.estado='En alquiler';
+    // Motor recalcula: Reservado hasta confirmar entrega
   }
   // Si cambió fechaIni o dias, recalcular y limpiar devolucion custom
   if(f+'T'+h!==ev.fechaIni||d!==ev.dias){
@@ -4032,7 +4038,7 @@ function seleccionarHoraCat(cat, hora){
   document.getElementById('disp-resultado').style.display='block';
   document.getElementById('form-nuevo').style.display='block';marcarEditando();
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
-    `<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora} · Sin matrícula</span>`;
+    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora} · Sin matrícula</span>`;
   document.getElementById('avail-grid-form').style.display='none';
 
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
@@ -4094,7 +4100,7 @@ function seleccionarCocheForm(mat, cat){
   document.getElementById('nev-mat-sel').value=mat;
   document.getElementById('nev-cat-sel').value=cat;
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
-    `<span style="font-family:monospace;font-weight:900;color:var(--blue);font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
+    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
   // Cerrar el grid — matrícula elegida, paso al formulario
   const gf=document.getElementById('avail-grid-form');
   if(gf) gf.style.display='none';
@@ -4221,7 +4227,7 @@ function abrirVolverseCon(id){
     const brd=isLinked?'2px solid var(--green)':'1.5px solid var(--border)';
     const col=isLinked?'var(--green)':'var(--text)';
     const matTag=c.matricula
-      ?`<span style="font-family:monospace;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-frost);padding:1px 7px;border-radius:4px;border:1px solid var(--blue-wash);">${c.matricula}</span>`
+      ?`<span style="font-family:monospace;font-size:11px;font-weight:700;color:#3D4A5C;background:var(--blue-frost);padding:1px 7px;border-radius:4px;border:1px solid var(--blue-wash);">${c.matricula}</span>`
       :`<span style="font-size:11px;font-weight:700;color:var(--muted);background:var(--surface2);padding:1px 7px;border-radius:4px;border:1px solid var(--border);">Cat.${c.cat}</span>`;
     const ubiTag=ubi
       ?`<span style="font-size:11px;font-weight:600;color:var(--blue-mid);margin-left:5px;">${ubi}</span>`:'';
@@ -4264,7 +4270,7 @@ function abrirVolverseCon(id){
       <div style="flex:1;min-width:0;">
         <div style="font-size:14px;font-weight:800;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(v.ubicacion)}</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap;">
-          <span style="font-family:monospace;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-frost);padding:1px 7px;border-radius:4px;border:1px solid var(--blue-wash);">${esc(v.mat)}</span>
+          <span style="font-family:monospace;font-size:11px;font-weight:700;color:#3D4A5C;background:var(--blue-frost);padding:1px 7px;border-radius:4px;border:1px solid var(--blue-wash);">${esc(v.mat)}</span>
           <span style="font-size:11px;font-weight:700;color:var(--green);background:var(--green-bg);padding:1px 7px;border-radius:4px;border:1px solid var(--green-lt);">Disponible</span>
         </div>
       </div>
