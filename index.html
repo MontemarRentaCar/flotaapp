@@ -984,6 +984,7 @@ input::placeholder, textarea::placeholder {
 #disp-dias::-webkit-outer-spin-button,
 #disp-dias::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 #disp-dias { -moz-appearance:textfield; }
+
 </style>
 </head>
 <body>
@@ -1293,6 +1294,10 @@ input::placeholder, textarea::placeholder {
     <button class="nav-btn" onclick="goTo('historial',this)">
       <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><polyline points="3 3 3 8 8 8"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="15" y2="15"/></svg>
       HISTORIAL
+    </button>
+    <button class="nav-btn" onclick="goTo('aceites',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 6 5 10c0 5.25 7 12 7 12s7-6.75 7-12c0-4-3-8-7-8z"/><circle cx="12" cy="10" r="2.5" fill="currentColor" stroke="none"/></svg>
+      ACEITES
     </button>
   </nav>
 </div>
@@ -1833,6 +1838,7 @@ updateClock();setInterval(updateClock,10000);
 
 // ── NAV ───────────────────────────────────────────────────────────────────
 function goTo(id,btn){
+  if(id==='aceites'){ loadAceitesFrame(); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
@@ -5298,6 +5304,30 @@ document.addEventListener('keydown',function(e){
   else document.addEventListener('DOMContentLoaded',addMark);
 })();
 
+
+function loadAceitesFrame(){
+  const frame=document.getElementById('aceites-frame');
+  if(!frame||frame.dataset.loaded) return;
+  frame.dataset.loaded='1';
+  frame.src='APP_ACEITES_ACT_01_05_26.html';
+}
 </script>
+
+  <!-- ═══════════════ PANTALLA ACEITES ═══════════════ -->
+  <div class="screen aceites-app" <div class="screen" id="screen-aceites" style="padding:0;overflow:hidden;">
+    <iframe id="aceites-frame"
+      src="about:blank"
+      style="width:100%;height:100%;border:none;display:block;"
+      allow="same-origin">
+    </iframe>
+  </div></div>
+</div>
+
+
+
+</div>
+
+  </div>
+  <!-- ══════════════════════════════════════════════════ -->
 </body>
 </html>
