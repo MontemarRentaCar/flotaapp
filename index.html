@@ -984,7 +984,6 @@ input::placeholder, textarea::placeholder {
 #disp-dias::-webkit-outer-spin-button,
 #disp-dias::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 #disp-dias { -moz-appearance:textfield; }
-
 </style>
 </head>
 <body>
@@ -1294,10 +1293,6 @@ input::placeholder, textarea::placeholder {
     <button class="nav-btn" onclick="goTo('historial',this)">
       <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><polyline points="3 3 3 8 8 8"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="15" y2="15"/></svg>
       HISTORIAL
-    </button>
-    <button class="nav-btn" onclick="goTo('aceites',this)">
-      <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 6 5 10c0 5.25 7 12 7 12s7-6.75 7-12c0-4-3-8-7-8z"/><circle cx="12" cy="10" r="2.5" fill="currentColor" stroke="none"/></svg>
-      ACEITES
     </button>
   </nav>
 </div>
@@ -1838,7 +1833,6 @@ updateClock();setInterval(updateClock,10000);
 
 // ── NAV ───────────────────────────────────────────────────────────────────
 function goTo(id,btn){
-  if(id==='aceites'){ loadAceitesFrame(); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
@@ -3310,19 +3304,6 @@ function editarEvento(id){
       </select>
     </div>
     <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel + hab., apto + dirección, aeropuerto + vuelo..." style="${inputStyle}"></div>
-    <!-- Hotel con comisión (edición) -->
-    <div class="field">
-      <label>Hotel con comisión <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional — para contabilizar)</span></label>
-      <div id="edit-hotel-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-        ${HOTELES_CONFIG.map(h=>{
-          const sel=ev.hotelNombre===h.nombre||ev.hotelComision===h.nombre;
-          return '<button type="button" class="edit-hotel-btn" data-hotel="'+h.nombre+'" onclick="editSelectHotel(this)" style="padding:9px 8px;border-radius:12px;font-size:12px;font-weight:800;cursor:pointer;transition:all .14s;text-align:center;border:1.5px solid '+(sel?'#1A2332':'var(--border)')+';background:'+(sel?'#1A2332':'var(--surface)')+';color:'+(sel?'#fff':'var(--muted)')+';">'+h.emoji+' '+h.nombre+(h.comision?'<span style="font-size:8px;background:rgba(255,255,255,.25);padding:1px 4px;border-radius:6px;margin-left:3px;">%</span>':'')+'</button>';
-        }).join('')}
-        <button type="button" class="edit-hotel-btn" data-hotel="" onclick="editSelectHotel(this)" style="padding:9px 8px;border-radius:12px;font-size:12px;font-weight:800;cursor:pointer;transition:all .14s;text-align:center;border:1.5px dashed var(--border);background:var(--bg);color:var(--muted);">✕ Ninguno</button>
-      </div>
-      <input type="text" id="edit-hotel-hab" value="${ev.hotelHab||''}" placeholder="Nº HABITACIÓN (opcional)" style="${inputStyle}text-transform:uppercase;">
-      <input type="hidden" id="edit-hotel-nombre" value="${ev.hotelNombre||ev.hotelComision||''}">
-    </div>
     <div class="field"><label>Lugar de devolución <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional)</span></label><input type="text" id="edit-lugar-devol" value="${ev.lugarDevol||''}" placeholder="Si difiere del lugar de entrega..." style="${inputStyle}"></div>
     <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Nombre del cliente..." style="${inputStyle}"></div>
     <div class="field"><label>Teléfono</label><input type="tel" id="edit-tel" value="${ev.tel||''}" placeholder="612 345 678 (opcional)" inputmode="tel" style="${inputStyle}"></div>
@@ -3400,27 +3381,6 @@ function guardarEdicion(id){
   const webEdE=document.getElementById('edit-web');
   if(webEdE&&webEdE.checked){ev.web=true;}else{delete ev.web;}
   if(DEVICE_NAME){ev.modificadoPor=DEVICE_NAME;ev.modificadoEn=new Date().toISOString();}
-  // Hotel con comisión (edición retroactiva)
-  const _editHotelEl=document.getElementById('edit-hotel-nombre');
-  const _editHabEl=document.getElementById('edit-hotel-hab');
-  const _editHotelVal=_editHotelEl?_editHotelEl.value.trim():'';
-  if(_editHotelVal){
-    ev.hotelNombre=_editHotelVal;
-    if(_editHabEl&&_editHabEl.value.trim()) ev.hotelHab=_editHabEl.value.trim();
-    else delete ev.hotelHab;
-    const _hcfg=HOTELES_CONFIG.find(h=>h.nombre===_editHotelVal);
-    if(_hcfg&&_hcfg.comision){
-      ev.hotelComision=_editHotelVal;
-      ev.comision=calcularComision(ev.cat,ev.dias);
-    } else {
-      delete ev.hotelComision; delete ev.comision;
-    }
-    ev.hotelTieneComision=_hcfg?_hcfg.comision:false;
-  } else {
-    // Ninguno seleccionado — limpiar
-    delete ev.hotelNombre; delete ev.hotelHab;
-    delete ev.hotelComision; delete ev.comision; delete ev.hotelTieneComision;
-  }
   saveState();
   showToast('Actualizado ✓','success');
   openEvento(id);
@@ -4144,17 +4104,6 @@ function ghEliminarHotel(idx){
   saveHotelesConfig();
   ghRenderLista();
   showToast(h.nombre+' eliminado','info');
-}
-
-function editSelectHotel(btn){
-  const hotel=btn.dataset.hotel||'';
-  document.querySelectorAll('.edit-hotel-btn').forEach(b=>{
-    b.style.background='var(--surface)'; b.style.borderColor='var(--border)'; b.style.color='var(--muted)';
-  });
-  if(hotel){
-    btn.style.background='#1A2332'; btn.style.borderColor='#1A2332'; btn.style.color='#fff';
-  }
-  document.getElementById('edit-hotel-nombre').value=hotel;
 }
 
 function eliminarMatricula(mat){
@@ -5304,30 +5253,6 @@ document.addEventListener('keydown',function(e){
   else document.addEventListener('DOMContentLoaded',addMark);
 })();
 
-
-function loadAceitesFrame(){
-  const frame=document.getElementById('aceites-frame');
-  if(!frame||frame.dataset.loaded) return;
-  frame.dataset.loaded='1';
-  frame.src='APP_ACEITES_ACT_01_05_26.html';
-}
 </script>
-
-  <!-- ═══════════════ PANTALLA ACEITES ═══════════════ -->
-  <div class="screen aceites-app" <div class="screen" id="screen-aceites" style="padding:0;overflow:hidden;">
-    <iframe id="aceites-frame"
-      src="about:blank"
-      style="width:100%;height:100%;border:none;display:block;"
-      allow="same-origin">
-    </iframe>
-  </div></div>
-</div>
-
-
-
-</div>
-
-  </div>
-  <!-- ══════════════════════════════════════════════════ -->
 </body>
 </html>
