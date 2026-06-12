@@ -2559,9 +2559,8 @@ function crearEvento(){
       <div style="font-size:13px;color:var(--muted);font-weight:600">${fmtDT(ini)} · ${ev.dias} día${ev.dias>1?'s':''}</div>
       ${ev.lugar?`<div style="font-size:13px;color:var(--muted);margin-top:4px">${esc(ev.lugar)}</div>`:''}
     </div>
-    <button onclick="abrirWhatsApp('${ev.id}');closeModal();" style="width:100%;padding:14px;border-radius:10px;border:none;background:#25D366;color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.17 1.535 5.943L.057 23.927a.5.5 0 0 0 .609.61l6.056-1.49A11.943 11.943 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.894a9.877 9.877 0 0 1-5.031-1.378l-.36-.214-3.733.918.95-3.646-.235-.374A9.869 9.869 0 0 1 2.106 12C2.106 6.533 6.533 2.106 12 2.106c5.467 0 9.894 4.427 9.894 9.894 0 5.467-4.427 9.894-9.894 9.894z"/></svg>
-      Enviar por WhatsApp
+    <button onclick="closeModal()" style="width:100%;padding:14px;border-radius:10px;border:none;background:#1a9e4a;color:#fff;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;">
+      ¡LISTO!
     </button>
     <button class="btn btn-secondary" onclick="closeModal();goTo('agenda',document.querySelectorAll('.nav-btn')[1])">Ver en agenda</button>`;
   document.getElementById('modal-overlay').classList.add('open');
@@ -2753,7 +2752,8 @@ function renderAgenda(){
         if(!rec)return '';
         const rFin=eventoRange(rec).fin;
         const rMat=rec.matricula?rec.matricula:('Cat.'+rec.cat);
-        return `<div class="ev2-volverse">↩ <span style="font-family:monospace;font-weight:900">${esc(rMat)}</span> · ${rFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}${rec.lugar?' · '+esc(rec.lugar):''}</div>`;
+        const depIcon=rec.depositoEfectivo?` · <span style="color:var(--green);font-weight:900;">💶 EFECTIVO</span>`:'';
+        return `<div class="ev2-volverse">↩ <span style="font-family:monospace;font-weight:900">${esc(rMat)}</span> · ${rFin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}${rec.lugar?' · '+esc(rec.lugar):''}${depIcon}</div>`;
       })();
       return`<div class="ev2 tipo-entrega" style="flex-direction:column;border-left-width:0;border-top:4px solid #1a9e4a;" onclick="openEvento('${ev.id}')">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;background:rgba(26,158,74,.07);">
@@ -2799,6 +2799,7 @@ function renderAgenda(){
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           ${ev.web?`<span style="background:#2C3A4A;color:#fff;font-size:13px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:20px;">WEB</span>`:''}
+          ${ev.depositoEfectivo?`<span style="background:var(--green);color:#fff;font-size:13px;font-weight:900;letter-spacing:.05em;padding:5px 14px;border-radius:20px;">💶 DEP. EFECTIVO</span>`:''}
         </div>
       </div>
       <div style="padding:12px 16px 16px;width:100%;box-sizing:border-box;">
@@ -3059,15 +3060,29 @@ function completarEntrega(id){
       <div style="font-size:13px;color:var(--muted);margin-top:4px;font-weight:600;">${esc(lugar)}</div>
     </div>
     <p style="font-size:15px;color:var(--text);text-align:center;margin-bottom:18px;font-weight:800;letter-spacing:.02em;">El coche queda <span style='color:#3D4A5C;'>EN RUTA</span>.</p>
+    <button id="btn-dep-efectivo" type="button" onclick="toggleDepEfectivo()" data-on="0" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--green-lt);background:#fff;color:var(--green);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:14px;letter-spacing:.02em;">💶 DEP. EFECTIVO €</button>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="this.closest('#modal-overlay').classList.remove('open')">Cancelar</button>
       <button class="btn btn-complete" style="flex:1;" onclick="_confirmarEntregaOK('${id}')">✓ Confirmar</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
 }
+function toggleDepEfectivo(){
+  const b=document.getElementById('btn-dep-efectivo');if(!b)return;
+  const on=b.dataset.on==='1';
+  if(on){
+    b.dataset.on='0';
+    b.style.background='#fff';b.style.color='var(--green)';
+  }else{
+    b.dataset.on='1';
+    b.style.background='var(--green)';b.style.color='#fff';
+  }
+}
 function _confirmarEntregaOK(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   ev.estado='Activo';
+  const btnDep=document.getElementById('btn-dep-efectivo');
+  ev.depositoEfectivo=!!(btnDep && btnDep.dataset.on==='1');
   if(ev.matricula){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
     if(v)v.limpio=false;
@@ -3315,6 +3330,12 @@ function editarEvento(id){
         Reserva realizada desde la web
       </span>
     </label>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--green-bg);border:1.5px solid var(--green-lt);border-radius:10px;padding:9px 12px;margin-bottom:14px;">
+      <input type="checkbox" id="edit-dep-efectivo" ${ev.depositoEfectivo?'checked':''} style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;">
+      <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text);">
+        💶 Depósito del vehículo en efectivo
+      </span>
+    </label>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button class="btn btn-secondary btn-sm" onclick="openEvento('${id}')">Cancelar</button>
       <button class="btn btn-primary" style="flex:1" onclick="guardarEdicion('${id}')">Guardar cambios</button>
@@ -3380,6 +3401,8 @@ function guardarEdicion(id){
   // Web: checkbox
   const webEdE=document.getElementById('edit-web');
   if(webEdE&&webEdE.checked){ev.web=true;}else{delete ev.web;}
+  const depEdE=document.getElementById('edit-dep-efectivo');
+  if(depEdE&&depEdE.checked){ev.depositoEfectivo=true;}else{delete ev.depositoEfectivo;}
   if(DEVICE_NAME){ev.modificadoPor=DEVICE_NAME;ev.modificadoEn=new Date().toISOString();}
   saveState();
   showToast('Actualizado ✓','success');
@@ -3615,9 +3638,12 @@ function openVehiculo(mat){
         ${['Disponible','En alquiler','Taller','Alq. L/T','Averiado'].map(s=>`<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}
       </select>
     </div>
-    <div class="modal-row">
+    <div class="modal-row" style="display:block;">
       <span class="modal-key">Ubicación</span>
-      <span style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 8px;">
+        ${renderHotelesBtnsFlota(mat)}
+      </div>
+      <span style="display:flex;align-items:center;gap:8px;flex:1;">
         <input type="text" id="veh-ubicacion" value="${esc(v.ubicacion||'')}" placeholder="H. Bajondillo..." style="${inputStyle}">
         <button onclick="guardarUbicacionVeh('${mat}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Guardar</button>
       </span>
@@ -3637,6 +3663,36 @@ function openVehiculo(mat){
       <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;" onclick="eliminarMatricula('${esc(mat)}')">Eliminar matrícula</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
+}
+function renderHotelesBtnsFlota(mat){
+  let html='';
+  HOTELES_CONFIG.forEach(h=>{
+    html+=`<button type="button" class="veh-hotel-btn" data-hotel="${esc(h.nombre)}" onclick="selectHotelFlota(this)"
+      style="padding:9px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;text-align:center;line-height:1.4;">
+      ${h.emoji} ${esc(h.nombre)}
+    </button>`;
+  });
+  html+=`<button type="button" class="veh-hotel-btn" data-hotel="__otro__" onclick="selectHotelFlota(this)"
+    style="padding:9px 8px;border-radius:12px;border:1.5px dashed var(--border);background:var(--bg);font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;text-align:center;">
+    ✏️ OTRO
+  </button>`;
+  return html;
+}
+function selectHotelFlota(btn){
+  document.querySelectorAll('.veh-hotel-btn').forEach(b=>{
+    b.style.background=b.dataset.hotel==='__otro__'?'var(--bg)':'var(--surface)';
+    b.style.borderColor='var(--border)';b.style.color='var(--muted)';
+  });
+  btn.style.background='#1A2332';btn.style.borderColor='#1A2332';btn.style.color='#fff';
+  const inp=document.getElementById('veh-ubicacion');if(!inp)return;
+  const hotel=btn.dataset.hotel;
+  if(hotel==='__otro__'){
+    inp.value='';
+  }else{
+    inp.value=hotel;
+  }
+  inp.focus();
+  inp.setSelectionRange(inp.value.length,inp.value.length);
 }
 function guardarUbicacionVeh(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
@@ -4862,6 +4918,7 @@ function abrirVolverseCon(id){
         </div>
       </div>
       ${isLinked?`<span style="font-size:11px;font-weight:800;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:20px;border:1px solid var(--green-lt);white-space:nowrap;">Enlazado</span>`:''}
+      ${c.depositoEfectivo?`<span style="font-size:11px;font-weight:900;color:#fff;background:var(--green);padding:3px 10px;border-radius:20px;white-space:nowrap;">💶</span>`:''}
     </div>`;
   }).join('');
 
