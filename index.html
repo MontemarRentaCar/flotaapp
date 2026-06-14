@@ -2425,7 +2425,8 @@ function _buildHotelConfirmado(){
   var habHtml=hab
     ?'<div style="font-size:20px;font-weight:900;color:#1A2332;margin-top:3px;">HAB. '+hab+'</div>'
     :'<div style="font-size:13px;color:var(--muted);margin-top:2px;">Sin habitación</div>';
-  return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:var(--r2);border:1.5px solid #1A2332;">'
+  return '<input type="hidden" id="nev-hotel-hab" value="'+hab+'">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:var(--r2);border:1.5px solid #1A2332;">'
     +'<div>'
     +'<div style="font-size:15px;font-weight:900;color:#1A2332;">'+hcfg.emoji+' '+hotel+'</div>'
     +habHtml
@@ -3088,9 +3089,14 @@ function _confirmarEntregaOK(id){
     if(v)v.limpio=false;
   }
   // Confirmar comisión ahora que la entrega es real
-  if(ev.hotelTieneComision && ev.hotelNombre && !ev.hotelComision){
-    ev.hotelComision=ev.hotelNombre;
-    ev.comision=calcularComision(ev.cat,ev.dias);
+  // Se comprueba el estado ACTUAL de HOTELES_CONFIG, no el guardado al crear la reserva,
+  // para que hoteles añadidos o activados después también contabilicen.
+  if(ev.hotelNombre && !ev.hotelComision){
+    const _hcfgNow=HOTELES_CONFIG.find(h=>h.nombre===ev.hotelNombre);
+    if(_hcfgNow && _hcfgNow.comision){
+      ev.hotelComision=ev.hotelNombre;
+      ev.comision=calcularComision(ev.cat,ev.dias);
+    }
   }
   saveState();closeModal();renderAgenda();
   showToast('Entrega confirmada ✓','success');
@@ -3320,6 +3326,7 @@ function editarEvento(id){
     </div>
     <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel + hab., apto + dirección, aeropuerto + vuelo..." style="${inputStyle}"></div>
     <div class="field"><label>Lugar de devolución <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional)</span></label><input type="text" id="edit-lugar-devol" value="${ev.lugarDevol||''}" placeholder="Si difiere del lugar de entrega..." style="${inputStyle}"></div>
+    ${ev.hotelNombre?`<div class="field"><label>Habitación (${esc(ev.hotelNombre)}) <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">— para informe comisiones</span></label><input type="text" id="edit-hotel-hab" value="${ev.hotelHab||''}" placeholder="Nº habitación" inputmode="numeric" style="${inputStyle}"></div>`:''}
     <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Nombre del cliente..." style="${inputStyle}"></div>
     <div class="field"><label>Teléfono</label><input type="tel" id="edit-tel" value="${ev.tel||''}" placeholder="612 345 678 (opcional)" inputmode="tel" style="${inputStyle}"></div>
     <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${ev.extras||''}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
@@ -3403,6 +3410,8 @@ function guardarEdicion(id){
   if(webEdE&&webEdE.checked){ev.web=true;}else{delete ev.web;}
   const depEdE=document.getElementById('edit-dep-efectivo');
   if(depEdE&&depEdE.checked){ev.depositoEfectivo=true;}else{delete ev.depositoEfectivo;}
+  const habEdE=document.getElementById('edit-hotel-hab');
+  if(habEdE){const _h=habEdE.value.trim();if(_h)ev.hotelHab=_h;else delete ev.hotelHab;}
   if(DEVICE_NAME){ev.modificadoPor=DEVICE_NAME;ev.modificadoEn=new Date().toISOString();}
   saveState();
   showToast('Actualizado ✓','success');
