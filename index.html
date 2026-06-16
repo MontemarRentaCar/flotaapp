@@ -2759,11 +2759,10 @@ function renderAgenda(){
   }else{
     evs=todos.filter(e=>{const{buf}=eventoRange(e);const b=new Date(buf);b.setHours(0,0,0,0);return b>=now;});
     evs.sort((a,b)=>eventoRange(a).buf-eventoRange(b).buf);
-    // Vencidos: la recogida ya debería haberse hecho (buf < hoy) pero el evento
-    // sigue Activo/Pendiente. NUNCA se eliminan automáticamente — eso causaba
-    // que el coche quedara "en ruta" para siempre sin tarjeta visible.
-    // Se muestran arriba de todo, en rojo, hasta que se confirme la recogida.
-    evsPasados=todos.filter(e=>{const{buf}=eventoRange(e);return buf<now;});
+    // Vencidos: SOLO si el día de devolución es estrictamente anterior a hoy
+    // (no por hora exacta) — una recogida de HOY nunca se marca como vencida,
+    // por muy tarde que sea la hora; solo cuenta como pendiente al día siguiente.
+    evsPasados=todos.filter(e=>{const{fin}=eventoRange(e);const f=new Date(fin);f.setHours(0,0,0,0);return f<now;});
     evsPasados.sort((a,b)=>eventoRange(a).buf-eventoRange(b).buf);
   }
 
