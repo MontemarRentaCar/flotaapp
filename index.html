@@ -1022,6 +1022,7 @@ input::placeholder, textarea::placeholder {
       <span id="fb-dot" title="Firebase" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block;margin-right:2px;transition:background .5s;" title="Sin conexión"></span>
 
       <button class="theme-btn" onclick="toggleViewMode()" id="view-btn" title="Cambiar vista: Móvil / PC"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+      <button class="theme-btn" onclick="abrirAjustesUsuario()" id="ajustes-btn" title="Ajustes — tu nombre"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </div>
 
@@ -1323,6 +1324,43 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const inp = document.getElementById('device-name-input');
   if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') guardarNombreDispositivo(); });
 });
+
+// ── AJUSTES — botón accesible siempre, por si en algún dispositivo (iPhone,
+// modo privado, PWA sin caché persistente...) nunca llegó a guardarse el
+// nombre en la pantalla de bienvenida inicial. Así se puede fijar/cambiar
+// en cualquier momento sin depender de ese único punto de entrada.
+function abrirAjustesUsuario(){
+  const actual=DEVICE_NAME||(typeof _miNombre!=='undefined'?_miNombre:'')||'';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Ajustes</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;font-weight:600;">
+      Este nombre se usa para identificarte al crear o editar reservas, y para avisar a los demás cuando estás haciendo cambios. Si en este dispositivo nunca te ha pedido el nombre, configúralo aquí.
+    </p>
+    <div class="field">
+      <label>Tu nombre</label>
+      <input type="text" id="ajustes-nombre-input" value="${esc(actual)}" placeholder="Ej: J.GRANJA" maxlength="20"
+        style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Inter',sans-serif;font-size:15px;outline:none;text-transform:uppercase;">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="guardarAjustesUsuario()">Guardar</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>{const i=document.getElementById('ajustes-nombre-input');if(i){i.focus();i.select();}},80);
+}
+function guardarAjustesUsuario(){
+  const inp=document.getElementById('ajustes-nombre-input');
+  const nombre=inp?inp.value.trim():'';
+  if(!nombre){ if(inp) inp.style.borderColor='#c0392b'; return; }
+  try{
+    localStorage.setItem('flotaapp_device_name',nombre);
+    localStorage.setItem('flotaapp_nombre',nombre);
+  }catch(e){}
+  DEVICE_NAME=nombre;
+  if(typeof _miNombre!=='undefined') _miNombre=nombre.slice(0,20);
+  closeModal();
+  showToast('Nombre guardado: '+nombre,'success');
+}
 
 const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
 const CATS=["1","2","3","A","AXL","MB7","MB9"];
