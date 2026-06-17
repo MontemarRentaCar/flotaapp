@@ -1022,7 +1022,6 @@ input::placeholder, textarea::placeholder {
       <span id="fb-dot" title="Firebase" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block;margin-right:2px;transition:background .5s;" title="Sin conexión"></span>
 
       <button class="theme-btn" onclick="toggleViewMode()" id="view-btn" title="Cambiar vista: Móvil / PC"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
-      <button class="theme-btn" onclick="abrirAjustesUsuario()" id="ajustes-btn" title="Ajustes — tu nombre"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </div>
 
@@ -1324,43 +1323,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const inp = document.getElementById('device-name-input');
   if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') guardarNombreDispositivo(); });
 });
-
-// ── AJUSTES — botón accesible siempre, por si en algún dispositivo (iPhone,
-// modo privado, PWA sin caché persistente...) nunca llegó a guardarse el
-// nombre en la pantalla de bienvenida inicial. Así se puede fijar/cambiar
-// en cualquier momento sin depender de ese único punto de entrada.
-function abrirAjustesUsuario(){
-  const actual=DEVICE_NAME||(typeof _miNombre!=='undefined'?_miNombre:'')||'';
-  document.getElementById('modal-content').innerHTML=`
-    <div class="modal-title">Ajustes</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;font-weight:600;">
-      Este nombre se usa para identificarte al crear o editar reservas, y para avisar a los demás cuando estás haciendo cambios. Si en este dispositivo nunca te ha pedido el nombre, configúralo aquí.
-    </p>
-    <div class="field">
-      <label>Tu nombre</label>
-      <input type="text" id="ajustes-nombre-input" value="${esc(actual)}" placeholder="Ej: J.GRANJA" maxlength="20"
-        style="background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:'Inter',sans-serif;font-size:15px;outline:none;text-transform:uppercase;">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" style="flex:1" onclick="guardarAjustesUsuario()">Guardar</button>
-    </div>`;
-  document.getElementById('modal-overlay').classList.add('open');
-  setTimeout(()=>{const i=document.getElementById('ajustes-nombre-input');if(i){i.focus();i.select();}},80);
-}
-function guardarAjustesUsuario(){
-  const inp=document.getElementById('ajustes-nombre-input');
-  const nombre=inp?inp.value.trim():'';
-  if(!nombre){ if(inp) inp.style.borderColor='#c0392b'; return; }
-  try{
-    localStorage.setItem('flotaapp_device_name',nombre);
-    localStorage.setItem('flotaapp_nombre',nombre);
-  }catch(e){}
-  DEVICE_NAME=nombre;
-  if(typeof _miNombre!=='undefined') _miNombre=nombre.slice(0,20);
-  closeModal();
-  showToast('Nombre guardado: '+nombre,'success');
-}
 
 const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
 const CATS=["1","2","3","A","AXL","MB7","MB9"];
@@ -1931,17 +1893,8 @@ function isBusy(mat, sI, sF){
     if(ev.matricula!==mat) return false;
     if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
     const{ini,buf}=eventoRange(ev);
-    // Un evento Activo (entregado, en ruta) sin recogida confirmada, O un
-    // evento Pendiente cuya entrega ya debería haberse hecho y nunca se
-    // confirmó, sigue ocupando el coche aunque su fecha de fin teórica ya
-    // haya pasado — el rango de ocupación se extiende "hasta ahora" en vez
-    // de cortarse en buf. Así no se puede marcar como libre/reservar un
-    // coche que en realidad sigue pendiente de entregar o de recoger.
-    const ahora=new Date();
-    const vencidoSinConfirmar=(ev.estado==='Activo'||ev.estado==='Pendiente') && buf<ahora;
-    const bufEfectivo=vencidoSinConfirmar?ahora:buf;
-    // Solapamiento estricto: el evento ocupa [ini, bufEfectivo)
-    return ini < sF && bufEfectivo > sI;
+    // Solapamiento estricto: el evento ocupa [ini, buf)
+    return ini < sF && buf > sI;
   });
 }
 
@@ -2051,17 +2004,11 @@ function validarConflicto(mat, cat, fechaIni, dias, idExcluir=null, devolucionCu
     if(ev.estado==='Cerrado'||ev.estado==='Cancelado') return false;
     if(idExcluir&&String(ev.id)===String(idExcluir)) return false;
     const{ini,buf}=eventoRange(ev);
-    const ahora=new Date();
-    const vencidoSinConfirmar=(ev.estado==='Activo'||ev.estado==='Pendiente') && buf<ahora;
-    const bufEfectivo=vencidoSinConfirmar?ahora:buf;
-    return ini<sF&&bufEfectivo>sI;
+    return ini<sF&&buf>sI;
   });
   if(conflicto){
     const{ini,fin}=eventoRange(conflicto);
-    const vencidoTxt=(conflicto.estado==='Activo'||conflicto.estado==='Pendiente')&&fin<new Date()
-      ?(conflicto.estado==='Activo'?' (PENDIENTE DE RECOGER, aún no confirmada)':' (ENTREGA NUNCA CONFIRMADA, sigue pendiente)')
-      :'';
-    return `${mat} ya tiene un alquiler del ${fmtDT(ini)} al ${fmtDT(fin)}${vencidoTxt}`;
+    return `${mat} ya tiene un alquiler del ${fmtDT(ini)} al ${fmtDT(fin)}`;
   }
   return null;
 }
@@ -2109,21 +2056,7 @@ function buscarDisponibilidad(){
     if(v.estado==='Taller'||v.estado==='Averiado') d='taller';
     else if(v.estado==='Alq. L/T') d='ocupado';
     else d=isBusy(v.mat,sI,sF)?'ocupado':'libre';
-    // Si está ocupado por un evento Activo cuya devolución ya pasó (no se ha
-    // confirmado la recogida), lo marcamos como "pendiente de recogida":
-    // sigue contando como ocupado para el cálculo, pero se puede seleccionar
-    // a propósito con un aviso, por si el cliente alarga o se gestiona aparte.
-    let pendRec=false;
-    if(d==='ocupado'){
-      const ahora=new Date();
-      pendRec=STATE.eventos.some(ev=>{
-        if(ev.matricula!==v.mat) return false;
-        if(ev.estado!=='Activo'&&ev.estado!=='Pendiente') return false;
-        const{buf}=eventoRange(ev);
-        return buf<ahora;
-      });
-    }
-    dispRes[v.cat].push({mat:v.mat,disp:d,pendRec});
+    dispRes[v.cat].push({mat:v.mat,disp:d});
   });
   // Marcar coches reservados sin matrícula usando el motor centralizado
   CATS.forEach(cat=>{
@@ -2190,17 +2123,14 @@ function renderDispGrid(){
       const veh=STATE.vehiculos.find(v=>v.mat===i.mat);
       const ubi=(veh&&veh.ubicacion)?`<div style="font-size:9.5px;font-weight:700;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${veh.ubicacion}</div>`:'';
       const dispClass=i.disp==='reservado'?'ocupado':i.disp;
-      const dispLabel=i.pendRec?'⚠ Pend. recogida':(i.disp==='libre'?'Libre':i.disp==='reservado'?'Reservado':i.disp==='ocupado'?'Ocupado':'Taller');
+      const dispLabel=i.disp==='libre'?'Libre':i.disp==='reservado'?'Reservado':i.disp==='ocupado'?'Ocupado':'Taller';
       // Indicador de limpieza solo para coches libres
       const limpiezaBadge=(i.disp==='libre'&&veh)
         ? `<span style="display:inline-block;background:${veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${veh.limpio?'LIMPIO':'SUCIO'}</span>`
         : '';
-      const clickHandler=i.disp==='libre'
-        ?`seleccionarCoche('${i.mat}')`
-        :(i.pendRec?`avisoPendienteRecogida('${i.mat}')`:'');
-      return`<div class="avail-item ${dispClass} ${i.mat===matSeleccionada?'selected':''}" style="${i.pendRec?'border:1.5px solid #c0392b;cursor:pointer;':''}" onclick="${clickHandler}">`+
+      return`<div class="avail-item ${dispClass} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
         `<div class="avail-mat">${i.mat}</div>`+ubi+limpiezaBadge+
-        `<div class="avail-status" style="${i.pendRec?'color:#c0392b;font-weight:800;':''}">${dispLabel}</div></div>`;
+        `<div class="avail-status">${dispLabel}</div></div>`;
     }).join('');
 
     html+=`<div class="cat-card-2">
@@ -2305,30 +2235,6 @@ function seleccionarSinCoche(){
   const webR=document.getElementById('nev-web');if(webR){webR.checked=false;_updateWebLabel();}
   document.getElementById('form-nuevo').style.display='block';marcarEditando();
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
-}
-function avisoPendienteRecogida(mat){
-  const ahora=new Date();
-  const ev=STATE.eventos.find(e=>e.matricula===mat&&(e.estado==='Activo'||e.estado==='Pendiente')&&eventoRange(e).buf<ahora);
-  const{buf}=ev?eventoRange(ev):{buf:null};
-  const fechaTxt=buf?fmtDate(buf):'';
-  const esNuncaEntregado=ev&&ev.estado==='Pendiente';
-  const mensaje=esNuncaEntregado
-    ?`La entrega de este coche estaba programada para el ${fechaTxt} y nunca se confirmó. La reserva sigue abierta como "Pendiente".`
-    :`El coche <span style="font-family:monospace;font-weight:900;">${esc(mat)}</span> debía recogerse el ${fechaTxt} y todavía no se ha confirmado su recogida.`;
-  document.getElementById('modal-content').innerHTML=`
-    <div class="modal-title">⚠ Pendiente de recogida</div>
-    <p style="font-size:14px;color:var(--text);margin-bottom:6px;font-weight:700;">
-      ${mensaje}
-    </p>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:18px;">
-      Puede que el cliente haya ampliado días, o que falte confirmar la entrega/recogida en Agenda. ¿Quieres ir a esa reserva para revisarlo, o reservar este coche igualmente?
-    </p>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button class="btn btn-primary" onclick="closeModal();openEvento('${ev?ev.id:''}')">Ver reserva pendiente</button>
-      <button class="btn btn-secondary" onclick="closeModal();seleccionarCoche('${esc(mat)}')">Reservar igualmente</button>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cancelar</button>
-    </div>`;
-  document.getElementById('modal-overlay').classList.add('open');
 }
 function seleccionarCoche(mat){
   matSeleccionada=mat;
@@ -2759,16 +2665,14 @@ function renderAgenda(){
   }else{
     evs=todos.filter(e=>{const{buf}=eventoRange(e);const b=new Date(buf);b.setHours(0,0,0,0);return b>=now;});
     evs.sort((a,b)=>eventoRange(a).buf-eventoRange(b).buf);
-    // Vencidos: SOLO si el día de devolución es estrictamente anterior a hoy
-    // (no por hora exacta) — una recogida de HOY nunca se marca como vencida,
-    // por muy tarde que sea la hora; solo cuenta como pendiente al día siguiente.
-    evsPasados=todos.filter(e=>{const{fin}=eventoRange(e);const f=new Date(fin);f.setHours(0,0,0,0);return f<now;});
-    evsPasados.sort((a,b)=>eventoRange(a).buf-eventoRange(b).buf);
+    // Pasados: buf ya pasó (sin límite de 48h, sin auto-eliminación)
+    evsPasados=todos.filter(e=>{const{buf}=eventoRange(e);return buf<now;});
+    evsPasados.sort((a,b)=>eventoRange(b).buf-eventoRange(a).buf);
   }
 
   const list=document.getElementById('agenda-list');
 
-  function buildCard(ev,vencido){
+  function buildCard(ev){
     const{ini,fin}=eventoRange(ev);
     const sc=ev.estado.toLowerCase();
     const isRec=agendaTab==='recogidas';
@@ -2878,11 +2782,11 @@ function renderAgenda(){
     const lugarRec=(ev.lugarDevol && !tiposGenericos.includes(ev.lugarDevol.trim().toUpperCase()))
       ? ev.lugarDevol
       : ev.lugar;
-    return`<div class="ev2 tipo-recogida" style="flex-direction:column;border-left-width:0;border-top:4px solid ${vencido?'#c0392b':'var(--blue)'};${vencido?'box-shadow:0 0 0 1.5px #c0392b;':''}" onclick="openEvento('${ev.id}')">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;background:${vencido?'rgba(192,57,43,.09)':'rgba(43,92,230,.07)'};">
+    return`<div class="ev2 tipo-recogida" style="flex-direction:column;border-left-width:0;border-top:4px solid var(--blue);" onclick="openEvento('${ev.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;background:rgba(43,92,230,.07);">
         <div style="display:flex;align-items:baseline;gap:10px;">
-          <span style="font-family:'DM Mono',monospace;font-size:30px;font-weight:700;color:${vencido?'#c0392b':'var(--blue-deep)'};line-height:1;">${hora}</span>
-          <span style="font-size:11px;font-weight:900;color:${vencido?'#c0392b':'var(--blue-deep)'};opacity:.8;text-transform:uppercase;letter-spacing:.12em;">${vencido?'⚠ RECOGIDA PENDIENTE · '+fmtDate(fin):'RECOGIDA'}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:30px;font-weight:700;color:var(--blue-deep);line-height:1;">${hora}</span>
+          <span style="font-size:11px;font-weight:900;color:var(--blue-deep);opacity:.75;text-transform:uppercase;letter-spacing:.12em;">RECOGIDA</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           ${ev.web?`<span style="background:#2C3A4A;color:#fff;font-size:13px;font-weight:900;letter-spacing:.1em;padding:5px 14px;border-radius:20px;">WEB</span>`:''}
@@ -2920,15 +2824,30 @@ function renderAgenda(){
   // Construir grupos de eventos futuros/hoy
   let html='';
 
-  // Aviso + tarjetas de RECOGIDAS VENCIDAS (debían recogerse antes de hoy y no se confirmó)
+  // Recogidas vencidas (Activo, fecha de devolución ya pasada, sin confirmar) — siempre visibles arriba
   if(agendaTab==='recogidas' && evsPasados.length){
-    html+=`<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#FCE8E6;border:1.5px solid #E0524A;border-radius:12px;margin-bottom:10px;">
-      <span style="font-size:20px;line-height:1;">⚠️</span>
-      <span style="font-size:13px;font-weight:800;color:#B3261E;">
-        ${evsPasados.length} vehículo${evsPasados.length>1?'s':''} sin recoger de día${evsPasados.length>1?'s':''} anteriores. Confirma su recogida.
-      </span>
-    </div>`;
-    html+=evsPasados.map(ev=>buildCard(ev,true)).join('');
+    const vencidas=evsPasados.filter(e=>e.estado==='Activo');
+    if(vencidas.length){
+      html+=`<div class="warn-banner" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red);border-radius:8px;margin-bottom:10px;color:var(--red);font-weight:800;font-size:12px;">
+        ⚠️ ${vencidas.length} vehículo${vencidas.length>1?'s':''} sin recoger de días anteriores
+      </div>`;
+      html+=vencidas.map(ev=>{
+        const{fin}=eventoRange(ev);
+        const fechaLabel=fmtDate(fin);
+        return`<div class="evento-card" onclick="openEvento('${ev.id}')" style="border-color:var(--red);background:var(--red-bg);">
+          <div class="ev-stripe activo"></div>
+          <div class="ev-body">
+            <div>
+              <div style="font-size:11px;font-weight:800;color:var(--red);margin-bottom:4px;">⚠ RECOGIDA PENDIENTE · ${fechaLabel}</div>
+              ${ev.matricula?`<div class="ev-mat">${esc(ev.matricula)}</div>`:`<div class="ev-unassigned">Sin asignar</div>`}
+              <div class="ev-cat">Cat. ${catLabel(ev.cat)} · ${ev.dias} día${ev.dias>1?'s':''}</div>
+              ${ev.lugar?`<div class="ev-lugar">${esc(ev.lugar)}</div>`:''}
+            </div>
+            <span class="badge badge-activo">${ev.estado}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
   }
 
   if(evs.length){
@@ -2952,7 +2871,35 @@ function renderAgenda(){
     html+=`<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><p>Sin eventos pendientes</p></div>`;
   }
 
-  // (Las recogidas vencidas ya se muestran arriba en rojo, ver bloque anterior)
+  // Sección de eventos pasados (colapsable) — excluye las vencidas ya mostradas arriba
+  const evsPasadosColapsable=agendaTab==='recogidas'?evsPasados.filter(e=>e.estado!=='Activo'):evsPasados;
+  if(evsPasadosColapsable.length){
+    html+=`<div style="margin-top:24px">
+      <div onclick="togglePasados()" id="pasados-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);cursor:pointer;margin-bottom:0;">
+        <span style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Eventos pasados <span style="font-weight:600">(${evsPasadosColapsable.length})</span></span>
+        <span id="pasados-arrow" style="color:var(--muted);font-size:16px;transition:transform .2s;">▼</span>
+      </div>
+      <div id="pasados-list" style="display:none;margin-top:8px;">
+        ${evsPasadosColapsable.map(ev=>{
+          const{ini,fin}=eventoRange(ev);
+          const sc=ev.estado.toLowerCase();
+          const fechaLabel=agendaTab==='recogidas'?fmtDate(fin):fmtDate(ini);
+          return`<div class="evento-card" onclick="openEvento('${ev.id}')" style="opacity:.75;border-style:dashed;">
+            <div class="ev-stripe ${sc}"></div>
+            <div class="ev-body">
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;">${fechaLabel}</div>
+                ${ev.matricula?`<div class="ev-mat">${esc(ev.matricula)}</div>`:`<div class="ev-unassigned">Sin asignar</div>`}
+                <div class="ev-cat">Cat. ${catLabel(ev.cat)} · ${ev.dias} día${ev.dias>1?'s':''}</div>
+                ${ev.lugar?`<div class="ev-lugar">${esc(ev.lugar)}</div>`:''}
+              </div>
+              <span class="badge badge-${sc}">${ev.estado}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
 
   list.innerHTML=html;
   _updateAgendaCounts();
@@ -3158,14 +3105,6 @@ function _confirmarEntregaOK(id){
   if(ev.matricula){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
     if(v)v.limpio=false;
-  }
-  // Si esta entrega tiene un coche "volverse con" ya aparcado (veh:MAT),
-  // al confirmar la entrega ese coche deja de estar en esa ubicación
-  // (nos lo llevamos), así que se borra su ubicación guardada en flota.
-  if(ev.volverseConId && String(ev.volverseConId).startsWith('veh:')){
-    const _matVuelta=String(ev.volverseConId).slice(4);
-    const _vVuelta=STATE.vehiculos.find(x=>x.mat===_matVuelta);
-    if(_vVuelta) _vVuelta.ubicacion='';
   }
   // Confirmar comisión ahora que la entrega es real
   // Se comprueba el estado ACTUAL de HOTELES_CONFIG, no el guardado al crear la reserva,
@@ -3386,18 +3325,7 @@ function editarEvento(id){
   const matOpts=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===ev.cat)
     .sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}))
-    .map(v=>{
-      const ubi=v.ubicacion?' · '+v.ubicacion:'';
-      const ahora=new Date();
-      const pendRec=v.mat!==ev.matricula && STATE.eventos.some(e2=>{
-        if(e2.matricula!==v.mat) return false;
-        if(e2.estado!=='Activo'&&e2.estado!=='Pendiente') return false;
-        const{buf}=eventoRange(e2);
-        return buf<ahora;
-      });
-      const tag=pendRec?' ⚠ PEND. RECOGIDA':'';
-      return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}${tag}</option>`;
-    }).join('');
+    .map(v=>{const ubi=v.ubicacion?' · '+v.ubicacion:'';return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}</option>`;}).join('');
 
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">Editar evento</div>
@@ -3446,18 +3374,7 @@ function actualizarMatriculasEdit(id){
   sel.innerHTML=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===cat)
     .sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}))
-    .map(v=>{
-      const ubi=v.ubicacion?' · '+v.ubicacion:'';
-      const ahora=new Date();
-      const pendRec=STATE.eventos.some(e2=>{
-        if(e2.matricula!==v.mat) return false;
-        if(e2.estado!=='Activo'&&e2.estado!=='Pendiente') return false;
-        const{buf}=eventoRange(e2);
-        return buf<ahora;
-      });
-      const tag=pendRec?' ⚠ PEND. RECOGIDA':'';
-      return `<option value="${v.mat}">${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}${tag}</option>`;
-    }).join('');
+    .map(v=>{const ubi=v.ubicacion?' · '+v.ubicacion:'';return `<option value="${v.mat}">${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}</option>`;}).join('');
 }
 
 function guardarEdicion(id){
@@ -4848,17 +4765,7 @@ function abrirGridMatriculas(){
       if(v.estado==='Taller') d='taller';
       else if(v.estado==='Alq. L/T') d='ocupado';
       else d=isBusy(v.mat,sI,sF)?'ocupado':'libre';
-      let pendRec=false;
-      if(d==='ocupado'){
-        const ahora=new Date();
-        pendRec=STATE.eventos.some(ev=>{
-          if(ev.matricula!==v.mat) return false;
-          if(ev.estado!=='Activo'&&ev.estado!=='Pendiente') return false;
-          const{buf}=eventoRange(ev);
-          return buf<ahora;
-        });
-      }
-      return{mat:v.mat,disp:d,veh:v,pendRec};
+      return{mat:v.mat,disp:d,veh:v};
     })
     .sort((a,b)=>{
       const da=({libre:0,ocupado:1,taller:2})[a.disp]||1;
@@ -4871,18 +4778,15 @@ function abrirGridMatriculas(){
     ${items.map(i=>{
       const ubi=i.veh.ubicacion?`<div style="font-size:10px;color:var(--accent);font-weight:700;">${i.veh.ubicacion}</div>`:'';
       const dispClass=i.disp==='libre'?'libre':'ocupado';
-      const dispLabel=i.pendRec?'⚠ Pend. recogida':(i.disp==='libre'?'Libre':i.disp==='taller'?'Taller':'Ocupado');
+      const dispLabel=i.disp==='libre'?'Libre':i.disp==='taller'?'Taller':'Ocupado';
       const matSel=document.getElementById('nev-mat-sel').value;
       const limpieza=i.disp==='libre'
         ?`<div style="display:inline-block;background:${i.veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${i.veh.limpio?'LIMPIO':'SUCIO'}</div>`
         :'';
-      const clickHandler=i.disp==='libre'
-        ?`seleccionarCocheForm('${i.mat}','${cat}')`
-        :(i.pendRec?`avisoPendienteRecogida('${i.mat}')`:'');
-      return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}" style="${i.pendRec?'border:1.5px solid #c0392b;cursor:pointer;':''}"
-        onclick="${clickHandler}" >
+      return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}"
+        onclick="${i.disp==='libre'?`seleccionarCocheForm('${i.mat}','${cat}')`:''}" >
         <div class="avail-mat">${i.mat}</div>${ubi}${limpieza}
-        <div class="avail-status" style="${i.pendRec?'color:#c0392b;font-weight:800;':''}">${dispLabel}</div>
+        <div class="avail-status">${dispLabel}</div>
       </div>`;
     }).join('')}
   </div>`;
@@ -4990,12 +4894,11 @@ function abrirVolverseCon(id){
     return finStr===fechaStr;
   }).sort((a,b)=>eventoRange(a).fin-eventoRange(b).fin);
 
-  // Coches con ubicación guardada en flota — están aparcados y pueden servir
-  // para "volverse con" aunque tengan una reserva futura (Reservado).
-  // Solo se excluyen: en ruta (En alquiler), Taller, Avería, Larga temporada (Alq. L/T).
+  // Coches DISPONIBLES con ubicación — están aparcados listos para recoger
+  // Excluir los ya enlazados por otras entregas
   const vehsDisponibles=STATE.vehiculos.filter(v=>{
+    if(v.estado!=='Disponible') return false;
     if(!v.ubicacion || !v.ubicacion.trim()) return false;
-    if(v.estado==='En alquiler'||v.estado==='Taller'||v.estado==='Averiado'||v.estado==='Alq. L/T') return false;
     if(matsYaEnlazadas.has(v.mat) && v.mat!==miEnlaceRaw) return false;
     return true;
   }).sort((a,b)=>a.ubicacion.localeCompare(b.ubicacion,'es',{sensitivity:'base'}));
@@ -5066,7 +4969,7 @@ function abrirVolverseCon(id){
         <div style="font-size:14px;font-weight:800;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(v.ubicacion)}</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:4px;flex-wrap:wrap;">
           <span style="font-family:monospace;font-size:11px;font-weight:700;color:#3D4A5C;background:var(--blue-frost);padding:1px 7px;border-radius:4px;border:1px solid var(--blue-wash);">${esc(v.mat)}</span>
-          <span style="font-size:11px;font-weight:700;color:${v.estado==='Reservado'?'var(--amber)':'var(--green)'};background:${v.estado==='Reservado'?'var(--amber-bg)':'var(--green-bg)'};padding:1px 7px;border-radius:4px;border:1px solid ${v.estado==='Reservado'?'var(--amber-lt)':'var(--green-lt)'};">${esc(v.estado)}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--green);background:var(--green-bg);padding:1px 7px;border-radius:4px;border:1px solid var(--green-lt);">Disponible</span>
         </div>
       </div>
       ${isLinked?`<span style="font-size:11px;font-weight:800;color:var(--green);background:var(--green-bg);padding:3px 10px;border-radius:20px;border:1px solid var(--green-lt);white-space:nowrap;">Enlazado</span>`:''}
