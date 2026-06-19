@@ -3109,7 +3109,8 @@ function _confirmarEntregaOK(id){
   // Confirmar comisión ahora que la entrega es real
   // Se comprueba el estado ACTUAL de HOTELES_CONFIG, no el guardado al crear la reserva,
   // para que hoteles añadidos o activados después también contabilicen.
-  if(ev.hotelNombre && !ev.hotelComision){
+  // Si la reserva viene marcada como WEB, no contabiliza comisión (no viene del hotel).
+  if(ev.hotelNombre && !ev.hotelComision && !ev.web){
     const _hcfgNow=HOTELES_CONFIG.find(h=>h.nombre===ev.hotelNombre);
     if(_hcfgNow && _hcfgNow.comision){
       ev.hotelComision=ev.hotelNombre;
@@ -3426,6 +3427,7 @@ function guardarEdicion(id){
   // Web: checkbox
   const webEdE=document.getElementById('edit-web');
   if(webEdE&&webEdE.checked){ev.web=true;}else{delete ev.web;}
+  _aplicarComisionSegunWeb(ev);
   const depEdE=document.getElementById('edit-dep-efectivo');
   if(depEdE&&depEdE.checked){ev.depositoEfectivo=true;}else{delete ev.depositoEfectivo;}
   const habEdE=document.getElementById('edit-hotel-hab');
@@ -3754,10 +3756,25 @@ function avisoLimpioBloqueado(mat){
 
 // Alterna el flag WEB de una reserva sin abrir el formulario de edición completo.
 // Útil para marcar/desmarcar reservas históricas que se hicieron por la web.
+// Si la reserva es WEB no contabiliza comisión de hotel (no viene del hotel).
+function _aplicarComisionSegunWeb(ev){
+  if(ev.web){
+    // Marcada como WEB: anular comisión si la tenía
+    if(ev.hotelComision){delete ev.hotelComision;delete ev.comision;}
+  }else if(ev.hotelNombre && !ev.hotelComision){
+    // Desmarcada de WEB: si el hotel tiene comisión activa y la entrega ya está confirmada, recalcular
+    const _hcfgNow=HOTELES_CONFIG.find(h=>h.nombre===ev.hotelNombre);
+    if(_hcfgNow && _hcfgNow.comision && ev.estado!=='Pendiente'){
+      ev.hotelComision=ev.hotelNombre;
+      ev.comision=calcularComision(ev.cat,ev.dias);
+    }
+  }
+}
 function toggleWeb(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   if(ev.web){delete ev.web;showToast('Marcado como Oficina','info');}
   else{ev.web=true;showToast('Marcado como WEB ✓','success');}
+  _aplicarComisionSegunWeb(ev);
   saveState();
   // Refrescar todas las vistas relevantes
   openEvento(id);
@@ -3769,6 +3786,7 @@ function toggleWebHist(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   if(ev.web){delete ev.web;showToast('Marcado como Oficina','info');}
   else{ev.web=true;showToast('Marcado como WEB ✓','success');}
+  _aplicarComisionSegunWeb(ev);
   saveState();
   // Mantener los meses que estaban expandidos antes del re-render
   const abiertos=Array.from(document.querySelectorAll('[id^="his-"]')).filter(el=>el.style.display==='block').map(el=>el.id);
@@ -4005,6 +4023,7 @@ function renderInforme(){
             <th style="text-align:left;padding:5px 6px 8px;">Hab.</th>
             <th style="text-align:right;padding:5px 6px 8px;">Días</th>
             <th style="text-align:right;padding:5px 6px 8px;">€</th>
+            <th style="text-align:right;padding:5px 6px 8px;width:30px;"></th>
           </tr>
         </thead>
         <tbody>
@@ -4012,19 +4031,23 @@ function renderInforme(){
             const com=ev.comision||calcularComision(ev.cat,ev.dias);
             const fecha=new Date(ev.fechaIni).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});
             const hab=ev.hotelHab?` H.${ev.hotelHab}`:'';
-            return `<tr style="border-top:1px solid var(--border);">
+            return `<tr style="border-top:1px solid var(--border);" id="com-row-${ev.id}">
               <td style="padding:7px 6px;color:var(--muted);font-family:monospace;">${fecha}</td>
               <td style="padding:7px 6px;font-weight:700;">${catInforme(ev.cat)}</td>
               <td style="padding:7px 6px;font-size:13px;font-weight:600;">${ev.hotelHab?'H.'+ev.hotelHab:'—'}</td>
               <td style="padding:7px 6px;text-align:right;font-weight:600;">${ev.dias}d</td>
               <td style="padding:7px 6px;text-align:right;font-weight:900;color:#1A2332;">${com.toFixed(2)}€</td>
+              <td style="padding:7px 4px;text-align:right;" id="com-actions-${ev.id}">
+                <button type="button" onclick="pedirConfirmEliminarComision('${ev.id}')" title="Eliminar comisión"
+                  style="background:transparent;border:none;color:var(--muted);font-size:15px;font-weight:900;cursor:pointer;padding:2px 6px;line-height:1;">✕</button>
+              </td>
             </tr>`;
           }).join('')}
         </tbody>
         <tfoot>
           <tr style="border-top:2px solid #1A2332;">
             <td colspan="4" style="padding:8px 6px;font-weight:800;font-size:13px;">Total ${hotel}</td>
-            <td style="padding:8px 6px;text-align:right;font-weight:900;font-size:15px;color:#1A2332;">${totalHotel.toFixed(2)}€</td>
+            <td colspan="2" style="padding:8px 6px;text-align:right;font-weight:900;font-size:15px;color:#1A2332;">${totalHotel.toFixed(2)}€</td>
           </tr>
         </tfoot>
       </table>
@@ -4036,6 +4059,30 @@ function renderInforme(){
   }
 
   res.innerHTML=html;
+}
+
+// Doble confirmación para eliminar una comisión: primer toque muestra "¿Seguro? ✓/✕" inline.
+function pedirConfirmEliminarComision(id){
+  const cell=document.getElementById('com-actions-'+id);
+  if(!cell) return;
+  cell.innerHTML=`<span style="font-size:10px;font-weight:800;color:var(--red);white-space:nowrap;display:inline-flex;align-items:center;gap:4px;">
+    ¿Seguro?
+    <button type="button" onclick="confirmarEliminarComision('${id}')" title="Confirmar"
+      style="background:var(--red);color:#fff;border:none;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;cursor:pointer;">✓</button>
+    <button type="button" onclick="renderInforme()" title="Cancelar"
+      style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;cursor:pointer;">✕</button>
+  </span>`;
+}
+
+// Segundo factor: elimina la comisión del evento (no la reserva), recalcula y refresca el informe.
+function confirmarEliminarComision(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));
+  if(!ev){showToast('Reserva no encontrada','error');return;}
+  delete ev.hotelComision;
+  delete ev.comision;
+  saveState();
+  showToast('Comisión eliminada ✓','success');
+  renderInforme();
 }
 
 function exportarInforme(){
