@@ -1327,6 +1327,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
 const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
 const CATS=["1","2","3","A","AXL","MB7","MB9"];
 function catLabel(cat){ return (CAT_INFO[cat]&&CAT_INFO[cat].label)||cat; }
+function diasSinAlquilarLabel(mat){
+  const ult=STATE.eventos
+    .filter(e=>e.matricula===mat&&e.estado==='Cerrado'&&e.tipoEvento!=='ITV')
+    .sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni))[0];
+  if(!ult) return '';
+  const{fin}=eventoRange(ult);
+  const d=Math.floor((Date.now()-fin.getTime())/86400000);
+  return ` · ${d}D SIN ALQ`;
+}
 function catInforme(cat){
   if(cat==='A'||cat==='AXL') return 'Automáticos';
   if(cat==='MB7'||cat==='MB9') return 'Minibus';
@@ -2937,7 +2946,8 @@ function openEvento(id){
     cochesDisponibles.map(v=>{
       const indicador=v.limpio?'✓ L':'✕ S';
       const ubi=v.ubicacion?' · '+v.ubicacion:'';
-      return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${indicador}${ubi}</option>`;
+      const dsa=v.estado==='Disponible'?diasSinAlquilarLabel(v.mat):'';
+      return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${indicador}${ubi}${dsa}</option>`;
     }).join('');
 
   const matHTML=`<div class="modal-row"><span class="modal-key">Matrícula</span>
@@ -3307,7 +3317,7 @@ function editarEvento(id){
   const matOpts=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===ev.cat)
     .sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}))
-    .map(v=>{const ubi=v.ubicacion?' · '+v.ubicacion:'';return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}</option>`;}).join('');
+    .map(v=>{const ubi=v.ubicacion?' · '+v.ubicacion:'';const dsa=v.estado==='Disponible'?diasSinAlquilarLabel(v.mat):'';return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}${dsa}</option>`;}).join('');
 
   document.getElementById('modal-content').innerHTML=`
     <div class="modal-title">Editar evento</div>
@@ -3356,7 +3366,7 @@ function actualizarMatriculasEdit(id){
   sel.innerHTML=`<option value="">— Sin asignar —</option>`+
     STATE.vehiculos.filter(v=>v.cat===cat)
     .sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}))
-    .map(v=>{const ubi=v.ubicacion?' · '+v.ubicacion:'';return `<option value="${v.mat}">${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}</option>`;}).join('');
+    .map(v=>{const ubi=v.ubicacion?' · '+v.ubicacion:'';const dsa=v.estado==='Disponible'?diasSinAlquilarLabel(v.mat):'';return `<option value="${v.mat}">${v.mat} · ${v.limpio?'✓ L':'✕ S'}${ubi}${dsa}</option>`;}).join('');
 }
 
 function guardarEdicion(id){
@@ -3620,7 +3630,7 @@ function renderFlotaList(){
         }
         if(diasSin!==null){
           const colorDias=diasSin>=7?'var(--red)':diasSin>=3?'var(--amber)':'var(--green)';
-          diasSinHtml=`<div style="font-size:10px;font-weight:800;color:${colorDias};margin-top:3px;letter-spacing:.02em;">${diasSin}d sin alquilar</div>`;
+          diasSinHtml=`<div style="font-size:10px;font-weight:800;color:${colorDias};margin-top:3px;letter-spacing:.02em;">${diasSin}D SIN ALQUILAR</div>`;
         }
       }
       return`<div class="veh2" onclick="openVehiculo('${v.mat}')">
@@ -4816,9 +4826,22 @@ function abrirGridMatriculas(){
       const limpieza=i.disp==='libre'
         ?`<div style="display:inline-block;background:${i.veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${i.veh.limpio?'LIMPIO':'SUCIO'}</div>`
         :'';
+      // Contador días sin alquilar (solo libres)
+      let diasSinHtml='';
+      if(i.disp==='libre'){
+        const ultimoCerrado=STATE.eventos
+          .filter(e=>e.matricula===i.mat&&e.estado==='Cerrado'&&e.tipoEvento!=='ITV')
+          .sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni))[0];
+        if(ultimoCerrado){
+          const{fin}=eventoRange(ultimoCerrado);
+          const d=Math.floor((Date.now()-fin.getTime())/86400000);
+          const c=d>=7?'#c0302a':d>=3?'#b7791f':'#1a9e4a';
+          diasSinHtml=`<div style="font-size:8px;font-weight:900;color:${c};margin-top:2px;letter-spacing:.03em;">${d}D SIN ALQUILAR</div>`;
+        }
+      }
       return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}"
         onclick="${i.disp==='libre'?`seleccionarCocheForm('${i.mat}','${cat}')`:''}" >
-        <div class="avail-mat">${i.mat}</div>${ubi}${limpieza}
+        <div class="avail-mat">${i.mat}</div>${ubi}${limpieza}${diasSinHtml}
         <div class="avail-status">${dispLabel}</div>
       </div>`;
     }).join('')}
