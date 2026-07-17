@@ -1179,6 +1179,31 @@ input::placeholder, textarea::placeholder {
   </div>
 </div>
 
+<!-- ── PANEL EMPRESA: para el jefe de un cliente, gestiona a SU equipo ─────── -->
+<div id="panel-empresa" class="full-overlay">
+  <div class="pg-wrap">
+    <div class="pg-top">
+      <h1>Mi empresa</h1>
+      <div style="display:flex;gap:8px;">
+        <button class="fo-btn secondary" onclick="_usarLaAppComoJefe()">Usar la app</button>
+        <button class="fo-btn secondary" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="pg-grid">
+      <div class="pg-panel">
+        <h3>Invitar a un empleado</h3>
+        <p style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;margin:-4px 0 12px;">Genera un código y compártelo con la persona que quieras dar de alta. Lo introduce una vez al iniciar sesión.</p>
+        <button class="fo-btn" onclick="_generarInvitacionEmpresa()">Generar código de invitación</button>
+        <div id="pe-invite-msg" class="pg-msg"></div>
+      </div>
+      <div class="pg-panel">
+        <h3>Mi equipo</h3>
+        <div id="pe-lista-empleados"><div class="pg-empty">Cargando…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="app">
   <div id="topbar">
     <div class="logo-wrap">
@@ -1433,6 +1458,7 @@ input::placeholder, textarea::placeholder {
           <div style="display:flex;gap:7px;">
             <button onclick="abrirInformeHoteles()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:12px;padding:9px 14px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:.04em;">📊 Comisiones</button>
             <button onclick="abrirGestionHoteles()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:12px;padding:9px 14px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:.04em;">🏨 Hoteles</button>
+            <button onclick="abrirConfigFlota(false)" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:12px;padding:9px 14px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:.04em;">⚙ Flota</button>
           </div>
         </div>
       </div>
@@ -1495,7 +1521,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
-const CATS=["1","2","3","A","AXL","MB7","MB9"];
+// Estos son los datos ORIGINALES de Montemar — se usan solo como copia de
+// seguridad al migrar la cuenta de Montemar. Las variables activas (CATS,
+// CAT_INFO, HOTELES_CONFIG) se cargan por empresa desde Firebase más abajo.
+const CATS_DEFAULT_MONTEMAR=["1","2","3","A","AXL","MB7","MB9"];
+let CATS=[];
 function catLabel(cat){ return (CAT_INFO[cat]&&CAT_INFO[cat].label)||cat; }
 function catInforme(cat){
   if(cat==='A'||cat==='AXL') return 'Automáticos';
@@ -1504,8 +1534,7 @@ function catInforme(cat){
   return labels[cat]||('Cat. '+cat);
 }
 // ── COMISIONES HOTELES ────────────────────────────────────────────────────────
-// Lista maestra de hoteles — se puede ampliar desde gestión
-let HOTELES_CONFIG = JSON.parse(localStorage.getItem('flotaapp_hoteles_config')||'null') || [
+const HOTELES_DEFAULT_MONTEMAR = [
   {nombre:'Pez Espada',       emoji:'🐟', comision:true},
   {nombre:'Mac Puerto Marina',emoji:'⚓', comision:true},
   {nombre:'H. Bajondillo',    emoji:'🏨', comision:false},
@@ -1517,7 +1546,12 @@ let HOTELES_CONFIG = JSON.parse(localStorage.getItem('flotaapp_hoteles_config')|
   {nombre:'H. San Fermin',    emoji:'🏨', comision:false},
   {nombre:'H. Isabel',        emoji:'🏨', comision:false},
 ];
-function saveHotelesConfig(){ try{localStorage.setItem('flotaapp_hoteles_config',JSON.stringify(HOTELES_CONFIG));}catch(e){} }
+// Lista maestra de hoteles — se carga por empresa desde Firebase (config.hoteles)
+let HOTELES_CONFIG = [];
+function saveHotelesConfig(){
+  try{localStorage.setItem('flotaapp_hoteles_config',JSON.stringify(HOTELES_CONFIG));}catch(e){}
+  if(_empresaId&&db){ db.ref(EMP('config/hoteles')).set(HOTELES_CONFIG).catch(e=>console.error('Error guardando hoteles:',e)); }
+}
 // Para compatibilidad con informe: lista de hoteles con comisión activa
 function getHotelesComision(){ return HOTELES_CONFIG.filter(h=>h.comision).map(h=>h.nombre); }
 // Tarifas: [1d, 2d, 3d, 4d, 5d, 6d, 7d]
@@ -1545,7 +1579,7 @@ const TARIFAS=[{cat:"1",nombre:"Fiat Panda or similar",precios:[50,95,135,170,20
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────
 const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponible",limpio:false}));
-let STATE={vehiculos:VEHICULOS_INIT,eventos:[],theme:localStorage.getItem('flotaapp_theme')||'light'};
+let STATE={vehiculos:[],eventos:[],theme:localStorage.getItem('flotaapp_theme')||'light'};
 let firebaseReady=false;
 let db=null;
 let auth=null;
@@ -1555,6 +1589,7 @@ let auth=null;
 // El Gestor (tú) ve todas las empresas desde un panel aparte.
 let _empresaId=null;   // empresa del usuario logueado (null si es Gestor)
 let _esGestor=false;
+let _esJefeEmpresa=false; // true cuando el usuario es el administrador de SU empresa (no el Gestor general)
 let _gestorEnModoApp=false; // true cuando el Gestor está usando la app de un cliente concreto
 function EMP(sub){ return 'empresas/'+_empresaId+(sub?('/'+sub):''); }
 
@@ -1579,7 +1614,7 @@ function saveState(opts){
 
   localStorage.setItem('flotaapp_theme',STATE.theme);
   // Backup local inmediato (siempre completo, así sirve si Firebase falla)
-  try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+  try{if(_empresaId)localStorage.setItem('flotaapp_backup_'+_empresaId,JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
 
   // Debounce Firebase: agrupa escrituras rápidas en una sola operación update()
   clearTimeout(_saveTimer);
@@ -1685,11 +1720,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
-// Intentar cargar backup local inmediatamente
-try{
-  const backup=localStorage.getItem('flotaapp_backup');
-  if(backup){const d=JSON.parse(backup);STATE.vehiculos=d.vehiculos||VEHICULOS_INIT;STATE.eventos=d.eventos||[];}
-}catch(e){}
+// (La precarga instantánea de backup se hace más abajo, ya con el empresaId
+// resuelto, para no mezclar datos entre distintos clientes en el mismo dispositivo)
 
 // Conectar Firebase con Auth + timeout
 try{
@@ -1778,7 +1810,7 @@ try{
 
 // ── MULTI-CLIENTE: resolución de acceso tras el login ──────────────────────
 function _ocultarPantallasEspeciales(){
-  ['gestor-setup','acceso-bloqueado','panel-gestor'].forEach(id=>{
+  ['gestor-setup','acceso-bloqueado','panel-gestor','panel-empresa'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.classList.remove('visible');
   });
@@ -1812,9 +1844,16 @@ function _resolverAcceso(user){
           _mostrarAccesoBloqueado('Cuenta sin empresa asignada','Tu cuenta todavía no está asociada a ninguna empresa. Si tienes un código de invitación, introdúcelo aquí abajo.',true);
           return;
         }
-        db.ref('empresas/'+empId+'/info').once('value').then(snapInfo=>{
-          const info=snapInfo.val()||{};
+        db.ref('empresas/'+empId).once('value').then(snapEmp=>{
+          const empData=snapEmp.val()||{};
+          const info=empData.info||{};
+          const adminUid=empData.adminUid||null;
+          const miFicha=(empData.empleados&&empData.empleados[user.uid])||{};
           const ahora=Date.now();
+          if(miFicha.bloqueado===true){
+            _mostrarAccesoBloqueado('Acceso bloqueado','El administrador de tu empresa ha bloqueado tu acceso. Contacta con él para más información.');
+            return;
+          }
           if(info.estado==='bloqueado'){
             _mostrarAccesoBloqueado('Acceso bloqueado','Tu acceso a la app está bloqueado en este momento. Contacta con nosotros para reactivarlo.');
             return;
@@ -1828,7 +1867,15 @@ function _resolverAcceso(user){
           const overlay=document.getElementById('login-overlay');
           if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
           _ocultarPantallasEspeciales();
+          if(adminUid&&adminUid===user.uid){
+            // Este usuario es el administrador (jefe) de su propia empresa
+            _esJefeEmpresa=true;
+            _mostrarPantallaEspecial('panel-empresa');
+            _cargarPanelEmpresa();
+            return;
+          }
           _mostrarAvisoDemoSiAplica(info);
+          _cargarConfigEmpresa();
           _arrancarFirebase();
         });
       });
@@ -1861,7 +1908,10 @@ function _vincularConCodigo(){
     const inv=snap.val();
     if(!inv||!inv.empresaId){setMsg('Código no válido.','err');return;}
     if(inv.exp&&Date.now()>inv.exp){setMsg('Este código ha caducado.','err');return;}
-    db.ref('usuarios/'+user.uid+'/empresaId').set(inv.empresaId).then(()=>{
+    const updates={};
+    updates['usuarios/'+user.uid+'/empresaId']=inv.empresaId;
+    updates['empresas/'+inv.empresaId+'/empleados/'+user.uid]={email:user.email||'',vinculado:Date.now(),bloqueado:false};
+    db.ref().update(updates).then(()=>{
       setMsg('¡Cuenta vinculada! Entrando…','ok');
       setTimeout(()=>_resolverAcceso(user),700);
     }).catch(e=>setMsg('Error: '+e.message,'err'));
@@ -1910,6 +1960,11 @@ function _migrarDatosAntiguosSiExisten(){
       const updates={};
       updates['empresas/'+empId+'/info']={nombre:'Mi empresa (datos existentes)',email:'',creado:ahora,estado:'activo'};
       updates['empresas/'+empId+'/estado']=old;
+      updates['empresas/'+empId+'/config']={
+        categorias:CATS_DEFAULT_MONTEMAR,
+        catInfo:CAT_INFO_DEFAULT_MONTEMAR,
+        hoteles:HOTELES_DEFAULT_MONTEMAR
+      };
       db.ref().update(updates).then(()=>{
         _generarInvitacion(empId,()=>{ _cargarPanelGestor(); },true);
       });
@@ -1929,8 +1984,8 @@ function _generarInvitacion(empId,cb,esMigracion){
 function doLogout(){
   try{localStorage.removeItem('flotaapp_cred');}catch(e){}
   if(typeof _heartbeatTimer!=='undefined'&&_heartbeatTimer){clearInterval(_heartbeatTimer);_heartbeatTimer=null;}
-  _empresaId=null;_esGestor=false;_gestorEnModoApp=false;
-  const volverBtn=document.getElementById('volver-gestor-btn'); if(volverBtn) volverBtn.style.display='none';
+  _empresaId=null;_esGestor=false;_esJefeEmpresa=false;_gestorEnModoApp=false;
+  const volverBtn=document.getElementById('volver-panel-btn'); if(volverBtn) volverBtn.style.display='none';
   const banner=document.getElementById('demo-banner'); if(banner) banner.classList.remove('visible');
   _ocultarPantallasEspeciales();
   if(auth) auth.signOut();
@@ -1987,28 +2042,89 @@ function _entrarComoEmpresa(empId){
   _ocultarPantallasEspeciales();
   const overlay=document.getElementById('login-overlay');
   if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
+  _configCargadaAlMenosUnaVez=false;
+  _cargarConfigEmpresa();
   _arrancarFirebase();
-  _mostrarBotonVolverGestor();
+  _mostrarBotonVolverPanel('← Panel Gestor',_volverAPanelGestor);
 }
-function _mostrarBotonVolverGestor(){
-  let btn=document.getElementById('volver-gestor-btn');
+function _mostrarBotonVolverPanel(texto,onClick){
+  let btn=document.getElementById('volver-panel-btn');
   if(!btn){
     btn=document.createElement('button');
-    btn.id='volver-gestor-btn';
-    btn.textContent='← Panel Gestor';
+    btn.id='volver-panel-btn';
     btn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9600;background:#3D4A5C;color:#fff;border:none;border-radius:22px;padding:11px 18px;font-weight:800;font-size:12px;letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:inherit;';
-    btn.onclick=_volverAPanelGestor;
     document.body.appendChild(btn);
   }
+  btn.textContent=texto;
+  btn.onclick=onClick;
   btn.style.display='block';
 }
 function _volverAPanelGestor(){
   _gestorEnModoApp=false;
   _empresaId=null;
-  const btn=document.getElementById('volver-gestor-btn');
+  const btn=document.getElementById('volver-panel-btn');
   if(btn) btn.style.display='none';
   _mostrarPantallaEspecial('panel-gestor');
   _cargarPanelGestor();
+}
+
+// ── PANEL EMPRESA: el jefe de un cliente gestiona a SU propio equipo ───────
+function _usarLaAppComoJefe(){
+  _ocultarPantallasEspeciales();
+  const overlay=document.getElementById('login-overlay');
+  if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
+  _configCargadaAlMenosUnaVez=false;
+  _cargarConfigEmpresa();
+  _arrancarFirebase();
+  _mostrarBotonVolverPanel('← Mi empresa',_volverAPanelEmpresa);
+}
+function _volverAPanelEmpresa(){
+  const btn=document.getElementById('volver-panel-btn');
+  if(btn) btn.style.display='none';
+  _mostrarPantallaEspecial('panel-empresa');
+  _cargarPanelEmpresa();
+}
+function _generarInvitacionEmpresa(){
+  if(!_empresaId) return;
+  _generarInvitacion(_empresaId);
+}
+function _cargarPanelEmpresa(){
+  if(!db||!_empresaId) return;
+  db.ref('empresas/'+_empresaId+'/empleados').on('value',snap=>{
+    const data=snap.val()||{};
+    const cont=document.getElementById('pe-lista-empleados');
+    if(!cont) return;
+    const uids=Object.keys(data).filter(uid=>!data[uid].esAdmin);
+    if(!uids.length){cont.innerHTML='<div class="pg-empty">Todavía no has invitado a nadie de tu equipo.</div>';return;}
+    uids.sort((a,b)=>(data[a].vinculado||0)-(data[b].vinculado||0));
+    cont.innerHTML=uids.map(uid=>{
+      const e=data[uid];
+      const bloqueado=e.bloqueado===true;
+      return '<div class="pg-empresa-card">'
+        +'<div class="pg-empresa-top">'
+          +'<div><div class="pg-empresa-nombre">'+esc(e.email||'(sin email)')+'</div></div>'
+          +'<span class="pg-badge '+(bloqueado?'bloqueado':'activo')+'">'+(bloqueado?'Bloqueado':'Activo')+'</span>'
+        +'</div>'
+        +'<div class="pg-empresa-actions">'
+          +'<button class="pg-mini-btn" onclick="_toggleBloqueoEmpleado(\''+uid+'\','+(!bloqueado)+')">'+(bloqueado?'Desbloquear':'Bloquear')+'</button>'
+          +'<button class="pg-mini-btn" onclick="_eliminarEmpleado(\''+uid+'\')">Eliminar del equipo</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  });
+}
+function _toggleBloqueoEmpleado(uid,valor){
+  if(!_empresaId) return;
+  db.ref('empresas/'+_empresaId+'/empleados/'+uid+'/bloqueado').set(valor)
+    .catch(e=>alert('Error: '+e.message));
+}
+function _eliminarEmpleado(uid){
+  if(!_empresaId) return;
+  if(!confirm('¿Quitar a esta persona de tu equipo? Necesitará un nuevo código para volver a entrar.')) return;
+  const updates={};
+  updates['empresas/'+_empresaId+'/empleados/'+uid]=null;
+  updates['usuarios/'+uid+'/empresaId']=null;
+  db.ref().update(updates).catch(e=>alert('Error: '+e.message));
 }
 
 function _cambiarEstadoEmpresa(empId,nuevoEstado){
@@ -2057,6 +2173,8 @@ function _crearCliente(){
       const info={nombre:nombre,email:email,creado:ahora,estado:'demo',trialDias:dias,trialFin:ahora+dias*86400000};
       const updates={};
       updates['empresas/'+empId+'/info']=info;
+      updates['empresas/'+empId+'/adminUid']=uid;
+      updates['empresas/'+empId+'/empleados/'+uid]={email:email,vinculado:ahora,bloqueado:false,esAdmin:true};
       updates['usuarios/'+uid+'/empresaId']=empId;
       return db.ref().update(updates);
     })
@@ -2091,13 +2209,14 @@ function _arrancarFirebase(){
       const eventosFirebase=data.eventos||[];
       if(!_notifInicializado) _inicializarDetectorFirebase(eventosFirebase);
       else _detectarNuevasReservasFirebase(eventosFirebase);
-      STATE.vehiculos=data.vehiculos&&data.vehiculos.length?data.vehiculos:VEHICULOS_INIT;STATE.eventos=eventosFirebase;
+      STATE.vehiculos=data.vehiculos||[];STATE.eventos=eventosFirebase;
     }
     else{
-      // Primera vez o Firebase vacío — intentar recuperar backup local primero
-      let _initVehs=VEHICULOS_INIT;
+      // Primera vez de esta empresa — flota vacía por defecto. Solo se recupera
+      // backup local si es de ESTA MISMA empresa en ESTE dispositivo (nunca el de otra).
+      let _initVehs=[];
       try{
-        const _bk=localStorage.getItem('flotaapp_backup');
+        const _bk=_empresaId?localStorage.getItem('flotaapp_backup_'+_empresaId):null;
         if(_bk){const _bkd=JSON.parse(_bk);if(_bkd.vehiculos&&_bkd.vehiculos.length>0)_initVehs=_bkd.vehiculos;}
       }catch(e){}
       STATE.vehiculos=_initVehs;
@@ -2107,7 +2226,7 @@ function _arrancarFirebase(){
     // Sincronizar estado de vehículos automáticamente basado en eventos
     sincronizarEstadoVehiculos();
     // Actualizar backup local
-    try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+    try{if(_empresaId)localStorage.setItem('flotaapp_backup_'+_empresaId,JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
     refreshUI();
   },err=>{
     console.warn('Firebase error:',err);
@@ -2553,8 +2672,10 @@ function buscarDisponibilidad(){
 
 function renderDispTabs(){}  // legacy stub
 
-// Info visual por categoría
-const CAT_INFO={
+// Info visual por categoría — estos son los datos ORIGINALES de Montemar
+// (se usan como copia de seguridad al migrar). La variable activa CAT_INFO
+// se carga por empresa desde Firebase.
+const CAT_INFO_DEFAULT_MONTEMAR={
   '1':  {nombre:'Fiat Panda',     label:'A',    emoji:'<span style=\"font-size:34px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;font-family:Inter,sans-serif;\">A</span>',  grad:['#1e5fa8','#2472c8']},
   '2':  {nombre:'Seat Ibiza',     label:'B',    emoji:'<span style=\"font-size:34px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;font-family:Inter,sans-serif;\">B</span>',  grad:['#0d7a4a','#16a866']},
   '3':  {nombre:'Citroën C4',     label:'C',    emoji:'<span style=\"font-size:34px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;font-family:Inter,sans-serif;\">C</span>',  grad:['#7b2fa8','#a855d4']},
@@ -2563,6 +2684,46 @@ const CAT_INFO={
   'MB7':{nombre:'Minibus 7 plz',  label:'Mb7',  emoji:'<span style=\"font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;font-family:Inter,sans-serif;\">MB7</span>',  grad:['#1a3f6f','#2a5fa0']},
   'MB9':{nombre:'Minibus 9 plz',  label:'Mb9',  emoji:'<span style=\"font-size:20px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;font-family:Inter,sans-serif;\">MB9</span>',  grad:['#2c3e50','#4a6080']},
 };
+let CAT_INFO={};
+
+// Paleta de colores para asignar automáticamente a categorías nuevas
+const PALETA_CATEGORIAS=[
+  ['#1e5fa8','#2472c8'],['#0d7a4a','#16a866'],['#7b2fa8','#a855d4'],
+  ['#b05e00','#e07800'],['#c0392b','#e74c3c'],['#1a3f6f','#2a5fa0'],
+  ['#2c3e50','#4a6080'],['#a8781a','#d4a63f'],['#1a7a7a','#2fa8a8'],['#8a1a5c','#c22f88']
+];
+// Crea (si no existe) una categoría nueva con color automático y la deja lista para usar.
+function _asegurarCategoria(cod,nombreSugerido){
+  cod=String(cod||'').trim();
+  if(!cod) return null;
+  if(!CATS.includes(cod)){
+    CATS.push(cod);
+    const [c1,c2]=PALETA_CATEGORIAS[(CATS.length-1)%PALETA_CATEGORIAS.length];
+    CAT_INFO[cod]={nombre:nombreSugerido||cod,label:cod,emoji:'<span style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.02em;line-height:1;font-family:Inter,sans-serif;">'+esc(cod)+'</span>',grad:[c1,c2]};
+  }
+  return cod;
+}
+function _guardarConfigEmpresa(){
+  if(!db||!_empresaId) return Promise.resolve();
+  return db.ref(EMP('config')).update({categorias:CATS,catInfo:CAT_INFO});
+}
+// Carga en tiempo real la configuración (categorías, hoteles) de la empresa activa
+let _configCargadaAlMenosUnaVez=false;
+function _cargarConfigEmpresa(){
+  if(!db||!_empresaId) return;
+  db.ref(EMP('config')).on('value',snap=>{
+    const cfg=snap.val()||{};
+    CATS=cfg.categorias||[];
+    CAT_INFO=cfg.catInfo||{};
+    HOTELES_CONFIG=cfg.hoteles||[];
+    try{if(document.getElementById('flota-list')&&document.getElementById('screen-flota').classList.contains('active'))renderFlota();}catch(e){}
+    if(!_configCargadaAlMenosUnaVez){
+      _configCargadaAlMenosUnaVez=true;
+      if(!CATS.length) setTimeout(()=>abrirConfigFlota(true),400);
+    }
+  });
+}
+
 
 function renderDispGrid(){
   const container=document.getElementById('avail-grid');
@@ -4431,7 +4592,7 @@ function guardarNuevaMatricula(){
       .then(()=>console.log('Flota guardada en Firebase'))
       .catch(e=>console.error('Error guardando flota:',e));
   }
-  try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+  try{if(_empresaId)localStorage.setItem('flotaapp_backup_'+_empresaId,JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
   closeModal();
   showToast('Matrícula '+mat+' añadida','success');
   renderFlota();
@@ -4717,6 +4878,144 @@ function ghEliminarHotel(idx){
   showToast(h.nombre+' eliminado','info');
 }
 
+// ── CONFIGURACIÓN DE FLOTA: categorías propias + importar matrículas ───────
+function abrirConfigFlota(esOnboarding){
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`
+    <div class="modal-title">⚙ Configurar mi flota</div>
+    ${esOnboarding?'<p style="font-size:12.5px;color:var(--muted);margin:-6px 0 14px;line-height:1.55;">Antes de empezar: define tus categorías de coches e importa tu flota. Puedes volver a este panel cuando quieras desde Historial → ⚙ Flota.</p>':''}
+    <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">1 · Categorías</div>
+    <div id="cf-cat-lista" style="margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <input type="text" id="cf-cat-cod" placeholder="CÓDIGO" maxlength="8" style="width:90px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;color:var(--text);background:var(--bg);outline:none;text-transform:uppercase;">
+      <input type="text" id="cf-cat-nombre" placeholder="Nombre (ej: Compacto)" style="flex:1;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;color:var(--text);background:var(--bg);outline:none;">
+      <button onclick="cfAñadirCategoria()" style="background:#1A2332;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">+ Añadir</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">2 · Importar matrículas (Excel o CSV)</div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Dos columnas: <b>Matrícula</b> y <b>Categoría</b>. Si la categoría no existe todavía, se crea sola.</div>
+    <input type="file" id="cf-file" accept=".csv,.xlsx,.xls" onchange="cfArchivoSeleccionado(event)" style="margin-bottom:10px;font-size:12px;width:100%;">
+    <div style="font-size:11px;color:var(--muted);margin:2px 0 6px;text-align:center;">— o pega aquí directamente desde Excel —</div>
+    <textarea id="cf-paste" placeholder="1234 ABC${'\t'}A
+5678 DEF${'\t'}B" rows="4" style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:monospace;color:var(--text);background:var(--bg);outline:none;resize:vertical;"></textarea>
+    <button onclick="cfPrevisualizar()" style="width:100%;margin-top:8px;padding:10px;background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;">Previsualizar importación</button>
+    <div id="cf-preview" style="margin-top:10px;"></div>
+
+    <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px;">3 · Hoteles</div>
+    <button onclick="abrirGestionHoteles()" style="width:100%;padding:11px;background:var(--accent-bg);color:var(--accent);border:1.5px solid var(--accent-lt);border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;">🏨 Gestionar hoteles</button>
+
+    <button class="btn btn-secondary" style="width:100%;margin-top:16px;" onclick="closeModal()">Cerrar</button>`;
+  cfRenderCategorias();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cfRenderCategorias(){
+  const cont=document.getElementById('cf-cat-lista');
+  if(!cont) return;
+  if(!CATS.length){cont.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px 0;">Todavía no tienes categorías creadas.</div>';return;}
+  cont.innerHTML=CATS.map(c=>{
+    const info=CAT_INFO[c]||{nombre:c,grad:['#888','#aaa']};
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">
+      <span style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,${info.grad[0]},${info.grad[1]});display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:900;flex-shrink:0;">${esc(c)}</span>
+      <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${esc(info.nombre||c)}</span>
+      <button onclick="cfEliminarCategoria('${_jsEsc(c)}')" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-lt);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function cfAñadirCategoria(){
+  const cod=(document.getElementById('cf-cat-cod').value||'').trim().toUpperCase();
+  const nombre=(document.getElementById('cf-cat-nombre').value||'').trim();
+  if(!cod){showToast('Escribe un código de categoría','error');return;}
+  if(CATS.includes(cod)){showToast('Esa categoría ya existe','error');return;}
+  _asegurarCategoria(cod,nombre||cod);
+  _guardarConfigEmpresa();
+  cfRenderCategorias();
+  document.getElementById('cf-cat-cod').value='';
+  document.getElementById('cf-cat-nombre').value='';
+  showToast('Categoría '+cod+' añadida ✓','success');
+}
+
+function cfEliminarCategoria(cod){
+  const enUso=STATE.vehiculos.some(v=>v.cat===cod);
+  if(enUso){showToast('Hay coches con esa categoría — elimínalos o cámbialos primero','error');return;}
+  CATS=CATS.filter(c=>c!==cod);
+  delete CAT_INFO[cod];
+  _guardarConfigEmpresa();
+  cfRenderCategorias();
+  showToast('Categoría eliminada','info');
+}
+
+let _cfImportRows=[];
+
+function cfArchivoSeleccionado(ev){
+  const file=ev.target.files&&ev.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const filas=XLSX.utils.sheet_to_json(ws,{header:1});
+      _cfProcesarFilas(filas);
+    }catch(err){
+      showToast('No se pudo leer el archivo: '+err.message,'error');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function cfPrevisualizar(){
+  const texto=(document.getElementById('cf-paste').value||'').trim();
+  if(!texto){showToast('Pega datos o selecciona un archivo primero','error');return;}
+  const filas=texto.split('\n').map(l=>l.split(/\t|,|;/).map(s=>s.trim()));
+  _cfProcesarFilas(filas);
+}
+
+function _cfProcesarFilas(filas){
+  const limpio=[];
+  (filas||[]).forEach(row=>{
+    if(!row||!row.length) return;
+    const mat=String(row[0]||'').trim().toUpperCase();
+    const cat=String(row[1]||'').trim().toUpperCase();
+    if(!mat||mat==='MATRÍCULA'||mat==='MATRICULA') return; // saltar cabecera si la hay
+    if(!cat) return;
+    limpio.push({mat,cat});
+  });
+  if(!limpio.length){showToast('No se han detectado filas válidas (matrícula + categoría)','error');return;}
+  _cfImportRows=limpio;
+  const yaExisten=limpio.filter(r=>STATE.vehiculos.some(v=>v.mat===r.mat));
+  const nuevas=limpio.filter(r=>!STATE.vehiculos.some(v=>v.mat===r.mat));
+  const catsNuevas=[...new Set(limpio.map(r=>r.cat))].filter(c=>!CATS.includes(c));
+  const cont=document.getElementById('cf-preview');
+  cont.innerHTML=`
+    <div style="background:var(--accent-bg);border:1.5px solid var(--accent-lt);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--text);line-height:1.7;">
+      <b>${nuevas.length}</b> matrícula${nuevas.length===1?'':'s'} nueva${nuevas.length===1?'':'s'} lista${nuevas.length===1?'':'s'} para importar${yaExisten.length?` (<b>${yaExisten.length}</b> ya exist${yaExisten.length===1?'e':'en'} y se omitir${yaExisten.length===1?'á':'án'})`:''}.
+      ${catsNuevas.length?`<br>Se crearán ${catsNuevas.length} categoría${catsNuevas.length===1?'':'s'} nueva${catsNuevas.length===1?'':'s'}: ${catsNuevas.map(c=>esc(c)).join(', ')}.`:''}
+    </div>
+    <button onclick="cfConfirmarImportacion()" style="width:100%;margin-top:10px;padding:11px;background:#1A2332;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;" ${nuevas.length?'':'disabled'}>Confirmar e importar ${nuevas.length}</button>`;
+}
+
+function cfConfirmarImportacion(){
+  if(!_cfImportRows||!_cfImportRows.length){showToast('Nada que importar','error');return;}
+  let añadidas=0;
+  _cfImportRows.forEach(r=>{
+    if(STATE.vehiculos.some(v=>v.mat===r.mat)) return; // ya existe, se omite
+    _asegurarCategoria(r.cat);
+    STATE.vehiculos.push({mat:r.mat,cat:r.cat,estado:'Disponible',limpio:false});
+    añadidas++;
+  });
+  saveState();
+  _guardarConfigEmpresa();
+  cfRenderCategorias();
+  const prev=document.getElementById('cf-preview'); if(prev) prev.innerHTML='';
+  const paste=document.getElementById('cf-paste'); if(paste) paste.value='';
+  const fileInp=document.getElementById('cf-file'); if(fileInp) fileInp.value='';
+  _cfImportRows=[];
+  showToast(añadidas+' matrícula'+(añadidas===1?'':'s')+' importada'+(añadidas===1?'':'s')+' ✓','success');
+  try{renderFlota();}catch(e){}
+}
+
 function eliminarMatricula(mat){
   const v=STATE.vehiculos.find(x=>x.mat===mat);
   if(!v){showToast('Matrícula no encontrada','error');return;}
@@ -4735,7 +5034,7 @@ function eliminarMatricula(mat){
     db.ref(EMP('estado/vehiculos')).set(STATE.vehiculos)
       .catch(e=>console.error('Error eliminando de Firebase:',e));
   }
-  try{localStorage.setItem('flotaapp_backup',JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
+  try{if(_empresaId)localStorage.setItem('flotaapp_backup_'+_empresaId,JSON.stringify({vehiculos:STATE.vehiculos,eventos:STATE.eventos}));}catch(e){}
   closeModal();
   showToast('Matrícula '+mat+' eliminada','success');
   renderFlota();
