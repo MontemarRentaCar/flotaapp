@@ -2802,7 +2802,7 @@ function _cargarConfigEmpresa(){
     try{if(document.getElementById('flota-list')&&document.getElementById('screen-flota').classList.contains('active'))renderFlota();}catch(e){}
     if(!_configCargadaAlMenosUnaVez){
       _configCargadaAlMenosUnaVez=true;
-      if(!CATS.length) setTimeout(()=>abrirConfigFlota(true),400);
+      if(!CATS.length&&!_gestorEnModoApp&&!_esGestor) setTimeout(()=>abrirConfigFlota(true),400);
     }
   });
 }
