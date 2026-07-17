@@ -1192,8 +1192,9 @@ input::placeholder, textarea::placeholder {
     <div class="pg-grid">
       <div class="pg-panel">
         <h3>Invitar a un empleado</h3>
-        <p style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;margin:-4px 0 12px;">Genera un código y compártelo con la persona que quieras dar de alta. Lo introduce una vez al iniciar sesión.</p>
-        <button class="fo-btn" onclick="_generarInvitacionEmpresa()">Generar código de invitación</button>
+        <p style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;margin:-4px 0 12px;">Lo más rápido: créale la cuenta tú mismo con un email y contraseña. Si ya tiene cuenta de antes, mejor pásale un código.</p>
+        <button class="fo-btn" onclick="_crearEmpleadoDirecto(_empresaId)">Crear cuenta de empleado</button>
+        <button class="fo-btn secondary" style="margin-top:8px;" onclick="_generarInvitacionEmpresa()">Generar código de invitación</button>
         <div id="pe-invite-msg" class="pg-msg"></div>
       </div>
       <div class="pg-panel">
@@ -1864,6 +1865,9 @@ function _resolverAcceso(user){
   db.ref('admins/'+user.uid).once('value').then(snapAdmin=>{
     if(snapAdmin.val()===true){
       _esGestor=true;_empresaId=null;
+      let empGuardada=null;
+      try{empGuardada=localStorage.getItem('flotaapp_gestor_modo_app');}catch(e){}
+      if(empGuardada){ _entrarComoEmpresa(empGuardada); return; }
       _mostrarPantallaEspecial('panel-gestor');
       _cargarPanelGestor();
       return;
@@ -2024,6 +2028,7 @@ function _generarInvitacion(empId,cb,esMigracion){
 
 function doLogout(){
   try{localStorage.removeItem('flotaapp_cred');}catch(e){}
+  try{localStorage.removeItem('flotaapp_gestor_modo_app');}catch(e){}
   if(typeof _heartbeatTimer!=='undefined'&&_heartbeatTimer){clearInterval(_heartbeatTimer);_heartbeatTimer=null;}
   _empresaId=null;_esGestor=false;_esJefeEmpresa=false;_gestorEnModoApp=false;
   _resetPermisos();
@@ -2064,6 +2069,7 @@ function _cargarPanelGestor(){
       if(estado==='bloqueado') acciones.push('<button class="pg-mini-btn" onclick="_cambiarEstadoEmpresa(\''+id+'\',\'demo\')">Desbloquear (demo)</button>');
       acciones.push('<button class="pg-mini-btn" onclick="_generarInvitacion(\''+id+'\')">Invitar a alguien más</button>');
       acciones.push('<button class="pg-mini-btn" onclick="_entrarComoEmpresa(\''+id+'\')">Usar la app</button>');
+      acciones.push('<button class="pg-mini-btn" onclick="_crearEmpleadoDirecto(\''+id+'\')">+ Empleado</button>');
       return '<div class="pg-empresa-card">'
         +'<div class="pg-empresa-top">'
           +'<div><div class="pg-empresa-nombre">'+_escHtml(nombre)+'</div>'
@@ -2083,6 +2089,7 @@ function _cargarPanelGestor(){
 function _entrarComoEmpresa(empId){
   _empresaId=empId;
   _gestorEnModoApp=true;
+  try{localStorage.setItem('flotaapp_gestor_modo_app',empId);}catch(e){}
   _resetPermisos();
   _ocultarPantallasEspeciales();
   const overlay=document.getElementById('login-overlay');
@@ -2108,6 +2115,7 @@ function _mostrarBotonVolverPanel(texto,onClick){
 function _volverAPanelGestor(){
   _gestorEnModoApp=false;
   _empresaId=null;
+  try{localStorage.removeItem('flotaapp_gestor_modo_app');}catch(e){}
   const btn=document.getElementById('volver-panel-btn');
   if(btn) btn.style.display='none';
   _mostrarPantallaEspecial('panel-gestor');
@@ -2135,6 +2143,37 @@ function _volverAPanelEmpresa(){
 function _generarInvitacionEmpresa(){
   if(!_empresaId) return;
   _generarInvitacion(_empresaId);
+}
+// Crea directamente una cuenta de empleado (email+contraseña) ya vinculada a la
+// empresa — más rápido que el código de invitación, no requiere que la persona
+// ya tenga cuenta previa. Usa el mismo truco de app secundaria que _crearCliente.
+function _crearEmpleadoDirecto(empId){
+  const email=(prompt('Email del empleado:')||'').trim();
+  if(!email) return;
+  const pass=(prompt('Contraseña inicial para '+email+' (mínimo 6 caracteres):')||'').trim();
+  if(!pass||pass.length<6){alert('La contraseña debe tener al menos 6 caracteres. No se ha creado la cuenta.');return;}
+  let secondaryApp;
+  try{
+    secondaryApp=firebase.apps.find(a=>a.name==='Secondary')||firebase.initializeApp(firebase.app().options,'Secondary');
+  }catch(e){alert('Error iniciando el proceso: '+e.message);return;}
+  secondaryApp.auth().createUserWithEmailAndPassword(email,pass)
+    .then(cred=>{
+      const uid=cred.user.uid;
+      return secondaryApp.auth().signOut().then(()=>uid);
+    })
+    .then(uid=>{
+      const updates={};
+      updates['usuarios/'+uid+'/empresaId']=empId;
+      updates['empresas/'+empId+'/empleados/'+uid]={email:email,vinculado:Date.now(),bloqueado:false};
+      return db.ref().update(updates);
+    })
+    .then(()=>{
+      alert('Cuenta creada ✓\n\nDale a tu empleado estos datos para entrar directamente:\n\nEmail: '+email+'\nContraseña: '+pass);
+    })
+    .catch(e=>{
+      if(e.code==='auth/email-already-in-use') alert('Ese email ya tiene una cuenta. Si es una persona nueva, usa un email distinto, o usa "Generar código de invitación" para que vincule su cuenta ya existente.');
+      else alert('Error: '+e.message);
+    });
 }
 function _cargarPanelEmpresa(){
   if(!db||!_empresaId) return;
