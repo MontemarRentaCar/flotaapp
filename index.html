@@ -2841,8 +2841,31 @@ function _cargarConfigEmpresa(){
     try{if(document.getElementById('flota-list')&&document.getElementById('screen-flota').classList.contains('active'))renderFlota();}catch(e){}
     if(!_configCargadaAlMenosUnaVez){
       _configCargadaAlMenosUnaVez=true;
-      if(!CATS.length&&!_gestorEnModoApp&&!_esGestor) setTimeout(()=>abrirConfigFlota(true),400);
+      if(!CATS.length) _resolverConfigVacia();
     }
+  });
+}
+// Si una empresa se queda sin categorías, distinguimos dos casos:
+// 1) Es la empresa migrada de Montemar (se creó antes de que existiera este
+//    sistema) → restauramos sus categorías/hoteles originales sola, sin preguntar.
+// 2) Es un cliente nuevo de verdad → le abrimos el asistente de configuración.
+function _resolverConfigVacia(){
+  if(!db||!_empresaId) return;
+  db.ref('empresas/'+_empresaId).once('value').then(snap=>{
+    const emp=snap.val()||{};
+    const esMontemar=emp.info&&emp.info.nombre==='Mi empresa (datos existentes)';
+    const tieneVehiculos=emp.estado&&emp.estado.vehiculos&&emp.estado.vehiculos.length>0;
+    if(esMontemar&&tieneVehiculos){
+      db.ref('empresas/'+_empresaId+'/config').set({
+        categorias:CATS_DEFAULT_MONTEMAR,
+        catInfo:CAT_INFO_DEFAULT_MONTEMAR,
+        hoteles:HOTELES_DEFAULT_MONTEMAR
+      }).then(()=>{
+        showToast('Categorías y hoteles restaurados ✓','success');
+      }).catch(e=>console.error('Error restaurando config:',e));
+      return;
+    }
+    if(!_gestorEnModoApp&&!_esGestor) setTimeout(()=>abrirConfigFlota(true),400);
   });
 }
 
@@ -4129,6 +4152,15 @@ function cancelarEvento(id){
 }
 function editarEvento(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  if(!CATS.length){
+    if(!_configCargadaAlMenosUnaVez){
+      showToast('Cargando datos… un momento','info');
+      setTimeout(()=>editarEvento(id),600);
+    }else{
+      showToast('Todavía no tienes categorías configuradas (⚙ Flota en Historial)','error');
+    }
+    return;
+  }
   marcarEditando();
   const fp=ev.fechaIni.split('T')[0];
   const _hpp=ev.fechaIni.split('T')[1];const hp=(_hpp&&_hpp.slice(0,5))||'10:00';
