@@ -1555,6 +1555,7 @@ let auth=null;
 // El Gestor (tú) ve todas las empresas desde un panel aparte.
 let _empresaId=null;   // empresa del usuario logueado (null si es Gestor)
 let _esGestor=false;
+let _gestorEnModoApp=false; // true cuando el Gestor está usando la app de un cliente concreto
 function EMP(sub){ return 'empresas/'+_empresaId+(sub?('/'+sub):''); }
 
 // ── SEGURIDAD: escape HTML para prevenir XSS en datos del usuario ──────────
@@ -1928,7 +1929,8 @@ function _generarInvitacion(empId,cb,esMigracion){
 function doLogout(){
   try{localStorage.removeItem('flotaapp_cred');}catch(e){}
   if(typeof _heartbeatTimer!=='undefined'&&_heartbeatTimer){clearInterval(_heartbeatTimer);_heartbeatTimer=null;}
-  _empresaId=null;_esGestor=false;
+  _empresaId=null;_esGestor=false;_gestorEnModoApp=false;
+  const volverBtn=document.getElementById('volver-gestor-btn'); if(volverBtn) volverBtn.style.display='none';
   const banner=document.getElementById('demo-banner'); if(banner) banner.classList.remove('visible');
   _ocultarPantallasEspeciales();
   if(auth) auth.signOut();
@@ -1964,6 +1966,7 @@ function _cargarPanelGestor(){
       if(estado!=='bloqueado') acciones.push('<button class="pg-mini-btn" onclick="_cambiarEstadoEmpresa(\''+id+'\',\'bloqueado\')">Bloquear</button>');
       if(estado==='bloqueado') acciones.push('<button class="pg-mini-btn" onclick="_cambiarEstadoEmpresa(\''+id+'\',\'demo\')">Desbloquear (demo)</button>');
       acciones.push('<button class="pg-mini-btn" onclick="_generarInvitacion(\''+id+'\')">Invitar a alguien más</button>');
+      acciones.push('<button class="pg-mini-btn" onclick="_entrarComoEmpresa(\''+id+'\')">Usar la app</button>');
       return '<div class="pg-empresa-card">'
         +'<div class="pg-empresa-top">'
           +'<div><div class="pg-empresa-nombre">'+_escHtml(nombre)+'</div>'
@@ -1974,6 +1977,38 @@ function _cargarPanelGestor(){
       +'</div>';
     }).join('');
   });
+}
+
+// El Gestor puede entrar a usar la app de cualquier cliente (por ejemplo, la suya
+// propia) sin necesitar una segunda cuenta, y volver al Panel Gestor cuando quiera.
+function _entrarComoEmpresa(empId){
+  _empresaId=empId;
+  _gestorEnModoApp=true;
+  _ocultarPantallasEspeciales();
+  const overlay=document.getElementById('login-overlay');
+  if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
+  _arrancarFirebase();
+  _mostrarBotonVolverGestor();
+}
+function _mostrarBotonVolverGestor(){
+  let btn=document.getElementById('volver-gestor-btn');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='volver-gestor-btn';
+    btn.textContent='← Panel Gestor';
+    btn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9600;background:#3D4A5C;color:#fff;border:none;border-radius:22px;padding:11px 18px;font-weight:800;font-size:12px;letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:inherit;';
+    btn.onclick=_volverAPanelGestor;
+    document.body.appendChild(btn);
+  }
+  btn.style.display='block';
+}
+function _volverAPanelGestor(){
+  _gestorEnModoApp=false;
+  _empresaId=null;
+  const btn=document.getElementById('volver-gestor-btn');
+  if(btn) btn.style.display='none';
+  _mostrarPantallaEspecial('panel-gestor');
+  _cargarPanelGestor();
 }
 
 function _cambiarEstadoEmpresa(empId,nuevoEstado){
