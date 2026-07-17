@@ -1590,6 +1590,42 @@ let auth=null;
 let _empresaId=null;   // empresa del usuario logueado (null si es Gestor)
 let _esGestor=false;
 let _esJefeEmpresa=false; // true cuando el usuario es el administrador de SU empresa (no el Gestor general)
+
+// ── PERMISOS POR EMPLEADO ────────────────────────────────────────────────────
+// rol: 'consultar' (solo ver) | 'reservar' (día a día: reservas, limpio/sucio) | 'total' (además configura flota/hoteles)
+// pantallas: qué pestañas ve en la barra de navegación
+let MIS_PERMISOS={rol:'total',pantallas:{nuevo:true,agenda:true,flota:true,historial:true}};
+function _tienePermiso(nivel){
+  if(nivel==='reservar') return MIS_PERMISOS.rol==='reservar'||MIS_PERMISOS.rol==='total';
+  if(nivel==='total') return MIS_PERMISOS.rol==='total';
+  return true;
+}
+function _requierePermiso(nivel){
+  if(_tienePermiso(nivel)) return true;
+  showToast('No tienes permiso para hacer esto. Pídeselo a tu jefe.','error');
+  return false;
+}
+function _resetPermisos(){
+  MIS_PERMISOS={rol:'total',pantallas:{nuevo:true,agenda:true,flota:true,historial:true}};
+}
+function _aplicarPermisosUI(){
+  const orden=['nuevo','agenda','flota','historial'];
+  const botones=document.querySelectorAll('#navbar .nav-btn');
+  botones.forEach((btn,i)=>{
+    const id=orden[i];
+    btn.style.display=(MIS_PERMISOS.pantallas[id]===false)?'none':'';
+  });
+  const activa=document.querySelector('.screen.active');
+  const activaId=activa?activa.id.replace('screen-',''):null;
+  if(activaId&&MIS_PERMISOS.pantallas[activaId]===false){
+    const primeraPermitida=orden.find(id=>MIS_PERMISOS.pantallas[id]!==false);
+    if(primeraPermitida){
+      const idx=orden.indexOf(primeraPermitida);
+      const btn=document.querySelectorAll('#navbar .nav-btn')[idx];
+      if(btn) goTo(primeraPermitida,btn);
+    }
+  }
+}
 let _gestorEnModoApp=false; // true cuando el Gestor está usando la app de un cliente concreto
 function EMP(sub){ return 'empresas/'+_empresaId+(sub?('/'+sub):''); }
 
@@ -1875,8 +1911,13 @@ function _resolverAcceso(user){
             return;
           }
           _mostrarAvisoDemoSiAplica(info);
+          MIS_PERMISOS={
+            rol:miFicha.rol||'total',
+            pantallas:Object.assign({nuevo:true,agenda:true,flota:true,historial:true},miFicha.pantallas||{})
+          };
           _cargarConfigEmpresa();
           _arrancarFirebase();
+          setTimeout(_aplicarPermisosUI,300);
         });
       });
     });
@@ -1985,6 +2026,7 @@ function doLogout(){
   try{localStorage.removeItem('flotaapp_cred');}catch(e){}
   if(typeof _heartbeatTimer!=='undefined'&&_heartbeatTimer){clearInterval(_heartbeatTimer);_heartbeatTimer=null;}
   _empresaId=null;_esGestor=false;_esJefeEmpresa=false;_gestorEnModoApp=false;
+  _resetPermisos();
   const volverBtn=document.getElementById('volver-panel-btn'); if(volverBtn) volverBtn.style.display='none';
   const banner=document.getElementById('demo-banner'); if(banner) banner.classList.remove('visible');
   _ocultarPantallasEspeciales();
@@ -2031,6 +2073,8 @@ function _cargarPanelGestor(){
         +'<div class="pg-empresa-actions">'+acciones.join('')+'</div>'
       +'</div>';
     }).join('');
+  },err=>{
+    cont.innerHTML='<div class="pg-empty" style="color:#ff9d95;">Error cargando clientes: '+err.message+'</div>';
   });
 }
 
@@ -2039,12 +2083,14 @@ function _cargarPanelGestor(){
 function _entrarComoEmpresa(empId){
   _empresaId=empId;
   _gestorEnModoApp=true;
+  _resetPermisos();
   _ocultarPantallasEspeciales();
   const overlay=document.getElementById('login-overlay');
   if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
   _configCargadaAlMenosUnaVez=false;
   _cargarConfigEmpresa();
   _arrancarFirebase();
+  setTimeout(_aplicarPermisosUI,300);
   _mostrarBotonVolverPanel('← Panel Gestor',_volverAPanelGestor);
 }
 function _mostrarBotonVolverPanel(texto,onClick){
@@ -2070,12 +2116,14 @@ function _volverAPanelGestor(){
 
 // ── PANEL EMPRESA: el jefe de un cliente gestiona a SU propio equipo ───────
 function _usarLaAppComoJefe(){
+  _resetPermisos();
   _ocultarPantallasEspeciales();
   const overlay=document.getElementById('login-overlay');
   if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
   _configCargadaAlMenosUnaVez=false;
   _cargarConfigEmpresa();
   _arrancarFirebase();
+  setTimeout(_aplicarPermisosUI,300);
   _mostrarBotonVolverPanel('← Mi empresa',_volverAPanelEmpresa);
 }
 function _volverAPanelEmpresa(){
@@ -2100,18 +2148,53 @@ function _cargarPanelEmpresa(){
     cont.innerHTML=uids.map(uid=>{
       const e=data[uid];
       const bloqueado=e.bloqueado===true;
+      const rol=e.rol||'total';
+      const pant=Object.assign({nuevo:true,agenda:true,flota:true,historial:true},e.pantallas||{});
+      const chk=(campo,label)=>'<label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:rgba(255,255,255,.75);cursor:pointer;"><input type="checkbox" id="pe-pant-'+uid+'-'+campo+'" '+(pant[campo]?'checked':'')+' style="width:14px;height:14px;">'+label+'</label>';
       return '<div class="pg-empresa-card">'
         +'<div class="pg-empresa-top">'
           +'<div><div class="pg-empresa-nombre">'+esc(e.email||'(sin email)')+'</div></div>'
           +'<span class="pg-badge '+(bloqueado?'bloqueado':'activo')+'">'+(bloqueado?'Bloqueado':'Activo')+'</span>'
         +'</div>'
+        +'<div style="margin-top:10px;">'
+          +'<label style="display:block;font-size:10px;font-weight:800;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;">Nivel de acceso</label>'
+          +'<select id="pe-rol-'+uid+'" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:12.5px;font-weight:700;outline:none;">'
+            +'<option value="consultar"'+(rol==='consultar'?' selected':'')+'>Solo consultar</option>'
+            +'<option value="reservar"'+(rol==='reservar'?' selected':'')+'>Reservar y gestionar</option>'
+            +'<option value="total"'+(rol==='total'?' selected':'')+'>Acceso total (+config. flota)</option>'
+          +'</select>'
+        +'</div>'
+        +'<div style="margin-top:10px;">'
+          +'<label style="display:block;font-size:10px;font-weight:800;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Pantallas visibles</label>'
+          +'<div style="display:flex;gap:12px;flex-wrap:wrap;">'
+            +chk('nuevo','Reserva')+chk('agenda','Agenda')+chk('flota','Flota')+chk('historial','Historial')
+          +'</div>'
+        +'</div>'
         +'<div class="pg-empresa-actions">'
+          +'<button class="pg-mini-btn" onclick="_guardarPermisosEmpleado(\''+uid+'\')">Guardar permisos</button>'
           +'<button class="pg-mini-btn" onclick="_toggleBloqueoEmpleado(\''+uid+'\','+(!bloqueado)+')">'+(bloqueado?'Desbloquear':'Bloquear')+'</button>'
           +'<button class="pg-mini-btn" onclick="_eliminarEmpleado(\''+uid+'\')">Eliminar del equipo</button>'
         +'</div>'
       +'</div>';
     }).join('');
+  },err=>{
+    const cont=document.getElementById('pe-lista-empleados');
+    if(cont) cont.innerHTML='<div class="pg-empty" style="color:#ff9d95;">Error cargando el equipo: '+err.message+'</div>';
   });
+}
+function _guardarPermisosEmpleado(uid){
+  if(!_empresaId) return;
+  const rolEl=document.getElementById('pe-rol-'+uid);
+  const rol=rolEl?rolEl.value:'total';
+  const pantallas={
+    nuevo:!!document.getElementById('pe-pant-'+uid+'-nuevo').checked,
+    agenda:!!document.getElementById('pe-pant-'+uid+'-agenda').checked,
+    flota:!!document.getElementById('pe-pant-'+uid+'-flota').checked,
+    historial:!!document.getElementById('pe-pant-'+uid+'-historial').checked
+  };
+  db.ref('empresas/'+_empresaId+'/empleados/'+uid).update({rol,pantallas})
+    .then(()=>alert('Permisos actualizados ✓'))
+    .catch(e=>alert('Error: '+e.message));
 }
 function _toggleBloqueoEmpleado(uid,valor){
   if(!_empresaId) return;
@@ -3119,6 +3202,7 @@ function actualizarLugarHotel(){
 }
 
 function crearEvento(){
+  if(!_requierePermiso('reservar'))return;
   const fecha=document.getElementById('disp-fecha').value;
   const hora=getHoraSeleccionada();
   const dias=parseInt(document.getElementById('disp-dias').value);
@@ -3672,6 +3756,7 @@ function openEvento(id){
 }
 
 function completarEntrega(id){
+  if(!_requierePermiso('reservar'))return;
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const quien=ev.matricula||('Cat. '+catLabel(ev.cat));
   const lugar=ev.lugar?' · '+ev.lugar:'';
@@ -3848,6 +3933,7 @@ function guardarEdicionITV(id){
 }
 
 function completarRecogida(id){
+  if(!_requierePermiso('reservar'))return;
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const esITV=ev.tipoEvento==='ITV';
   ev.estado='Cerrado'; // devuelto, coche libre
@@ -3959,6 +4045,7 @@ document.addEventListener('click',function(e){
 });
 
 function asignarMatricula(id,mat){
+  if(!_requierePermiso('reservar'))return;
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   // Liberar matrícula anterior si había
   if(ev.matricula&&ev.matricula!==mat){
@@ -3975,6 +4062,7 @@ function asignarMatricula(id,mat){
   openEvento(id);
 }
 function eliminarEvento(id){
+  if(!_requierePermiso('reservar'))return;
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));
   if(!ev)return;
   const quien=ev.matricula||('Cat. '+catLabel(ev.cat));
@@ -3986,6 +4074,7 @@ function eliminarEvento(id){
   saveState();closeModal();renderAgenda();showToast('Reserva eliminada','success');
 }
 function cancelarEvento(id){
+  if(!_requierePermiso('reservar'))return;
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));
   if(!ev)return;
   const quien=ev.matricula||('Cat. '+catLabel(ev.cat));
@@ -4058,6 +4147,7 @@ function actualizarMatriculasEdit(id){
 }
 
 function guardarEdicion(id){
+  if(!_requierePermiso('reservar'))return;
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const f=document.getElementById('edit-fecha').value;
   const h=document.getElementById('edit-hora').value;
@@ -4416,6 +4506,7 @@ function guardarUbicacionVeh(mat){
   saveState();showToast('Ubicación guardada','success');renderFlota();
 }
 function toggleLimpioVeh(mat){
+  if(!_requierePermiso('reservar'))return;
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
   v.limpio=!v.limpio;
   saveState();
@@ -4424,6 +4515,7 @@ function toggleLimpioVeh(mat){
   renderFlota();
 }
 function toggleLimpioFlota(mat){
+  if(!_requierePermiso('reservar'))return;
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
   v.limpio=!v.limpio;
   saveState();
@@ -4431,6 +4523,7 @@ function toggleLimpioFlota(mat){
   renderFlota();
 }
 function toggleLimpioAgenda(mat){
+  if(!_requierePermiso('reservar'))return;
   const v=STATE.vehiculos.find(x=>x.mat===mat);if(!v)return;
   v.limpio=!v.limpio;
   saveState();
@@ -4551,6 +4644,7 @@ function guardarNuevaITV(mat){
 }
 // ── ALTA / BAJA DE MATRÍCULAS ─────────────────────────────────────────────
 function abrirNuevaMatricula(){
+  if(!_requierePermiso('total'))return;
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:15px;font-family:\'Inter\',sans-serif;outline:none;width:100%;box-sizing:border-box;';
   const selectStyle=inputStyle;
   document.getElementById('modal-content').innerHTML=`
@@ -4805,6 +4899,7 @@ function exportarInforme(){
 
 // ── GESTIÓN DE HOTELES ────────────────────────────────────────────────────────
 function abrirGestionHoteles(){
+  if(!_requierePermiso('total'))return;
   const mc=document.getElementById('modal-content');
   mc.innerHTML=`
     <div class="modal-title">🏨 Gestión de Hoteles</div>
@@ -4880,6 +4975,7 @@ function ghEliminarHotel(idx){
 
 // ── CONFIGURACIÓN DE FLOTA: categorías propias + importar matrículas ───────
 function abrirConfigFlota(esOnboarding){
+  if(!_requierePermiso('total'))return;
   const mc=document.getElementById('modal-content');
   mc.innerHTML=`
     <div class="modal-title">⚙ Configurar mi flota</div>
@@ -5017,6 +5113,7 @@ function cfConfirmarImportacion(){
 }
 
 function eliminarMatricula(mat){
+  if(!_requierePermiso('total'))return;
   const v=STATE.vehiculos.find(x=>x.mat===mat);
   if(!v){showToast('Matrícula no encontrada','error');return;}
   const evsActivos=STATE.eventos.filter(e=>e.matricula===mat&&(e.estado==='Pendiente'||e.estado==='Activo'));
