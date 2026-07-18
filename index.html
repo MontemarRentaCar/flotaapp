@@ -1953,11 +1953,27 @@ function _vincularConCodigo(){
     const inv=snap.val();
     if(!inv||!inv.empresaId){setMsg('Código no válido.','err');return;}
     if(inv.exp&&Date.now()>inv.exp){setMsg('Este código ha caducado.','err');return;}
+    // Paso 1: crear la ficha del empleado. SIEMPRE con rol "consultar" (el más bajo) y
+    // referenciando el código usado — las reglas de Firebase exigen que ese código
+    // exista, apunte a esta misma empresa y no haya caducado, o rechazan la escritura.
+    // El jefe/Gestor puede subirle el rol después desde su panel.
     const updates={};
     updates['usuarios/'+user.uid+'/empresaId']=inv.empresaId;
-    updates['empresas/'+inv.empresaId+'/empleados/'+user.uid]={email:user.email||'',vinculado:Date.now(),bloqueado:false};
+    updates['empresas/'+inv.empresaId+'/empleados/'+user.uid]={
+      email:user.email||'',
+      vinculado:Date.now(),
+      bloqueado:false,
+      rol:'consultar',
+      codigoUsado:codigo
+    };
     db.ref().update(updates).then(()=>{
       setMsg('¡Cuenta vinculada! Entrando…','ok');
+      // Paso 2 (separado a propósito): invalidar el código para que no se pueda
+      // reutilizar. Va en una llamada aparte porque si se borrara en el mismo
+      // update de arriba, la regla del paso 1 vería el código ya borrado y
+      // rechazaría la escritura (Firebase evalúa el estado final de TODO el update
+      // a la vez).
+      db.ref('invites/'+codigo).remove().catch(e=>console.warn('No se pudo invalidar el código de invitación:',e));
       setTimeout(()=>_resolverAcceso(user),700);
     }).catch(e=>setMsg('Error: '+e.message,'err'));
   }).catch(e=>setMsg('Error: '+e.message,'err'));
