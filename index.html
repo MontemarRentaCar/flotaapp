@@ -1527,12 +1527,12 @@ const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 
 // CAT_INFO, HOTELES_CONFIG) se cargan por empresa desde Firebase más abajo.
 const CATS_DEFAULT_MONTEMAR=["1","2","3","A","AXL","MB7","MB9"];
 let CATS=[];
-function catLabel(cat){ return (CAT_INFO[cat]&&CAT_INFO[cat].label)||cat; }
+function catLabel(cat){ return esc((CAT_INFO[cat]&&CAT_INFO[cat].label)||cat); }
 function catInforme(cat){
   if(cat==='A'||cat==='AXL') return 'Automáticos';
   if(cat==='MB7'||cat==='MB9') return 'Minibus';
   const labels={'1':'Cat. A','2':'Cat. B','3':'Cat. C'};
-  return labels[cat]||('Cat. '+cat);
+  return labels[cat]||('Cat. '+esc(cat));
 }
 // ── COMISIONES HOTELES ────────────────────────────────────────────────────────
 const HOTELES_DEFAULT_MONTEMAR = [
@@ -2889,7 +2889,7 @@ function renderDispGrid(){
     else{dotClass='verde';stockTxt=libres+' disponibles';}
 
     const btnReservar=libres>0
-      ?`<button class="cat-btn-reservar" onclick="event.stopPropagation();seleccionarCategoria('${cat}')">Reservar →</button>`
+      ?`<button class="cat-btn-reservar" onclick="event.stopPropagation();seleccionarCategoria('${_jsEsc(cat)}')">Reservar →</button>`
       :'';
 
     const cochesHtml=items.sort((a,b)=>{
@@ -2899,25 +2899,25 @@ function renderDispGrid(){
       return a.mat.localeCompare(b.mat,'es',{numeric:true});
     }).map(i=>{
       const veh=STATE.vehiculos.find(v=>v.mat===i.mat);
-      const ubi=(veh&&veh.ubicacion)?`<div style="font-size:9.5px;font-weight:700;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${veh.ubicacion}</div>`:'';
+      const ubi=(veh&&veh.ubicacion)?`<div style="font-size:9.5px;font-weight:700;color:var(--accent);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(veh.ubicacion)}</div>`:'';
       const dispClass=i.disp==='reservado'?'ocupado':i.disp;
       const dispLabel=i.disp==='libre'?'Libre':i.disp==='reservado'?'Reservado':i.disp==='ocupado'?'Ocupado':'Taller';
       // Indicador de limpieza solo para coches libres
       const limpiezaBadge=(i.disp==='libre'&&veh)
         ? `<span style="display:inline-block;background:${veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${veh.limpio?'LIMPIO':'SUCIO'}</span>`
         : '';
-      return`<div class="avail-item ${dispClass} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${i.mat}')`:''}">`+
-        `<div class="avail-mat">${i.mat}</div>`+ubi+limpiezaBadge+
+      return`<div class="avail-item ${dispClass} ${i.mat===matSeleccionada?'selected':''}" onclick="${i.disp==='libre'?`seleccionarCoche('${_jsEsc(i.mat)}')`:''}">`+
+        `<div class="avail-mat">${esc(i.mat)}</div>`+ubi+limpiezaBadge+
         `<div class="avail-status">${dispLabel}</div></div>`;
     }).join('');
 
     html+=`<div class="cat-card-2">
-      <div class="cat-card-header" onclick="toggleCatGrid('${cat}')" style="background:linear-gradient(145deg,${c1} 0%,${c2} 100%);">
+      <div class="cat-card-header" onclick="toggleCatGrid('${_jsEsc(cat)}')" style="background:linear-gradient(145deg,${c1} 0%,${c2} 100%);">
         <div class="cat-card-row">
           <div class="cat-card-icon">${info.emoji}</div>
           <div class="cat-card-info">
-            <div class="cat-card-name">Cat. ${cat}</div>
-            <div class="cat-card-sub">${info.nombre}</div>
+            <div class="cat-card-name">Cat. ${esc(cat)}</div>
+            <div class="cat-card-sub">${esc(info.nombre)}</div>
             <div class="cat-card-fleet">${total} vehículos en flota</div>
           </div>
           <div class="cat-card-counter">
@@ -2972,8 +2972,8 @@ function seleccionarCategoria(cat){
   document.getElementById('nev-cat-sel').value=cat;
   const infoSel=CAT_INFO[cat]||{emoji:'<span style="font-size:18px;opacity:.7">&#9632;</span>'};
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
-    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula</span>`;
-  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span><span style="margin-left:8px;font-size:13px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula asignada</span>`;
+    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${esc(cat)}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula</span>`;
+  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${esc(cat)}</span><span style="margin-left:8px;font-size:13px;font-weight:600;color:var(--text2);">${hora?' '+hora+' ·':''} Sin matrícula asignada</span>`;
   document.getElementById('nev-lugar').value='';resetLugarTipo();
   const _ph=document.getElementById('panel-hotel-comision');if(_ph)_ph.style.display='none';
   const _hh=document.getElementById('nev-hotel-hab');if(_hh)_hh.value='';
@@ -3019,7 +3019,7 @@ function seleccionarCoche(mat){
   const _vc=STATE.vehiculos.find(v=>v.mat===mat);const cat=(_vc&&_vc.cat)||'';
   document.getElementById('nev-mat-sel').value=mat;
   document.getElementById('nev-cat-sel').value=cat;
-  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
+  document.getElementById('form-mat-label').innerHTML=`<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${esc(mat)}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${esc(cat)}</span>`;
   document.getElementById('nev-lugar').value='';resetLugarTipo();
   const _ph=document.getElementById('panel-hotel-comision');if(_ph)_ph.style.display='none';
   const _hh=document.getElementById('nev-hotel-hab');if(_hh)_hh.value='';
@@ -3113,10 +3113,10 @@ function renderHotelesBtns(){
   let html='';
   HOTELES_CONFIG.forEach(h=>{
     const comBadge=h.comision?'<span style="font-size:8px;background:#1A2332;color:#fff;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle;">%</span>':'';
-    html+=`<button type="button" class="hotel-comision-btn" data-hotel="${h.nombre}" data-comision="${h.comision}"
+    html+=`<button type="button" class="hotel-comision-btn" data-hotel="${esc(h.nombre)}" data-comision="${h.comision}"
       onclick="selectHotelComision(this)"
       style="padding:11px 8px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;transition:all .14s;text-align:center;line-height:1.4;">
-      ${h.emoji} ${h.nombre}${comBadge}
+      ${esc(h.emoji)} ${esc(h.nombre)}${comBadge}
     </button>`;
   });
   // Botón OTRO
@@ -3512,8 +3512,8 @@ function renderAgenda(){
         const bg=limpio?'#1a9e4a':'#c0392b';
         const txt=limpio?'LIMPIO':'SUCIO';
         const onclick=hayEntregaAntes
-          ?`onclick="event.stopPropagation();avisoLimpioBloqueado('${esc(ev.matricula)}')"`
-          :`onclick="event.stopPropagation();toggleLimpioAgenda('${esc(ev.matricula)}')"`;
+          ?`onclick="event.stopPropagation();avisoLimpioBloqueado('${_jsEsc(ev.matricula)}')"`
+          :`onclick="event.stopPropagation();toggleLimpioAgenda('${_jsEsc(ev.matricula)}')"`;
         return `<button ${onclick} style="background:${bg};color:#fff;font-size:13px;font-weight:900;letter-spacing:.06em;padding:4px 12px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;box-shadow:0 2px 4px rgba(0,0,0,.18);transition:transform .1s;" onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">${txt}</button>`;
       })();
       const volvBadge=(()=>{
@@ -4186,12 +4186,12 @@ function editarEvento(id){
     <div class="field"><label>Matrícula</label>
       <div id="edit-mat-container">${_matDropdownBuild('edit-mat',STATE.vehiculos.filter(v=>v.cat===ev.cat),ev.matricula)}</div>
     </div>
-    <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${ev.lugar||''}" placeholder="Hotel + hab., apto + dirección, aeropuerto + vuelo..." style="${inputStyle}"></div>
-    <div class="field"><label>Lugar de devolución <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional)</span></label><input type="text" id="edit-lugar-devol" value="${ev.lugarDevol||''}" placeholder="Si difiere del lugar de entrega..." style="${inputStyle}"></div>
-    ${ev.hotelNombre?`<div class="field"><label>Habitación (${esc(ev.hotelNombre)}) <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">— para informe comisiones</span></label><input type="text" id="edit-hotel-hab" value="${ev.hotelHab||''}" placeholder="Nº habitación" inputmode="numeric" style="${inputStyle}"></div>`:''}
-    <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${ev.info||''}" placeholder="Nombre del cliente..." style="${inputStyle}"></div>
-    <div class="field"><label>Teléfono</label><input type="tel" id="edit-tel" value="${ev.tel||''}" placeholder="612 345 678 (opcional)" inputmode="tel" style="${inputStyle}"></div>
-    <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${ev.extras||''}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
+    <div class="field"><label>Lugar de entrega</label><input type="text" id="edit-lugar" value="${esc(ev.lugar||'')}" placeholder="Hotel + hab., apto + dirección, aeropuerto + vuelo..." style="${inputStyle}"></div>
+    <div class="field"><label>Lugar de devolución <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">(opcional)</span></label><input type="text" id="edit-lugar-devol" value="${esc(ev.lugarDevol||'')}" placeholder="Si difiere del lugar de entrega..." style="${inputStyle}"></div>
+    ${ev.hotelNombre?`<div class="field"><label>Habitación (${esc(ev.hotelNombre)}) <span style="font-weight:500;color:var(--muted);text-transform:none;font-size:11px;">— para informe comisiones</span></label><input type="text" id="edit-hotel-hab" value="${esc(ev.hotelHab||'')}" placeholder="Nº habitación" inputmode="numeric" style="${inputStyle}"></div>`:''}
+    <div class="field"><label>Info cliente</label><input type="text" id="edit-info" value="${esc(ev.info||'')}" placeholder="Nombre del cliente..." style="${inputStyle}"></div>
+    <div class="field"><label>Teléfono</label><input type="tel" id="edit-tel" value="${esc(ev.tel||'')}" placeholder="612 345 678 (opcional)" inputmode="tel" style="${inputStyle}"></div>
+    <div class="field"><label>Extras</label><input type="text" id="edit-extras" value="${esc(ev.extras||'')}" placeholder="GPS, silla bebé..." style="${inputStyle}"></div>
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--accent-bg);border:1.5px solid var(--accent-lt);border-radius:10px;padding:9px 12px;margin-bottom:14px;">
       <input type="checkbox" id="edit-web" ${ev.web?'checked':''} style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
       <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text);">
@@ -4406,7 +4406,7 @@ function renderFlota(){
   const subEl=document.getElementById('flota-sub');
   if(subEl)subEl.textContent=`${STATE.vehiculos.length} vehículos · ${nLibre} libre${nLibre!==1?'s':''} · ${nAlq} en ruta`;
   const tabs=document.getElementById('flota-cat-tabs');
-  tabs.innerHTML=`<div class="cat-tab ${flotaCat==='todos'?'active':''}" onclick="setFlotaCat('todos',this)">Todos</div>`+CATS.map(c=>`<div class="cat-tab ${flotaCat===c?'active':''}" onclick="setFlotaCat('${c}',this)">Cat. ${catLabel(c)}</div>`).join('');
+  tabs.innerHTML=`<div class="cat-tab ${flotaCat==='todos'?'active':''}" onclick="setFlotaCat('todos',this)">Todos</div>`+CATS.map(c=>`<div class="cat-tab ${flotaCat===c?'active':''}" onclick="setFlotaCat('${_jsEsc(c)}',this)">Cat. ${catLabel(c)}</div>`).join('');
   renderFlotaList();
   // Refrescar panel "Coches aparcados" si está visible (para que los cambios se reflejen sin tener que cerrar y abrir)
   const panelUbi=document.getElementById('panel-ubicaciones');
@@ -4470,12 +4470,12 @@ function renderFlotaList(){
       // Solo mostramos el indicador limpio/sucio si el coche está disponible (no en ruta/taller/LT)
       const showLimpieza=(v.estado==='Disponible'||v.estado==='Reservado');
       const limpiezaHtml=showLimpieza
-        ? `<button onclick="event.stopPropagation();toggleLimpioFlota('${v.mat}')" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:14px;font-weight:900;letter-spacing:.06em;padding:10px 18px;border-radius:14px;margin-right:8px;border:none;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:transform .1s;min-height:44px;" onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">${v.limpio?'LIMPIO':'SUCIO'}</button>`
+        ? `<button onclick="event.stopPropagation();toggleLimpioFlota('${_jsEsc(v.mat)}')" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:14px;font-weight:900;letter-spacing:.06em;padding:10px 18px;border-radius:14px;margin-right:8px;border:none;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:transform .1s;min-height:44px;" onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">${v.limpio?'LIMPIO':'SUCIO'}</button>`
         : '';
       const rotHtml=estado==='Disponible'
         ? (()=>{const r=_infoRotacion(v);return `<span class="mb mb-idle-${r.nivel}" style="margin-top:4px;display:inline-block;">${r.label}</span>`;})()
         : '';
-      return`<div class="veh2" onclick="openVehiculo('${v.mat}')">
+      return`<div class="veh2" onclick="openVehiculo('${_jsEsc(v.mat)}')">
         <div class="veh2-stripe" style="background:${k.stripe}"></div>
         <div class="veh2-body">
           <div><div class="veh2-mat">${esc(v.mat)}</div><div class="veh2-cat">Cat. ${esc(v.cat)}</div>${ubiHtml}${rotHtml}</div>
@@ -4511,7 +4511,7 @@ function openVehiculo(mat){
     <div class="modal-title">${esc(mat)}</div>
     ${proxHTML}
     <div class="modal-row"><span class="modal-key">Estado</span>
-      <select onchange="cambiarEstadoVeh('${mat}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:inherit">
+      <select onchange="cambiarEstadoVeh('${_jsEsc(mat)}',this.value)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);padding:5px 10px;font-size:13px;font-family:inherit">
         ${['Disponible','En alquiler','Taller','Alq. L/T','Averiado'].map(s=>`<option ${v.estado===s?'selected':''}>${s}</option>`).join('')}
       </select>
     </div>
@@ -4522,12 +4522,12 @@ function openVehiculo(mat){
       </div>
       <span style="display:flex;align-items:center;gap:8px;flex:1;">
         <input type="text" id="veh-ubicacion" value="${esc(v.ubicacion||'')}" placeholder="H. Bajondillo..." style="${inputStyle}">
-        <button onclick="guardarUbicacionVeh('${mat}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Guardar</button>
+        <button onclick="guardarUbicacionVeh('${_jsEsc(mat)}')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Guardar</button>
       </span>
     </div>
     <div class="modal-row">
       <span class="modal-key">Limpieza</span>
-      <button onclick="toggleLimpioVeh('${mat}')" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:900;letter-spacing:.08em;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.15);">
+      <button onclick="toggleLimpioVeh('${_jsEsc(mat)}')" style="background:${v.limpio?'#1a9e4a':'#c0392b'};color:#fff;border:none;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:900;letter-spacing:.08em;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.15);">
         ${v.limpio?'✓ LIMPIO':'✕ SUCIO'}
       </button>
     </div>
@@ -4535,9 +4535,9 @@ function openVehiculo(mat){
     ${evHTML}
     <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
-      <button class="btn btn-sm" style="background:${v.estado==='Averiado'?'#FFE8D6':'var(--amber-bg)'};color:${v.estado==='Averiado'?'#8B2500':'var(--amber)'};border:1.5px solid ${v.estado==='Averiado'?'#FFAB85':'var(--amber-lt)'};font-weight:800;" onclick="toggleAveriado('${esc(mat)}')">${v.estado==='Averiado'?'✓ Averiado — desbloquear':'⚠ Marcar averiado'}</button>
-      <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1.5px solid var(--red-lt);font-weight:800;" onclick="abrirNuevaITV('${esc(mat)}')">+ Crear ITV</button>
-      <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;" onclick="eliminarMatricula('${esc(mat)}')">Eliminar matrícula</button>
+      <button class="btn btn-sm" style="background:${v.estado==='Averiado'?'#FFE8D6':'var(--amber-bg)'};color:${v.estado==='Averiado'?'#8B2500':'var(--amber)'};border:1.5px solid ${v.estado==='Averiado'?'#FFAB85':'var(--amber-lt)'};font-weight:800;" onclick="toggleAveriado('${_jsEsc(mat)}')">${v.estado==='Averiado'?'✓ Averiado — desbloquear':'⚠ Marcar averiado'}</button>
+      <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1.5px solid var(--red-lt);font-weight:800;" onclick="abrirNuevaITV('${_jsEsc(mat)}')">+ Crear ITV</button>
+      <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;" onclick="eliminarMatricula('${_jsEsc(mat)}')">Eliminar matrícula</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -4546,7 +4546,7 @@ function renderHotelesBtnsFlota(mat){
   HOTELES_CONFIG.forEach(h=>{
     html+=`<button type="button" class="veh-hotel-btn" data-hotel="${esc(h.nombre)}" onclick="selectHotelFlota(this)"
       style="padding:9px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;text-align:center;line-height:1.4;">
-      ${h.emoji} ${esc(h.nombre)}
+      ${esc(h.emoji)} ${esc(h.nombre)}
     </button>`;
   });
   html+=`<button type="button" class="veh-hotel-btn" data-hotel="__otro__" onclick="selectHotelFlota(this)"
@@ -4669,7 +4669,7 @@ function abrirNuevaITV(mat){
       </div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <button class="btn btn-secondary btn-sm" onclick="closeModal()" style="flex:1;">Cancelar</button>
-        <button class="btn btn-sm" style="flex:1;background:var(--red);color:#fff;border:1.5px solid var(--red);font-weight:800;" onclick="guardarNuevaITV('${esc(mat)}')">Programar ITV</button>
+        <button class="btn btn-sm" style="flex:1;background:var(--red);color:#fff;border:1.5px solid var(--red);font-weight:800;" onclick="guardarNuevaITV('${_jsEsc(mat)}')">Programar ITV</button>
       </div>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
@@ -4804,7 +4804,7 @@ function abrirInformeHoteles(){
       <label>Hotel</label>
       <select id="informe-hotel" onchange="renderInforme()" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r2);font-size:15px;font-weight:600;background:var(--bg);color:var(--text);outline:none;">
         <option value="todos">Todos los hoteles</option>
-        ${getHotelesComision().map(h=>`<option value="${h}">${h}</option>`).join('')}
+        ${getHotelesComision().map(h=>`<option value="${esc(h)}">${esc(h)}</option>`).join('')}
       </select>
     </div>
     <div id="informe-resultado"></div>
@@ -4849,7 +4849,7 @@ function renderInforme(){
     totalGlobal+=totalHotel;
     html+=`<div style="margin-bottom:16px;">
       <div style="font-size:12px;font-weight:900;color:var(--text);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding:6px 10px;background:var(--bg);border-radius:8px;border-left:3px solid #1A2332;">
-        ${hotel} — ${evs.length} reserva${evs.length!==1?'s':''}
+        ${esc(hotel)} — ${evs.length} reserva${evs.length!==1?'s':''}
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead>
@@ -4869,7 +4869,7 @@ function renderInforme(){
             return `<tr style="border-top:1px solid var(--border);">
               <td style="padding:7px 6px;color:var(--muted);font-family:monospace;">${fecha}</td>
               <td style="padding:7px 6px;font-weight:700;">${catInforme(ev.cat)}</td>
-              <td style="padding:7px 6px;font-size:13px;font-weight:600;">${ev.hotelHab?'H.'+ev.hotelHab:'—'}</td>
+              <td style="padding:7px 6px;font-size:13px;font-weight:600;">${ev.hotelHab?'H.'+esc(ev.hotelHab):'—'}</td>
               <td style="padding:7px 6px;text-align:right;font-weight:600;">${ev.dias}d</td>
               <td style="padding:7px 6px;text-align:right;font-weight:900;color:#1A2332;">${com.toFixed(2)}€</td>
             </tr>`;
@@ -4877,7 +4877,7 @@ function renderInforme(){
         </tbody>
         <tfoot>
           <tr style="border-top:2px solid #1A2332;">
-            <td colspan="4" style="padding:8px 6px;font-weight:800;font-size:13px;">Total ${hotel}</td>
+            <td colspan="4" style="padding:8px 6px;font-weight:800;font-size:13px;">Total ${esc(hotel)}</td>
             <td style="padding:8px 6px;text-align:right;font-weight:900;font-size:15px;color:#1A2332;">${totalHotel.toFixed(2)}€</td>
           </tr>
         </tfoot>
@@ -4999,8 +4999,8 @@ function ghRenderLista(){
   if(!lista) return;
   lista.innerHTML=HOTELES_CONFIG.map((h,i)=>`
     <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:18px;">${h.emoji}</span>
-      <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${h.nombre}</span>
+      <span style="font-size:18px;">${esc(h.emoji)}</span>
+      <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${esc(h.nombre)}</span>
       <label style="display:flex;align-items:center;gap:5px;cursor:pointer;" title="Comisión activa">
         <input type="checkbox" ${h.comision?'checked':''} onchange="ghToggleComision(${i},this.checked)"
           style="width:15px;height:15px;accent-color:#1A2332;">
@@ -5262,7 +5262,7 @@ function renderListaUbicaciones(){
             'Averiado':{c:'#8B2500',bg:'#FFE8D6',b:'#FFAB85'},
           };
           const k=cfg[v.estado]||cfg['Disponible'];
-          return`<div onclick="openVehiculo('${v.mat}')" style="background:${k.bg};border:1.5px solid ${k.b};border-radius:8px;padding:7px 12px;cursor:pointer;">
+          return`<div onclick="openVehiculo('${_jsEsc(v.mat)}')" style="background:${k.bg};border:1.5px solid ${k.b};border-radius:8px;padding:7px 12px;cursor:pointer;">
             <div style="font-family:monospace;font-size:13px;font-weight:700;color:${k.c};">${esc(v.mat)}</div>
             <div style="font-size:10px;font-weight:700;color:${k.c};opacity:.8;">${esc(v.estado)}</div>
           </div>`;
@@ -5556,7 +5556,7 @@ function buscarDisponibilidadRapida(){
         bkg='rgba(255,255,255,.15)'; bdr='rgba(255,255,255,.3)';
         label=slot;
       }
-      return `<button onclick="seleccionarHoraCat('${cat}','${slot}')"
+      return `<button onclick="seleccionarHoraCat('${_jsEsc(cat)}','${slot}')"
         title="${franjaLlena?'Franja operativa llena (2 entregas) — puedes reservar igualmente':''}"
         style="padding:10px 16px;border-radius:12px;
         border:1.5px solid ${bdr};background:${bkg};
@@ -5628,13 +5628,13 @@ function buscarDisponibilidadRapida(){
       </div>` : '';
 
     html += `<div style="border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 4px 12px var(--shadow-md);">
-      <div onclick="toggleCatRapida('${cat}')" style="background:linear-gradient(135deg,${c1},${c2});padding:14px 18px;cursor:pointer;user-select:none;">
+      <div onclick="toggleCatRapida('${_jsEsc(cat)}')" style="background:linear-gradient(135deg,${c1},${c2});padding:14px 18px;cursor:pointer;user-select:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:32px;">${info.emoji}</span>
             <div>
-              <div style="font-size:17px;font-weight:900;color:#fff;">Cat. ${cat}</div>
-              <div style="font-size:11px;color:rgba(255,255,255,.75);">${info.nombre}</div>
+              <div style="font-size:17px;font-weight:900;color:#fff;">Cat. ${esc(cat)}</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.75);">${esc(info.nombre)}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -5724,13 +5724,13 @@ function seleccionarHoraCat(cat, hora){
 
   // Resumen visible
   document.getElementById('resumen-sel').innerHTML=
-    `<span style="display:inline-flex;align-items:center;gap:8px;">${info.emoji}<span>Cat. ${cat} · ${hora} · ${dias} día${dias>1?'s':''}</span></span>`;
+    `<span style="display:inline-flex;align-items:center;gap:8px;">${info.emoji}<span>Cat. ${esc(cat)} · ${hora} · ${dias} día${dias>1?'s':''}</span></span>`;
   document.getElementById('resumen-mat').textContent='';
 
   document.getElementById('disp-resultado').style.display='block';
   document.getElementById('form-nuevo').style.display='block';marcarEditando();
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
-    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${cat}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora} · Sin matrícula</span>`;
+    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:12px;background:var(--blue-frost);padding:2px 8px;border-radius:4px;border:1px solid var(--blue-wash);">Cat. ${esc(cat)}</span> <span style="font-size:12px;font-weight:600;color:var(--text2);">${hora} · Sin matrícula</span>`;
   document.getElementById('avail-grid-form').style.display='none';
 
   setTimeout(()=>document.getElementById('form-nuevo').scrollIntoView({behavior:'smooth',block:'start'}),100);
@@ -5771,7 +5771,7 @@ function abrirGridMatriculas(){
 
   gridDiv.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
     ${items.map(i=>{
-      const ubi=i.veh.ubicacion?`<div style="font-size:10px;color:var(--accent);font-weight:700;">${i.veh.ubicacion}</div>`:'';
+      const ubi=i.veh.ubicacion?`<div style="font-size:10px;color:var(--accent);font-weight:700;">${esc(i.veh.ubicacion)}</div>`:'';
       const dispClass=i.disp==='libre'?'libre':'ocupado';
       const dispLabel=i.disp==='libre'?'Libre':i.disp==='taller'?'Taller':'Ocupado';
       const matSel=document.getElementById('nev-mat-sel').value;
@@ -5779,8 +5779,8 @@ function abrirGridMatriculas(){
         ?`<div style="display:inline-block;background:${i.veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${i.veh.limpio?'LIMPIO':'SUCIO'}</div>`
         :'';
       return`<div class="avail-item ${dispClass} ${i.mat===matSel?'selected':''}"
-        onclick="${i.disp==='libre'?`seleccionarCocheForm('${i.mat}','${cat}')`:''}" >
-        <div class="avail-mat">${i.mat}</div>${ubi}${limpieza}
+        onclick="${i.disp==='libre'?`seleccionarCocheForm('${_jsEsc(i.mat)}','${_jsEsc(cat)}')`:''}" >
+        <div class="avail-mat">${esc(i.mat)}</div>${ubi}${limpieza}
         <div class="avail-status">${dispLabel}</div>
       </div>`;
     }).join('')}
@@ -5792,7 +5792,7 @@ function seleccionarCocheForm(mat, cat){
   document.getElementById('nev-mat-sel').value=mat;
   document.getElementById('nev-cat-sel').value=cat;
   const labelEl=document.getElementById('form-mat-label-text');if(labelEl)labelEl.innerHTML=
-    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${mat}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${cat}</span>`;
+    `<span style="font-family:monospace;font-weight:900;color:#3D4A5C;font-size:13px;background:var(--blue-frost);padding:2px 10px;border-radius:4px;border:1px solid var(--blue-wash);">${esc(mat)}</span><span style="margin-left:8px;font-size:12px;font-weight:700;color:var(--muted);">Cat. ${esc(cat)}</span>`;
   // Cerrar el grid — matrícula elegida, paso al formulario
   const gf=document.getElementById('avail-grid-form');
   if(gf) gf.style.display='none';
