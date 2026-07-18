@@ -1022,6 +1022,7 @@ input::placeholder, textarea::placeholder {
       <span id="fb-dot" title="Firebase" style="width:7px;height:7px;border-radius:50%;background:var(--muted2);display:inline-block;margin-right:2px;transition:background .5s;" title="Sin conexión"></span>
 
       <button class="theme-btn" onclick="toggleViewMode()" id="view-btn" title="Cambiar vista: Móvil / PC"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+      <button class="theme-btn" onclick="cerrarSesion()" id="logout-btn" title="Cerrar sesión"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
     </div>
   </div>
 
@@ -1267,12 +1268,29 @@ input::placeholder, textarea::placeholder {
         </div>
       </div>
       <div style="margin-bottom:14px;">
-        <input type="text" id="hist-search" placeholder=" Buscar por matrícula, lugar..." oninput="renderHistorial()"
-          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="hist-search" placeholder=" Buscar por matrícula, lugar..." oninput="renderHistorial()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderHistorial();}"
+            style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;">
+          <button onclick="renderHistorial()" style="background:var(--accent);border:none;border-radius:12px;padding:0 16px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;">🔍</button>
+        </div>
+        <select id="hist-mes-select" onchange="renderHistorial()"
+          style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-family:inherit;font-size:13px;outline:none;">
+          <option value="">Todos los meses</option>
+        </select>
       </div>
       <div id="historial-list"></div>
     </div>
 
+    <div class="screen" id="screen-equipo">
+      <div class="page-header-bar" style="padding:20px 22px;">
+        <div class="page-title" style="font-size:26px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;">EQUIPO</div>
+        <div class="page-sub" style="margin-top:5px;color:rgba(255,255,255,.55);font-size:12px;">Empleados con acceso a la app</div>
+      </div>
+      <div style="padding:16px 4px;">
+        <button onclick="abrirInvitarEmpleado()" style="width:100%;padding:13px;background:#1A2332;color:#fff;border:none;border-radius:var(--r2);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:16px;">+ Invitar empleado</button>
+        <div id="equipo-lista" style="font-size:13px;color:var(--muted);">Cargando…</div>
+      </div>
+    </div>
 
   </div>
 
@@ -1293,6 +1311,10 @@ input::placeholder, textarea::placeholder {
     <button class="nav-btn" onclick="goTo('historial',this)">
       <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.36 2.64L3 8"/><polyline points="3 3 3 8 8 8"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="15" y2="15"/></svg>
       HISTORIAL
+    </button>
+    <button class="nav-btn" onclick="goTo('equipo',this)" id="nav-equipo">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      EQUIPO
     </button>
   </nav>
 </div>
@@ -1327,14 +1349,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
 const VEHICULOS_BASE=[["0717 LND","2"],["0790 MZY","2"],["0803 MZY","2"],["0804 MZY","2"],["0805 MZY","2"],["1649 KWN","2"],["1726 KWN","2"],["2311 KKH","MB7"],["2845 KWD","MB9"],["3383 NBH","1"],["3384 NBH","1"],["3386 NBH","1"],["4536 LRS","AXL"],["4583 MNL","1"],["4584 MNL","1"],["4613 MNL","1"],["4669 MNL","1"],["5597 JSC","3"],["5598 JSC","3"],["5932 NHX","AXL"],["6139 MGC","3"],["6141 MGC","3"],["6852 KZD","1"],["6839 NCF","A"],["6946 KVZ","2"],["7202 LTR","A"],["7210 LTR","2"],["7297 LRZ","3"],["7522 LYB","2"],["7526 LYB","2"],["7935 LYB","2"],["8081 KXZ","1"],["8082 KXZ","1"],["8084 KXZ","1"],["8104 JNT","1"],["8105 JNT","1"],["8106 JNT","1"],["8107 JNT","1"],["8267 MMW","MB9"],["8590 LXY","2"],["8878 KCG","1"],["9156 MHG","2"],["9259 JZV","A"],["9393 MHG","2"],["9573 NJG","AXL"],["9600 JGB","A"],["9808 KCG","1"],["9899 LSN","2"],["9903 LSN","2"],["9909 LSN","2"],["9924 LMV","2"],["9943 JTZ","MB7"]];
 const CATS=["1","2","3","A","AXL","MB7","MB9"];
 function catLabel(cat){ return (CAT_INFO[cat]&&CAT_INFO[cat].label)||cat; }
-function diasSinAlquilarLabel(mat){
+function diasSinAlquilarNum(mat){
   const ult=STATE.eventos
     .filter(e=>e.matricula===mat&&e.estado==='Cerrado'&&e.tipoEvento!=='ITV')
     .sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni))[0];
-  if(!ult) return '';
+  if(!ult) return null;
   const{fin}=eventoRange(ult);
-  const d=Math.floor((Date.now()-fin.getTime())/86400000);
-  return ` · ${d}D SIN ALQ`;
+  return Math.floor((Date.now()-fin.getTime())/86400000);
+}
+function diasSinAlquilarLabel(mat){
+  const d=diasSinAlquilarNum(mat);
+  return d===null?'':` · ${d}D SIN ALQ`;
 }
 function catInforme(cat){
   if(cat==='A'||cat==='AXL') return 'Automáticos';
@@ -1385,6 +1410,7 @@ const TARIFAS=[{cat:"1",nombre:"Fiat Panda or similar",precios:[50,95,135,170,20
 // ── FIREBASE ──────────────────────────────────────────────────────────────
 const VEHICULOS_INIT=VEHICULOS_BASE.map(([mat,cat])=>({mat,cat,estado:"Disponible",limpio:false}));
 let STATE={vehiculos:VEHICULOS_INIT,eventos:[],theme:localStorage.getItem('flotaapp_theme')||'light'};
+let CURRENT_ROLE='gerente'; // 'gerente' | 'empleado' — se resuelve tras login contra Firebase
 let firebaseReady=false;
 let db=null;
 let auth=null;
@@ -1516,6 +1542,167 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
 });
 
+// ── LOGOUT ─────────────────────────────────────────────────────────────────
+function cerrarSesion(){
+  if(!confirm('¿Cerrar sesión?')) return;
+  // Borrar credenciales guardadas para que no vuelva a entrar solo (auto-login iOS)
+  try{
+    localStorage.removeItem('flotaapp_cred');
+  }catch(e){}
+  const finalizar=()=>{
+    const overlay=document.getElementById('login-overlay');
+    if(overlay){overlay.classList.remove('hidden');overlay.classList.add('visible');}
+    const pass=document.getElementById('login-pass');if(pass)pass.value='';
+    const err=document.getElementById('login-error');if(err)err.textContent='';
+    const btn=document.getElementById('login-btn');if(btn){btn.disabled=false;btn.textContent='Entrar';}
+  };
+  if(typeof auth!=='undefined'&&auth){
+    auth.signOut().then(finalizar).catch(finalizar);
+  }else{
+    finalizar();
+  }
+}
+
+// ── ROLES Y EMPLEADOS ────────────────────────────────────────────────────
+function _aplicarRolUI(){
+  const esGerente=CURRENT_ROLE==='gerente';
+  const navEmp=document.getElementById('nav-equipo');
+  if(navEmp) navEmp.style.display=esGerente?'flex':'none';
+  const activa=document.querySelector('.screen.active');
+  if(esGerente&&activa&&activa.id==='screen-equipo') renderEquipoLista();
+}
+
+function _cargarRolUsuario(uid){
+  if(!db){CURRENT_ROLE='gerente';_aplicarRolUI();return;}
+  db.ref('usuarios/'+uid).once('value').then(snap=>{
+    if(snap.exists()){
+      CURRENT_ROLE=snap.val().rol==='empleado'?'empleado':'gerente';
+      _aplicarRolUI();
+      return;
+    }
+    // Usuario sin registro de rol: si es el primer usuario de la app, se convierte en gerente (bootstrap)
+    db.ref('usuarios').once('value').then(snapAll=>{
+      if(!snapAll.exists()){
+        CURRENT_ROLE='gerente';
+        db.ref('usuarios/'+uid).set({
+          email:(auth.currentUser&&auth.currentUser.email)||'',
+          nombre:_miNombre||'',
+          rol:'gerente',
+          fecha:new Date().toISOString()
+        });
+      }else{
+        CURRENT_ROLE='empleado'; // por seguridad, si no está registrado no es gerente
+      }
+      _aplicarRolUI();
+    }).catch(()=>{CURRENT_ROLE='gerente';_aplicarRolUI();});
+  }).catch(()=>{CURRENT_ROLE='gerente';_aplicarRolUI();});
+}
+
+let _secondaryApp=null;
+function _getSecondaryAuth(){
+  if(!_secondaryApp){
+    _secondaryApp=firebase.apps.find(a=>a.name==='Secondary')||firebase.initializeApp(window.FIREBASE_CONFIG,'Secondary');
+  }
+  return _secondaryApp.auth();
+}
+
+function _generarPass(){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let p='';for(let i=0;i<8;i++)p+=chars[Math.floor(Math.random()*chars.length)];
+  return p;
+}
+
+function renderEquipoLista(){
+  if(CURRENT_ROLE!=='gerente') return;
+  const el=document.getElementById('equipo-lista');
+  if(!el||!db) return;
+  db.ref('usuarios').once('value').then(snap=>{
+    const data=snap.val()||{};
+    const empleados=Object.values(data).filter(u=>u.rol==='empleado');
+    if(!empleados.length){el.innerHTML='<div class="empty"><p>Todavía no hay empleados invitados.</p></div>';return;}
+    el.innerHTML=empleados.map(u=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">
+        <span style="width:32px;height:32px;border-radius:50%;background:var(--blue-frost);color:#2C3A4A;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;">${(u.nombre||u.email||'?').charAt(0).toUpperCase()}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${esc(u.nombre||'—')}</div>
+          <div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(u.email||'')}</div>
+        </div>
+        <span style="font-size:10px;font-weight:800;color:var(--accent);background:var(--accent-bg);padding:3px 9px;border-radius:8px;letter-spacing:.04em;">EMPLEADO</span>
+      </div>`).join('');
+  }).catch(()=>{el.innerHTML='<div class="empty"><p>No se pudo cargar la lista.</p></div>';});
+}
+
+function abrirInvitarEmpleado(){
+  if(CURRENT_ROLE!=='gerente'){showToast('Solo el gerente puede invitar empleados','error');return;}
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`
+    <div class="modal-title">+ Invitar empleado</div>
+    <input type="text" id="emp-nombre" placeholder="Nombre" style="width:100%;margin-bottom:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2);font-size:13px;font-weight:600;color:var(--text);background:var(--bg);outline:none;">
+    <input type="email" id="emp-email" placeholder="Email del empleado" style="width:100%;margin-bottom:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2);font-size:13px;font-weight:600;color:var(--text);background:var(--bg);outline:none;">
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="text" id="emp-pass" value="${_generarPass()}" style="flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r2);font-size:13px;font-weight:700;font-family:monospace;color:var(--text);background:var(--bg);outline:none;">
+      <button onclick="document.getElementById('emp-pass').value=_generarPass();" title="Generar otra" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:0 12px;cursor:pointer;">🔄</button>
+    </div>
+    <div id="emp-error" style="color:var(--red);font-size:12px;font-weight:700;margin-bottom:8px;"></div>
+    <button id="emp-crear-btn" onclick="crearEmpleado()" style="width:100%;padding:12px;background:#1A2332;color:#fff;border:none;border-radius:var(--r2);font-size:14px;font-weight:800;cursor:pointer;">+ Crear e invitar</button>
+    <button class="btn btn-secondary" style="width:100%;margin-top:10px;" onclick="closeModal()">Cancelar</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function crearEmpleado(){
+  const nombre=(document.getElementById('emp-nombre').value||'').trim();
+  const email=(document.getElementById('emp-email').value||'').trim();
+  const pass=(document.getElementById('emp-pass').value||'').trim();
+  const err=document.getElementById('emp-error');
+  const btn=document.getElementById('emp-crear-btn');
+  err.textContent='';
+  if(!email||!pass||pass.length<6){err.textContent='Email y contraseña (mín. 6 caracteres) son obligatorios.';return;}
+  if(!db||typeof firebase==='undefined'){err.textContent='Sin conexión a Firebase.';return;}
+  btn.disabled=true;btn.textContent='Creando…';
+  const gerenteEmail=(auth.currentUser&&auth.currentUser.email)||'';
+  const sAuth=_getSecondaryAuth();
+  sAuth.createUserWithEmailAndPassword(email,pass).then(cred=>{
+    const uid=cred.user.uid;
+    return db.ref('usuarios/'+uid).set({
+      email,nombre:nombre||email,rol:'empleado',creadoPor:gerenteEmail,fecha:new Date().toISOString()
+    }).then(()=>sAuth.signOut());
+  }).then(()=>{
+    btn.disabled=false;btn.textContent='+ Crear e invitar';
+    showToast('Empleado creado ✓','success');
+    renderEquipoLista();
+    mostrarInvitacionGenerada(nombre,email,pass);
+  }).catch(e=>{
+    btn.disabled=false;btn.textContent='+ Crear e invitar';
+    const msg={
+      'auth/email-already-in-use':'Ese email ya tiene una cuenta.',
+      'auth/weak-password':'La contraseña es demasiado débil.',
+      'auth/invalid-email':'El email no es válido.'
+    };
+    err.textContent=msg[e.code]||('Error: '+e.code);
+  });
+}
+
+function mostrarInvitacionGenerada(nombre,email,pass){
+  const asunto=encodeURIComponent('Acceso a FlotaApp');
+  const cuerpo=encodeURIComponent(
+    `Hola ${nombre||''},\n\nYa tienes acceso a FlotaApp.\n\nEmail: ${email}\nContraseña: ${pass}\n\nEntra desde el enlace habitual e inicia sesión con estos datos.`
+  );
+  const mailto=`mailto:${email}?subject=${asunto}&body=${cuerpo}`;
+  window._ultimaInvitacionTexto=`Email: ${email}\nContraseña: ${pass}`;
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`
+    <div class="modal-title">✅ Empleado creado</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Comparte estos datos de acceso con ${esc(nombre||email)}:</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;font-family:monospace;font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;white-space:pre-line;">${window._ultimaInvitacionTexto}</div>
+    <a href="${mailto}" style="display:block;text-align:center;width:100%;padding:12px;background:#1A2332;color:#fff;border-radius:var(--r2);font-size:14px;font-weight:800;text-decoration:none;margin-bottom:8px;">✉️ Enviar por email</a>
+    <button onclick="copiarInvitacion()" style="width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--r2);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;">📋 Copiar datos</button>
+    <button class="btn btn-secondary" style="width:100%;" onclick="closeModal()">Cerrar</button>`;
+}
+function copiarInvitacion(){
+  if(!window._ultimaInvitacionTexto) return;
+  navigator.clipboard.writeText(window._ultimaInvitacionTexto).then(()=>showToast('Copiado ✓','success')).catch(()=>showToast('No se pudo copiar','error'));
+}
+
 // Intentar cargar backup local inmediatamente
 try{
   const backup=localStorage.getItem('flotaapp_backup');
@@ -1524,7 +1711,7 @@ try{
 
 // Conectar Firebase con Auth + timeout
 try{
-  firebase.initializeApp({
+  const FIREBASE_CONFIG={
     apiKey: "AIzaSyAU97M-_dLZRGUX7AxUTEJURwnITT7UgEg",
     authDomain: "flotaapp-7451b.firebaseapp.com",
     databaseURL: "https://flotaapp-7451b-default-rtdb.europe-west1.firebasedatabase.app",
@@ -1532,7 +1719,9 @@ try{
     storageBucket: "flotaapp-7451b.firebasestorage.app",
     messagingSenderId: "504611917234",
     appId: "1:504611917234:web:df36f118dd86d5509228ab"
-  });
+  };
+  window.FIREBASE_CONFIG=FIREBASE_CONFIG;
+  firebase.initializeApp(FIREBASE_CONFIG);
   db=firebase.database();
   auth=firebase.auth();
 
@@ -1544,6 +1733,7 @@ try{
     if(user){
       // Sesion activa: overlay ya estaba invisible, arrancar directo
       if(overlay){overlay.classList.remove('visible');overlay.classList.add('hidden');}
+      _cargarRolUsuario(user.uid);
       // Guardar email para facilitar re-login en iOS
       try{localStorage.setItem('flotaapp_last_email',user.email||'');}catch(e){}
       _arrancarFirebase();
@@ -1850,6 +2040,7 @@ function goTo(id,btn){
   if(id==='agenda') renderAgenda();
   if(id==='flota')  renderFlota();
   if(id==='historial')renderHistorial();
+  if(id==='equipo') renderEquipoLista();
   if(id==='nuevo')  _updateReservaBadge();
 }
 
@@ -2931,7 +3122,7 @@ function openEvento(id){
   const cochesDisponibles=STATE.vehiculos.filter(v=>{
     if(v.cat!==ev.cat&&ev.cat!=='SIN CAT') return false;
     if(v.mat===ev.matricula) return true; // el coche actual siempre disponible
-    if(v.estado==='Taller'||v.estado==='Alq. L/T'||v.estado==='Averiado') return false;
+    if(v.estado==='Taller'||v.estado==='Alq. L/T'||v.estado==='Averiado'||v.estado==='En alquiler') return false;
     // Usar motor central excluyendo el propio evento
     return !STATE.eventos.some(e2=>{
       if(String(e2.id)===String(ev.id)) return false;
@@ -2940,20 +3131,44 @@ function openEvento(id){
       const{ini:e2i,buf:e2b}=eventoRange(e2);
       return e2i<sF&&e2b>sI;
     });
-  }).sort((a,b)=>a.mat.localeCompare(b.mat,'es',{numeric:true}));
+  }).sort((a,b)=>{
+    const va=diasSinAlquilarNum(a.mat); const vb=diasSinAlquilarNum(b.mat);
+    const na=va===null?Infinity:va; const nb=vb===null?Infinity:vb;
+    if(na!==nb) return nb-na; // más días sin alquilar primero
+    return a.mat.localeCompare(b.mat,'es',{numeric:true});
+  });
 
-  const matOpts=`<option value="">— Sin asignar —</option>`+
-    cochesDisponibles.map(v=>{
-      const indicador=v.limpio?'✓ L':'✕ S';
-      const ubi=v.ubicacion?' · '+v.ubicacion:'';
-      const dsa=v.estado==='Disponible'?diasSinAlquilarLabel(v.mat):'';
-      return `<option value="${v.mat}" ${ev.matricula===v.mat?'selected':''}>${v.mat} · ${indicador}${ubi}${dsa}</option>`;
-    }).join('');
+  function diasBadge(mat){
+    const d=diasSinAlquilarNum(mat);
+    if(d===null) return `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:#EAF7EC;color:#1a9e4a;">NUEVO</span>`;
+    const bg=d>=7?'#FBE2E0':d>=4?'#FDF1D2':'#E7F7EA';
+    const col=d>=7?'#c0302a':d>=4?'#9c6f0e':'#1a9e4a';
+    return `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:${bg};color:${col};white-space:nowrap;">${d} DsinMov</span>`;
+  }
+  function matRowHtml(v,sel){
+    return `<div class="mat-dd-row" onclick="asignarMatricula('${id}','${v.mat}')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
+      <span style="font-family:monospace;font-weight:800;font-size:12px;background:#2C3A4A;color:#fff;padding:2px 8px;border-radius:6px;">${v.mat}</span>
+      <span style="font-weight:900;font-size:11px;color:${v.limpio?'#1a9e4a':'#c0302a'};min-width:12px;">${v.limpio?'L':'S'}</span>
+      ${diasBadge(v.mat)}
+    </div>`;
+  }
+  const matRows=`<div class="mat-dd-row" onclick="asignarMatricula('${id}','')" style="padding:7px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
+    cochesDisponibles.map(v=>matRowHtml(v,v.mat===ev.matricula)).join('');
+
+  const vSel=cochesDisponibles.find(v=>v.mat===ev.matricula);
+  const btnLabel=vSel
+    ? `<span style="font-family:monospace;font-weight:800;font-size:12px;background:#2C3A4A;color:#fff;padding:2px 8px;border-radius:6px;">${vSel.mat}</span><span style="font-weight:900;font-size:11px;color:${vSel.limpio?'#1a9e4a':'#c0302a'};">${vSel.limpio?'L':'S'}</span>${diasBadge(vSel.mat)}`
+    : `<span style="font-size:12px;font-weight:700;color:var(--muted);">— Sin asignar —</span>`;
 
   const matHTML=`<div class="modal-row"><span class="modal-key">Matrícula</span>
-    <select onchange="asignarMatricula('${id}',this.value)" style="background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);padding:7px 12px;font-size:13px;font-family:monospace;font-weight:700;max-width:210px;cursor:pointer;">
-      ${matOpts}
-    </select></div>`;
+    <div style="position:relative;max-width:210px;">
+      <button onclick="const l=document.getElementById('mat-dd-${id}');l.style.display=l.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;width:100%;">
+        ${btnLabel}<span style="margin-left:auto;color:var(--muted);font-size:10px;">▾</span>
+      </button>
+      <div id="mat-dd-${id}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:190px;max-height:260px;overflow-y:auto;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:60;">
+        ${matRows}
+      </div>
+    </div></div>`;
   // ── Origen: mostrar lugar de entrega o WEB ──────────────────────────────
   let origenHTML;
   if(ev.web){
@@ -3696,7 +3911,7 @@ function openVehiculo(mat){
       <button class="btn btn-secondary btn-sm" onclick="closeModal()">Cerrar</button>
       <button class="btn btn-sm" style="background:${v.estado==='Averiado'?'#FFE8D6':'var(--amber-bg)'};color:${v.estado==='Averiado'?'#8B2500':'var(--amber)'};border:1.5px solid ${v.estado==='Averiado'?'#FFAB85':'var(--amber-lt)'};font-weight:800;" onclick="toggleAveriado('${esc(mat)}')">${v.estado==='Averiado'?'✓ Averiado — desbloquear':'⚠ Marcar averiado'}</button>
       <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1.5px solid var(--red-lt);font-weight:800;" onclick="abrirNuevaITV('${esc(mat)}')">+ Crear ITV</button>
-      <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;" onclick="eliminarMatricula('${esc(mat)}')">Eliminar matrícula</button>
+      <button class="btn btn-sm" style="background:var(--red-bg,#ffebee);color:var(--red,#c62828);border:1.5px solid var(--red-lt,#ef9a9a);font-weight:700;display:${CURRENT_ROLE==='gerente'?'inline-block':'none'};" onclick="eliminarMatricula('${esc(mat)}')">Eliminar matrícula</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -4180,20 +4395,22 @@ function abrirGestionHoteles(){
 function ghRenderLista(){
   const lista=document.getElementById('gh-lista');
   if(!lista) return;
+  const esGerente=CURRENT_ROLE==='gerente';
   lista.innerHTML=HOTELES_CONFIG.map((h,i)=>`
     <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
       <span style="font-size:18px;">${h.emoji}</span>
       <span style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${h.nombre}</span>
-      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;" title="Comisión activa">
-        <input type="checkbox" ${h.comision?'checked':''} onchange="ghToggleComision(${i},this.checked)"
+      <label style="display:flex;align-items:center;gap:5px;cursor:${esGerente?'pointer':'default'};" title="Comisión activa">
+        <input type="checkbox" ${h.comision?'checked':''} ${esGerente?'':'disabled'} onchange="ghToggleComision(${i},this.checked)"
           style="width:15px;height:15px;accent-color:#1A2332;">
         <span style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;">%</span>
       </label>
-      <button onclick="ghEliminarHotel(${i})" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-lt);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer;">✕</button>
+      ${esGerente?`<button onclick="ghEliminarHotel(${i})" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red-lt);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:800;cursor:pointer;">✕</button>`:''}
     </div>`).join('');
 }
 
 function ghToggleComision(idx, val){
+  if(CURRENT_ROLE!=='gerente'){showToast('Solo el gerente puede modificar comisiones','error');return;}
   HOTELES_CONFIG[idx].comision=val;
   saveHotelesConfig();
   showToast(HOTELES_CONFIG[idx].nombre+': comisión '+(val?'activada ✓':'desactivada'),'info');
@@ -4220,6 +4437,7 @@ function ghAñadirHotel(){
 }
 
 function ghEliminarHotel(idx){
+  if(CURRENT_ROLE!=='gerente'){showToast('Solo el gerente puede eliminar hoteles','error');return;}
   const h=HOTELES_CONFIG[idx];
   HOTELES_CONFIG.splice(idx,1);
   saveHotelesConfig();
@@ -4228,6 +4446,7 @@ function ghEliminarHotel(idx){
 }
 
 function eliminarMatricula(mat){
+  if(CURRENT_ROLE!=='gerente'){showToast('Solo el gerente puede eliminar matrículas','error');return;}
   const v=STATE.vehiculos.find(x=>x.mat===mat);
   if(!v){showToast('Matrícula no encontrada','error');return;}
   const evsActivos=STATE.eventos.filter(e=>e.matricula===mat&&(e.estado==='Pendiente'||e.estado==='Activo'));
@@ -5085,18 +5304,47 @@ function toggleHistorialMes(id){
 function renderHistorial(){
   const list=document.getElementById('historial-list');if(!list)return;
   const _hs=document.getElementById('hist-search');const q=((_hs&&_hs.value)||'').toLowerCase().trim();
+  const qNoSp=q.replace(/\s+/g,'');
   // Solo reservas completadas: Cerrado y NO ITV. Las canceladas e ITV no se listan.
   const cerradosAll=[...STATE.eventos]
     .filter(e=>e.estado==='Cerrado'&&e.tipoEvento!=='ITV')
     .sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni));
-  const cerrados=q?cerradosAll.filter(e=>
-    (e.matricula||'').toLowerCase().includes(q)||
-    (e.lugar||'').toLowerCase().includes(q)||
-    (e.lugarDevol||'').toLowerCase().includes(q)||
-    (e.info||'').toLowerCase().includes(q)||
-    (e.tel||'').toLowerCase().includes(q)||
-    (e.cat||'').toLowerCase().includes(q)
-  ):cerradosAll;
+  // ── Selector de mes dinámico: solo con meses que tienen reservas ───────
+  const mesesMap={};
+  cerradosAll.forEach(e=>{
+    const d=parseFechaLocal(e.fechaIni);
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(!mesesMap[key]){
+      const lbl=d.toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+      mesesMap[key]=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+    }
+  });
+  const mesesKeys=Object.keys(mesesMap).sort().reverse();
+  const selMes=document.getElementById('hist-mes-select');
+  if(selMes){
+    const prevVal=selMes.value;
+    selMes.innerHTML='<option value="">Todos los meses</option>'+
+      mesesKeys.map(k=>`<option value="${k}" ${k===prevVal?'selected':''}>${mesesMap[k]}</option>`).join('');
+  }
+  const mesFiltro=selMes?selMes.value:'';
+
+  const cerrados=cerradosAll.filter(e=>{
+    if(q){
+      const ok=(e.matricula||'').toLowerCase().replace(/\s+/g,'').includes(qNoSp)||
+        (e.lugar||'').toLowerCase().includes(q)||
+        (e.lugarDevol||'').toLowerCase().includes(q)||
+        (e.info||'').toLowerCase().includes(q)||
+        (e.tel||'').toLowerCase().includes(q)||
+        (e.cat||'').toLowerCase().includes(q);
+      if(!ok) return false;
+    }
+    if(mesFiltro){
+      const d=parseFechaLocal(e.fechaIni);
+      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      if(key!==mesFiltro) return false;
+    }
+    return true;
+  });
   const subEl=document.getElementById('hist-sub');
   if(subEl)subEl.textContent=`${cerradosAll.length} reservas completadas`;
   // ── Resumen año + mes ─────────────────────────────────────────
