@@ -1322,6 +1322,7 @@ input::placeholder, textarea::placeholder {
 <div id="modal-overlay" onclick="closeModal(event)">
   <div id="modal"><div class="modal-handle"></div><div id="modal-content"></div></div>
 </div>
+<div id="global-mat-dd" style="display:none;position:fixed;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99999;"></div>
 <div id="toast"></div>
 
 <script>
@@ -3148,7 +3149,7 @@ function openEvento(id){
   }
   function matRowHtml(v,sel){
     const ubi=v.ubicacion?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px;padding-left:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${esc(v.ubicacion)}</div>`:'';
-    return `<div class="mat-dd-row" onclick="asignarMatricula('${id}','${v.mat}')" style="padding:8px 12px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
+    return `<div class="mat-dd-row" onclick="document.getElementById('global-mat-dd').style.display='none';asignarMatricula('${id}','${v.mat}')" style="padding:8px 12px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-family:monospace;font-weight:800;font-size:12px;background:#2C3A4A;color:#fff;padding:2px 8px;border-radius:6px;flex-shrink:0;">${v.mat}</span>
         <span style="font-weight:900;font-size:11px;color:${v.limpio?'#1a9e4a':'#c0302a'};flex-shrink:0;">${v.limpio?'L':'S'}</span>
@@ -3156,8 +3157,10 @@ function openEvento(id){
       </div>${ubi}
     </div>`;
   }
-  const matRows=`<div class="mat-dd-row" onclick="asignarMatricula('${id}','')" style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
+  const matRows=`<div class="mat-dd-row" onclick="document.getElementById('global-mat-dd').style.display='none';asignarMatricula('${id}','')" style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
     cochesDisponibles.map(v=>matRowHtml(v,v.mat===ev.matricula)).join('');
+  window._matDDRows=window._matDDRows||{};
+  window._matDDRows[id]=matRows;
 
   const vSel=cochesDisponibles.find(v=>v.mat===ev.matricula);
   const btnLabel=vSel
@@ -3169,9 +3172,6 @@ function openEvento(id){
       <button id="mat-dd-btn-${id}" onclick="toggleMatDD('${id}')" style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;width:100%;">
         ${btnLabel}<span style="margin-left:auto;color:var(--muted);font-size:10px;">▾</span>
       </button>
-      <div id="mat-dd-${id}" style="display:none;position:fixed;overflow-y:auto;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:600;">
-        ${matRows}
-      </div>
     </div></div>`;
   // ── Origen: mostrar lugar de entrega o WEB ──────────────────────────────
   let origenHTML;
@@ -3491,14 +3491,15 @@ function deshacerRecogida(id){
 // Mantener compatibilidad por si acaso
 function completarEvento(id){completarRecogida(id);}
 
-// ── Desplegable de matrícula: posicionado dentro del viewport (fix mobile) ──
+// ── Desplegable de matrícula: contenedor global fuera del scroll del modal (fix iOS/mobile) ──
 function toggleMatDD(id){
-  const dd=document.getElementById('mat-dd-'+id);
+  const dd=document.getElementById('global-mat-dd');
   const btn=document.getElementById('mat-dd-btn-'+id);
   if(!dd||!btn) return;
-  // Cerrar cualquier otro desplegable abierto (solo paneles <div>, no los botones)
-  document.querySelectorAll('div[id^="mat-dd-"]').forEach(el=>{if(el!==dd)el.style.display='none';});
-  if(dd.style.display==='block'){dd.style.display='none';return;}
+  const yaAbiertoParaEste=dd.style.display==='block'&&dd.dataset.forId===id;
+  if(yaAbiertoParaEste){dd.style.display='none';dd.dataset.forId='';return;}
+  dd.innerHTML=(window._matDDRows&&window._matDDRows[id])||'';
+  dd.dataset.forId=id;
   const r=btn.getBoundingClientRect();
   const margin=16;
   const vw=window.innerWidth, vh=window.innerHeight;
@@ -3513,11 +3514,13 @@ function toggleMatDD(id){
   dd.style.display='block';
 }
 document.addEventListener('click',e=>{
-  if(e.target.closest('[id^="mat-dd-btn-"]')||e.target.closest('div[id^="mat-dd-"]')) return;
-  document.querySelectorAll('div[id^="mat-dd-"]').forEach(el=>{el.style.display='none';});
+  if(e.target.closest('[id^="mat-dd-btn-"]')||e.target.closest('#global-mat-dd')) return;
+  const dd=document.getElementById('global-mat-dd');
+  if(dd){dd.style.display='none';dd.dataset.forId='';}
 });
 document.addEventListener('scroll',()=>{
-  document.querySelectorAll('div[id^="mat-dd-"]').forEach(el=>{el.style.display='none';});
+  const dd=document.getElementById('global-mat-dd');
+  if(dd){dd.style.display='none';dd.dataset.forId='';}
 },true);
 
 function asignarMatricula(id,mat){
@@ -5580,7 +5583,7 @@ function calcularPrecio(){
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
-function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay')){document.getElementById('modal-overlay').classList.remove('open');dejarEditando();}}
+function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay')){document.getElementById('modal-overlay').classList.remove('open');dejarEditando();const _gdd=document.getElementById('global-mat-dd');if(_gdd){_gdd.style.display='none';_gdd.dataset.forId='';}}}
 let _tt;
 function showToast(msg,type='info'){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(_tt);_tt=setTimeout(()=>t.className='',2500);}
 
