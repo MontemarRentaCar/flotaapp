@@ -3481,7 +3481,12 @@ function deshacerRecogida(id){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
     if(v) v.estado='En alquiler'; // el coche vuelve a estar en ruta, no disponible
   }
-  saveState();closeModal();renderAgenda();showToast('Recogida deshecha — coche pendiente de recoger','info');
+  saveState();closeModal();
+  // Llevar a Agenda > Recogidas, que es donde vuelve a aparecer esta reserva
+  goTo('agenda',document.querySelectorAll('.nav-btn')[1]);
+  setAgendaTab('recogidas');
+  if(typeof renderHistorial==='function') renderHistorial(); // por si estaba visible en Historial
+  showToast('Recogida deshecha — coche pendiente de recoger','info');
 }
 // Mantener compatibilidad por si acaso
 function completarEvento(id){completarRecogida(id);}
