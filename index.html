@@ -1322,7 +1322,8 @@ input::placeholder, textarea::placeholder {
 <div id="modal-overlay" onclick="closeModal(event)">
   <div id="modal"><div class="modal-handle"></div><div id="modal-content"></div></div>
 </div>
-<div id="global-mat-dd" style="display:none;position:fixed;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99999;"></div>
+<div id="global-mat-dd" style="display:none;position:fixed;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;background:var(--bg);border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.3);z-index:99999;"></div>
+<div id="global-mat-dd-backdrop" style="display:none;position:fixed;inset:0;background:rgba(10,25,80,.35);z-index:99998;" onclick="toggleMatDD(document.getElementById('global-mat-dd').dataset.forId)"></div>
 <div id="toast"></div>
 
 <script>
@@ -3149,7 +3150,7 @@ function openEvento(id){
   }
   function matRowHtml(v,sel){
     const ubi=v.ubicacion?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px;padding-left:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${esc(v.ubicacion)}</div>`:'';
-    return `<div class="mat-dd-row" onclick="document.getElementById('global-mat-dd').style.display='none';asignarMatricula('${id}','${v.mat}')" style="padding:8px 12px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
+    return `<div class="mat-dd-row" onclick="_cerrarMatDD();asignarMatricula('${id}','${v.mat}')" style="padding:8px 12px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-family:monospace;font-weight:800;font-size:12px;background:#2C3A4A;color:#fff;padding:2px 8px;border-radius:6px;flex-shrink:0;">${v.mat}</span>
         <span style="font-weight:900;font-size:11px;color:${v.limpio?'#1a9e4a':'#c0302a'};flex-shrink:0;">${v.limpio?'L':'S'}</span>
@@ -3157,7 +3158,7 @@ function openEvento(id){
       </div>${ubi}
     </div>`;
   }
-  const matRows=`<div class="mat-dd-row" onclick="document.getElementById('global-mat-dd').style.display='none';asignarMatricula('${id}','')" style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
+  const matRows=`<div class="mat-dd-row" onclick="_cerrarMatDD();asignarMatricula('${id}','')" style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
     cochesDisponibles.map(v=>matRowHtml(v,v.mat===ev.matricula)).join('');
   window._matDDRows=window._matDDRows||{};
   window._matDDRows[id]=matRows;
@@ -3491,36 +3492,56 @@ function deshacerRecogida(id){
 // Mantener compatibilidad por si acaso
 function completarEvento(id){completarRecogida(id);}
 
-// ── Desplegable de matrícula: contenedor global fuera del scroll del modal (fix iOS/mobile) ──
+// ── Selector de matrícula: panel grande fuera del scroll del modal (fix iOS/mobile) ──
+function _cerrarMatDD(){
+  const dd=document.getElementById('global-mat-dd');
+  const bg=document.getElementById('global-mat-dd-backdrop');
+  if(dd){dd.style.display='none';dd.dataset.forId='';}
+  if(bg) bg.style.display='none';
+}
 function toggleMatDD(id){
   const dd=document.getElementById('global-mat-dd');
-  const btn=document.getElementById('mat-dd-btn-'+id);
-  if(!dd||!btn) return;
+  const bg=document.getElementById('global-mat-dd-backdrop');
+  if(!dd) return;
   const yaAbiertoParaEste=dd.style.display==='block'&&dd.dataset.forId===id;
-  if(yaAbiertoParaEste){dd.style.display='none';dd.dataset.forId='';return;}
-  dd.innerHTML=(window._matDDRows&&window._matDDRows[id])||'';
+  if(yaAbiertoParaEste||!id){
+    dd.style.display='none';dd.dataset.forId='';
+    if(bg) bg.style.display='none';
+    return;
+  }
+  const rowsHtml=(window._matDDRows&&window._matDDRows[id])||'';
+  dd.innerHTML=`<div style="position:sticky;top:0;background:var(--bg);padding:14px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;">Elegir matrícula</span>
+      <button onclick="toggleMatDD('${id}')" style="background:var(--surface2);border:none;border-radius:8px;width:28px;height:28px;font-size:15px;font-weight:800;color:var(--muted);cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:6px 8px 10px;">${rowsHtml}</div>`;
   dd.dataset.forId=id;
-  const r=btn.getBoundingClientRect();
-  const margin=16;
+  const margin=14;
   const vw=window.innerWidth, vh=window.innerHeight;
-  const width=Math.min(300,vw-margin*2);
-  let left=r.left; if(left+width>vw-margin) left=vw-margin-width; if(left<margin) left=margin;
-  let top=r.bottom+4;
-  const maxH=Math.min(320,vh-top-margin);
-  dd.style.left=left+'px';
+  const width=Math.min(360,vw-margin*2);
+  const top=Math.max(margin,vh*0.08);
+  const bottom=Math.max(margin,vh*0.08);
+  dd.style.left=((vw-width)/2)+'px';
   dd.style.width=width+'px';
   dd.style.top=top+'px';
-  dd.style.maxHeight=maxH+'px';
+  dd.style.maxHeight=(vh-top-bottom)+'px';
   dd.style.display='block';
+  if(bg) bg.style.display='block';
 }
+
 document.addEventListener('click',e=>{
   if(e.target.closest('[id^="mat-dd-btn-"]')||e.target.closest('#global-mat-dd')) return;
   const dd=document.getElementById('global-mat-dd');
+  const bg=document.getElementById('global-mat-dd-backdrop');
   if(dd){dd.style.display='none';dd.dataset.forId='';}
+  if(bg) bg.style.display='none';
 });
-document.addEventListener('scroll',()=>{
+document.addEventListener('scroll',(e)=>{
   const dd=document.getElementById('global-mat-dd');
+  if(dd&&(e.target===dd||dd.contains(e.target))) return; // scroll interno del panel: no cerrar
+  const bg=document.getElementById('global-mat-dd-backdrop');
   if(dd){dd.style.display='none';dd.dataset.forId='';}
+  if(bg) bg.style.display='none';
 },true);
 
 function asignarMatricula(id,mat){
@@ -5583,7 +5604,7 @@ function calcularPrecio(){
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
-function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay')){document.getElementById('modal-overlay').classList.remove('open');dejarEditando();const _gdd=document.getElementById('global-mat-dd');if(_gdd){_gdd.style.display='none';_gdd.dataset.forId='';}}}
+function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay')){document.getElementById('modal-overlay').classList.remove('open');dejarEditando();const _gdd=document.getElementById('global-mat-dd');if(_gdd){_gdd.style.display='none';_gdd.dataset.forId='';}const _gbg=document.getElementById('global-mat-dd-backdrop');if(_gbg)_gbg.style.display='none';}}
 let _tt;
 function showToast(msg,type='info'){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(_tt);_tt=setTimeout(()=>t.className='',2500);}
 
