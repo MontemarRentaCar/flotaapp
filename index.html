@@ -3104,7 +3104,8 @@ function openEvento(id){
   // Lógica del botón completar según pestaña
   let completarHTML;
   if(ev.estado==='Cerrado'){
-    completarHTML=`<div class="completar-banner">Recogida completada — coche disponible</div><div class="modal-row"><span class="modal-key">Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit">Editar</button></span></div>`;
+    completarHTML=`<div class="completar-banner">Recogida completada — coche disponible</div><div class="modal-row"><span class="modal-key">Aparcado en</span><span style="display:flex;align-items:center;gap:8px;"><span class="modal-val" style="color:${ev.parking?'var(--text)':'var(--muted)'};font-style:${ev.parking?'normal':'italic'}">${ev.parking||'Sin registrar'}</span><button onclick="editarParkingEvento('${id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit">Editar</button></span></div>
+    <button class="btn btn-sm" style="background:var(--amber-bg);color:var(--amber);border:1.5px solid var(--amber-lt);font-weight:700;width:100%;margin-top:10px;" onclick="deshacerRecogida('${id}')">Deshacer recogida — volver a pendiente</button>`;
   }else if(ev.estado==='Activo'){
     completarHTML=`<div class="completar-banner" style="background:var(--accent-bg);border-color:var(--accent-lt);color:var(--accent);">Entregado — pendiente de recogida</div>
     <button class="btn btn-complete" onclick="completarRecogida('${id}')" style="margin-bottom:10px">Confirmar recogida</button>
@@ -3140,19 +3141,22 @@ function openEvento(id){
 
   function diasBadge(mat){
     const d=diasSinAlquilarNum(mat);
-    if(d===null) return `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:#EAF7EC;color:#1a9e4a;">NUEVO</span>`;
+    if(d===null) return `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:#EAF7EC;color:#1a9e4a;white-space:nowrap;">NUEVO</span>`;
     const bg=d>=7?'#FBE2E0':d>=4?'#FDF1D2':'#E7F7EA';
     const col=d>=7?'#c0302a':d>=4?'#9c6f0e':'#1a9e4a';
     return `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:${bg};color:${col};white-space:nowrap;">${d} DsinMov</span>`;
   }
   function matRowHtml(v,sel){
-    return `<div class="mat-dd-row" onclick="asignarMatricula('${id}','${v.mat}')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
-      <span style="font-family:monospace;font-weight:800;font-size:12px;background:#2C3A4A;color:#fff;padding:2px 8px;border-radius:6px;">${v.mat}</span>
-      <span style="font-weight:900;font-size:11px;color:${v.limpio?'#1a9e4a':'#c0302a'};min-width:12px;">${v.limpio?'L':'S'}</span>
-      ${diasBadge(v.mat)}
+    const ubi=v.ubicacion?`<div style="font-size:10px;font-weight:700;color:var(--accent);margin-top:2px;padding-left:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${esc(v.ubicacion)}</div>`:'';
+    return `<div class="mat-dd-row" onclick="asignarMatricula('${id}','${v.mat}')" style="padding:8px 12px;cursor:pointer;${sel?'background:var(--blue-frost);':''}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${sel?'var(--blue-frost)':'transparent'}'">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-family:monospace;font-weight:800;font-size:12px;background:#2C3A4A;color:#fff;padding:2px 8px;border-radius:6px;flex-shrink:0;">${v.mat}</span>
+        <span style="font-weight:900;font-size:11px;color:${v.limpio?'#1a9e4a':'#c0302a'};flex-shrink:0;">${v.limpio?'L':'S'}</span>
+        <span style="margin-left:auto;flex-shrink:0;">${diasBadge(v.mat)}</span>
+      </div>${ubi}
     </div>`;
   }
-  const matRows=`<div class="mat-dd-row" onclick="asignarMatricula('${id}','')" style="padding:7px 10px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
+  const matRows=`<div class="mat-dd-row" onclick="asignarMatricula('${id}','')" style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);${!ev.matricula?'background:var(--blue-frost);':''}">— Sin asignar —</div>`+
     cochesDisponibles.map(v=>matRowHtml(v,v.mat===ev.matricula)).join('');
 
   const vSel=cochesDisponibles.find(v=>v.mat===ev.matricula);
@@ -3161,11 +3165,11 @@ function openEvento(id){
     : `<span style="font-size:12px;font-weight:700;color:var(--muted);">— Sin asignar —</span>`;
 
   const matHTML=`<div class="modal-row"><span class="modal-key">Matrícula</span>
-    <div style="position:relative;max-width:210px;">
-      <button onclick="const l=document.getElementById('mat-dd-${id}');l.style.display=l.style.display==='none'?'block':'none';" style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;width:100%;">
+    <div style="position:relative;max-width:210px;width:100%;">
+      <button id="mat-dd-btn-${id}" onclick="toggleMatDD('${id}')" style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;width:100%;">
         ${btnLabel}<span style="margin-left:auto;color:var(--muted);font-size:10px;">▾</span>
       </button>
-      <div id="mat-dd-${id}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:190px;max-height:260px;overflow-y:auto;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:60;">
+      <div id="mat-dd-${id}" style="display:none;position:fixed;overflow-y:auto;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:600;">
         ${matRows}
       </div>
     </div></div>`;
@@ -3244,10 +3248,6 @@ function openEvento(id){
     </div>`:''}
     ${completarHTML}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
-      <button style="padding:12px;border-radius:14px;border:1.5px solid #a5d6a7;background:#e8f5e9;color:#1b5e20;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="abrirWhatsApp('${id}')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#1b5e20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.132.558 4.13 1.533 5.864L0 24l6.272-1.516A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.959 0-3.799-.5-5.4-1.373l-.387-.228-4.01.969.999-3.905-.251-.402A9.938 9.938 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-        WhatsApp
-      </button>
       <button style="padding:12px;border-radius:14px;border:1.5px solid var(--amber-lt);background:var(--amber-bg);color:var(--amber);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;" onclick="prolongarEvento('${id}')">
         ⏱ Prolongar
       </button>
@@ -3473,8 +3473,47 @@ function deshacerEntrega(id){
   }
   saveState();closeModal();renderAgenda();showToast('Entrega deshecha — vuelve a Pendiente','info');
 }
+function deshacerRecogida(id){
+  const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  if(!confirm('¿Deshacer la recogida? El coche volverá a estar en ruta, pendiente de recoger.')) return;
+  ev.estado='Activo'; // vuelve a "entregado, pendiente de recogida"
+  if(ev.matricula){
+    const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
+    if(v) v.estado='En alquiler'; // el coche vuelve a estar en ruta, no disponible
+  }
+  saveState();closeModal();renderAgenda();showToast('Recogida deshecha — coche pendiente de recoger','info');
+}
 // Mantener compatibilidad por si acaso
 function completarEvento(id){completarRecogida(id);}
+
+// ── Desplegable de matrícula: posicionado dentro del viewport (fix mobile) ──
+function toggleMatDD(id){
+  const dd=document.getElementById('mat-dd-'+id);
+  const btn=document.getElementById('mat-dd-btn-'+id);
+  if(!dd||!btn) return;
+  // Cerrar cualquier otro desplegable abierto (solo paneles <div>, no los botones)
+  document.querySelectorAll('div[id^="mat-dd-"]').forEach(el=>{if(el!==dd)el.style.display='none';});
+  if(dd.style.display==='block'){dd.style.display='none';return;}
+  const r=btn.getBoundingClientRect();
+  const margin=16;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const width=Math.min(300,vw-margin*2);
+  let left=r.left; if(left+width>vw-margin) left=vw-margin-width; if(left<margin) left=margin;
+  let top=r.bottom+4;
+  const maxH=Math.min(320,vh-top-margin);
+  dd.style.left=left+'px';
+  dd.style.width=width+'px';
+  dd.style.top=top+'px';
+  dd.style.maxHeight=maxH+'px';
+  dd.style.display='block';
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[id^="mat-dd-btn-"]')||e.target.closest('div[id^="mat-dd-"]')) return;
+  document.querySelectorAll('div[id^="mat-dd-"]').forEach(el=>{el.style.display='none';});
+});
+document.addEventListener('scroll',()=>{
+  document.querySelectorAll('div[id^="mat-dd-"]').forEach(el=>{el.style.display='none';});
+},true);
 
 function asignarMatricula(id,mat){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
