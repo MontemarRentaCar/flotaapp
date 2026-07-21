@@ -2073,6 +2073,17 @@ function parseFechaLocal(s){
   return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
 }
 
+// Devuelve 'YYYY-MM-DD' en hora LOCAL (evita el desfase de toISOString, que es UTC)
+function toLocalISODate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+// Devuelve 'YYYY-MM-DDTHH:MM' en hora LOCAL (para guardar como fechaIni/devolucionCustom)
+function toLocalISODateTime(d){
+  const y=d.getFullYear(), mo=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  const h=String(d.getHours()).padStart(2,'0'), mi=String(d.getMinutes()).padStart(2,'0');
+  return `${y}-${mo}-${day}T${h}:${mi}`;
+}
 function eventoRange(ev){
   const ini=parseFechaLocal(ev.fechaIni);
   let fin;
@@ -2081,7 +2092,7 @@ function eventoRange(ev){
   }else{
     // Usar setDate para respetar DST (no sumar ms)
     fin=parseFechaLocal(ev.fechaIni);
-    fin.setDate(fin.getDate()+Number(ev.dias));
+    fin.setDate(fin.getDate()+(Number(ev.dias)||1));
   }
   // buf = 30 min después de la devolución real
   const buf=new Date(fin.getTime()+30*60*1000);
@@ -2224,7 +2235,7 @@ let dispRes={};let activeCat='todos';let matSeleccionada='';
 let _horaSeleccionada=''; // hora del slot seleccionado en el flujo rápido
 
 function _updateReservaBadge(){
-  var todayStr=new Date().toISOString().split('T')[0];
+  var todayStr=toLocalISODate(new Date());
   var vivos=STATE.eventos.filter(function(e){return e.estado!=='Cerrado'&&e.estado!=='Cancelado';});
   var nEnt=vivos.filter(function(e){return e.estado==='Pendiente'&&e.fechaIni.split('T')[0]===todayStr;}).length;
   var nowD=new Date();nowD.setHours(0,0,0,0);
@@ -2811,7 +2822,7 @@ function setAgendaTab(tab){
 function _updateAgendaCounts(){
   const now=new Date(); now.setHours(0,0,0,0);
   const vivos=STATE.eventos.filter(e=>e.estado!=='Cerrado'&&e.estado!=='Cancelado');
-  const todayStr=new Date().toISOString().split('T')[0];
+  const todayStr=toLocalISODate(new Date());
   const nEnt=vivos.filter(e=>e.estado==='Pendiente'&&e.fechaIni.split('T')[0]===todayStr).length;
   // Recogidas: activos/pendientes-vencidos cuya FECHA DE FIN sea hoy
   const nRec=vivos.filter(e=>{
@@ -2819,7 +2830,7 @@ function _updateAgendaCounts(){
     const esPendVencida=e.estado==='Pendiente'&&parseFechaLocal(e.fechaIni)<now;
     if(!esActivo && !esPendVencida) return false;
     const{fin}=eventoRange(e);
-    return fin.toISOString().split('T')[0]===todayStr;
+    return toLocalISODate(fin)===todayStr;
   }).length;
   const tabEnt=document.getElementById('tab-entregas');
   const tabRec=document.getElementById('tab-recogidas');
@@ -3121,7 +3132,7 @@ function openEvento(id){
   }
   const{ini,fin,buf}=eventoRange(ev);
   const sI=ini;
-  const sF=ev.devolucionCustom?fin:new Date(ini.getTime());if(!ev.devolucionCustom)sF.setDate(sF.getDate()+Number(ev.dias));
+  const sF=fin;
   const cochesDisponibles=STATE.vehiculos.filter(v=>{
     if(v.cat!==ev.cat&&ev.cat!=='SIN CAT') return false;
     if(v.mat===ev.matricula) return true; // el coche actual siempre disponible
@@ -3714,7 +3725,7 @@ function guardarEdicion(id){
 function editarDevolucion(id){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
   const{fin}=eventoRange(ev);
-  const fechaActual=fin.toISOString().split('T')[0];
+  const fechaActual=toLocalISODate(fin);
   const horaActual=fin.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
   const inputStyle='background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;width:100%;color:var(--text);font-family:\'Inter\',sans-serif;font-size:15px;outline:none;';
   document.getElementById('modal-content').innerHTML=`
@@ -3761,7 +3772,7 @@ function guardarProlongacion(id){
   if(diasExtra<1){showToast('Introduce los días a añadir','error');return;}
   const{fin}=eventoRange(ev);
   const nuevaFin=new Date(fin);nuevaFin.setDate(nuevaFin.getDate()+diasExtra);
-  const nuevaDevISO=nuevaFin.toISOString().slice(0,16);
+  const nuevaDevISO=toLocalISODateTime(nuevaFin);
   // Validar que la prolongación no pise otra reserva del mismo coche
   if(ev.matricula){
     const conflicto=validarConflicto(ev.matricula,ev.cat,ev.fechaIni,ev.dias,ev.id,nuevaDevISO);
@@ -4843,7 +4854,7 @@ function buscarDisponibilidadRapida(){
 
     // Para cada slot: calcular cuántos coches de esta cat están libres
     // sI = fecha+hora_slot, sF = sI + dias
-    const slotsConLibres = todosSlots.map(slot => {
+    const slotsInfo = todosSlots.map(slot => {
       const sI = new Date(fecha + 'T' + slot);
       const sF = new Date(sI); sF.setDate(sF.getDate() + dias);
       const libres = libresEnCat(cat, sI, sF);
@@ -4857,7 +4868,8 @@ function buscarDisponibilidadRapida(){
       }).length;
       if(entregasEnSlot >= 2) return { slot, libres: 0, sI, sF, franjaLlena: true };
       return { slot, libres, sI, sF, franjaLlena: false };
-    }).filter(x => x.libres > 0);
+    });
+    const slotsConLibres = slotsInfo.filter(x => x.libres > 0);
 
     if(slotsConLibres.length === 0) return;
     hayCualquiera = true;
@@ -4875,16 +4887,23 @@ function buscarDisponibilidadRapida(){
       return slotsConLibres.some(({sI,sF}) => cocheDisponible(v, sI, sF));
     });
 
-    // Slot buttons
+    // Slot buttons — se muestran TODAS las franjas del día; las sin coche libre aparecen deshabilitadas
     const todosUltimo = slotsConLibres.every(x => x.libres === 1);
-    const slotsExpandido = slotsConLibres.map(({slot, libres, franjaLlena}) => {
+    const slotsExpandido = slotsInfo.map(({slot, libres, franjaLlena}) => {
+      if(libres === 0){
+        const motivo = franjaLlena ? 'Franja operativa llena (2 entregas)' : 'Sin coches libres a esta hora';
+        return `<button disabled title="${motivo}"
+          style="padding:10px 16px;border-radius:12px;
+          border:1.5px dashed rgba(255,255,255,.25);background:rgba(0,0,0,.15);
+          color:rgba(255,255,255,.35);font-size:15px;font-weight:800;cursor:not-allowed;
+          font-family:monospace;letter-spacing:.04em;line-height:1;text-decoration:line-through;">
+          ${slot}
+        </button>`;
+      }
       const ultimo = !todosUltimo && libres === 1;
       // Color y aviso según estado
       let bkg, bdr, label;
-      if(franjaLlena){
-        bkg='rgba(220,50,50,.2)'; bdr='rgba(220,50,50,.5)';
-        label=slot+' ⚠';
-      }else if(ultimo){
+      if(ultimo){
         bkg='rgba(243,156,18,.2)'; bdr='rgba(243,156,18,.6)';
         label=slot+' · último';
       }else{
@@ -4892,7 +4911,6 @@ function buscarDisponibilidadRapida(){
         label=slot;
       }
       return `<button onclick="seleccionarHoraCat('${cat}','${slot}')"
-        title="${franjaLlena?'Franja operativa llena (2 entregas) — puedes reservar igualmente':''}"
         style="padding:10px 16px;border-radius:12px;
         border:1.5px solid ${bdr};background:${bkg};
         color:#fff;font-size:15px;font-weight:800;cursor:pointer;
@@ -4918,7 +4936,7 @@ function buscarDisponibilidadRapida(){
         if(e.estado === 'Cerrado' || e.estado === 'Cancelado') return false;
         const {fin} = eventoRange(e);
         // Devolución hoy y antes del slot de disponibilidad
-        const fechaFin = fin.toISOString().split('T')[0];
+        const fechaFin = toLocalISODate(fin);
         return fechaFin === fecha;
       });
       const avisoPrep = devolucionPrevia ? `
@@ -5233,7 +5251,7 @@ function abrirVolverseCon(id){
     if(e.estado==='Cerrado'||e.estado==='Cancelado') return false;
     if(matsYaEnlazadas.has(String(e.id)) && String(e.id)!==miEnlaceRaw) return false;
     const{fin}=eventoRange(e);
-    const finStr=fin.toISOString().split('T')[0];
+    const finStr=toLocalISODate(fin);
     return finStr===fechaStr;
   }).sort((a,b)=>eventoRange(a).fin-eventoRange(b).fin);
 
@@ -5633,7 +5651,7 @@ function diasMas(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-const today=new Date().toISOString().split('T')[0];
+const today=toLocalISODate(new Date());
 document.getElementById('disp-fecha').value=today;
 actualizarSlots();
 _updateAgendaCounts();
