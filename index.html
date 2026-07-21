@@ -1359,6 +1359,22 @@ function diasSinAlquilarNum(mat){
   const{fin}=eventoRange(ult);
   return Math.floor((Date.now()-fin.getTime())/86400000);
 }
+// Días que el coche llevará parado JUSTO ANTES de una fecha de referencia (sI),
+// teniendo en cuenta también el alquiler EN CURSO (Activo/Pendiente) que termina antes de esa fecha.
+// Sin esto, un coche que vuelve mañana podía mostrar "11 días sin moverse" (mirando su último
+// alquiler ya CERRADO, ignorando el que tiene ahora mismo en curso).
+function diasSinAlquilarHasta(mat, refDate){
+  let mejorFin=null;
+  STATE.eventos.forEach(e=>{
+    if(e.matricula!==mat||e.estado==='Cancelado'||e.tipoEvento==='ITV') return;
+    const{fin}=eventoRange(e);
+    if(fin.getTime()<=refDate.getTime()){
+      if(!mejorFin||fin.getTime()>mejorFin.getTime()) mejorFin=fin;
+    }
+  });
+  if(!mejorFin) return null;
+  return Math.max(0,Math.floor((refDate.getTime()-mejorFin.getTime())/86400000));
+}
 function diasSinAlquilarLabel(mat){
   const d=diasSinAlquilarNum(mat);
   return d===null?'':` · ${d}D SIN ALQ`;
@@ -3146,14 +3162,14 @@ function openEvento(id){
       return e2i<sF&&e2b>sI;
     });
   }).sort((a,b)=>{
-    const va=diasSinAlquilarNum(a.mat); const vb=diasSinAlquilarNum(b.mat);
+    const va=diasSinAlquilarHasta(a.mat,sI); const vb=diasSinAlquilarHasta(b.mat,sI);
     const na=va===null?Infinity:va; const nb=vb===null?Infinity:vb;
     if(na!==nb) return nb-na; // más días sin alquilar primero
     return a.mat.localeCompare(b.mat,'es',{numeric:true});
   });
 
   function diasBadge(mat){
-    const d=diasSinAlquilarNum(mat);
+    const d=diasSinAlquilarHasta(mat,sI);
     if(d===null) return `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;background:#EAF7EC;color:#1a9e4a;white-space:nowrap;">NUEVO</span>`;
     const bg=d>=7?'#FBE2E0':d>=4?'#FDF1D2':'#E7F7EA';
     const col=d>=7?'#c0302a':d>=4?'#9c6f0e':'#1a9e4a';
@@ -3325,6 +3341,7 @@ function _confirmarEntregaOK(id){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
     if(v)v.limpio=false;
   }
+  sincronizarEstadoVehiculos();
   // Confirmar comisión ahora que la entrega es real
   // Se comprueba el estado ACTUAL de HOTELES_CONFIG, no el guardado al crear la reserva,
   // para que hoteles añadidos o activados después también contabilicen.
@@ -3466,7 +3483,7 @@ function completarRecogida(id){
   if(ev.matricula){
     const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
     if(v){
-      v.estado='Disponible';
+      if(v.estado!=='Taller'&&v.estado!=='Alq. L/T'&&v.estado!=='Averiado') v.estado='Disponible';
       // ITV: el coche vuelve limpio del taller. Alquiler: vuelve sucio del cliente.
       v.limpio=esITV?true:false;
     }
@@ -3478,11 +3495,8 @@ function deshacerEntrega(id){
   const quien=ev.matricula||('Cat. '+catLabel(ev.cat));
   // confirmación directa desde botón del modal
   ev.estado='Pendiente';
-  // El coche vuelve a estar reservado (no libre)
-  if(ev.matricula){
-    const v=STATE.vehiculos.find(x=>x.mat===ev.matricula);
-    // Motor recalcula: Reservado hasta confirmar entrega
-  }
+  // El coche vuelve a estar reservado (no libre) — recalcular ya, sin esperar al próximo snapshot
+  sincronizarEstadoVehiculos();
   saveState();closeModal();renderAgenda();showToast('Entrega deshecha — vuelve a Pendiente','info');
 }
 function deshacerRecogida(id){
@@ -3557,10 +3571,16 @@ document.addEventListener('scroll',(e)=>{
 
 function asignarMatricula(id,mat){
   const ev=STATE.eventos.find(e=>String(e.id)===String(id));if(!ev)return;
+  // Validación de última hora: por si otro dispositivo asignó este coche entre que se abrió
+  // la lista y se pulsó (evita doble-reserva por condición de carrera en tiempo real)
+  if(mat){
+    const conflicto=validarConflicto(mat,ev.cat,ev.fechaIni,ev.dias,ev.id,ev.devolucionCustom||null);
+    if(conflicto){showToast('Ya no disponible: '+conflicto,'error');openEvento(id);return;}
+  }
   // Liberar matrícula anterior si había
   if(ev.matricula&&ev.matricula!==mat){
     const vOld=STATE.vehiculos.find(x=>x.mat===ev.matricula);
-    if(vOld)vOld.estado='Disponible';
+    if(vOld&&vOld.estado!=='Taller'&&vOld.estado!=='Alq. L/T'&&vOld.estado!=='Averiado') vOld.estado='Disponible';
   }
   ev.matricula=mat||'';
   if(mat){
@@ -3682,7 +3702,7 @@ function guardarEdicion(id){
   // Liberar matrícula anterior si cambia
   if(ev.matricula&&ev.matricula!==mat){
     const vOld=STATE.vehiculos.find(x=>x.mat===ev.matricula);
-    if(vOld)vOld.estado='Disponible';
+    if(vOld&&vOld.estado!=='Taller'&&vOld.estado!=='Alq. L/T'&&vOld.estado!=='Averiado') vOld.estado='Disponible';
   }
   if(mat&&mat!==ev.matricula){
     const vNew=STATE.vehiculos.find(x=>x.mat===mat);
@@ -4705,7 +4725,7 @@ function toggleModoITV(){
       const dias=parseInt(document.getElementById('disp-dias').value)||1;
       const hora=document.getElementById('itv-hora-libre').value||'09:00';
       const sI=fecha?parseFechaLocal(fecha+'T'+hora):null;
-      const sF=sI?new Date(sI.getTime()+dias*86400000):null;
+      const sF=sI?(function(){const _f=new Date(sI.getTime());_f.setDate(_f.getDate()+dias);return _f;})():null;
       const opciones=STATE.vehiculos
         .slice()
         .sort((a,b)=>{
@@ -5131,15 +5151,11 @@ function abrirGridMatriculas(){
       const limpieza=i.disp==='libre'
         ?`<div style="display:inline-block;background:${i.veh.limpio?'#1a9e4a':'#c0392b'};color:#fff;font-size:8.5px;font-weight:900;letter-spacing:.05em;padding:1px 6px;border-radius:8px;margin-top:3px;">${i.veh.limpio?'LIMPIO':'SUCIO'}</div>`
         :'';
-      // Contador días sin alquilar (solo libres)
+      // Contador días sin alquilar (solo libres) — relativo a sI, contando también el alquiler en curso
       let diasSinHtml='';
       if(i.disp==='libre'){
-        const ultimoCerrado=STATE.eventos
-          .filter(e=>e.matricula===i.mat&&e.estado==='Cerrado'&&e.tipoEvento!=='ITV')
-          .sort((a,b)=>new Date(b.fechaIni)-new Date(a.fechaIni))[0];
-        if(ultimoCerrado){
-          const{fin}=eventoRange(ultimoCerrado);
-          const d=Math.floor((Date.now()-fin.getTime())/86400000);
+        const d=diasSinAlquilarHasta(i.mat,sI);
+        if(d!==null){
           const c=d>=7?'#c0302a':d>=3?'#b7791f':'#1a9e4a';
           diasSinHtml=`<div style="font-size:8px;font-weight:900;color:${c};margin-top:2px;letter-spacing:.03em;">${d}D SIN ALQUILAR</div>`;
         }
