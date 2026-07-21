@@ -3136,7 +3136,7 @@ function openEvento(id){
   const cochesDisponibles=STATE.vehiculos.filter(v=>{
     if(v.cat!==ev.cat&&ev.cat!=='SIN CAT') return false;
     if(v.mat===ev.matricula) return true; // el coche actual siempre disponible
-    if(v.estado==='Taller'||v.estado==='Alq. L/T'||v.estado==='Averiado'||v.estado==='En alquiler') return false;
+    if(v.estado==='Taller'||v.estado==='Alq. L/T'||v.estado==='Averiado') return false;
     // Usar motor central excluyendo el propio evento
     return !STATE.eventos.some(e2=>{
       if(String(e2.id)===String(ev.id)) return false;
